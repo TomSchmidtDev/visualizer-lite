@@ -1,0 +1,10 @@
+{
+  "name": "visualizer-lite",
+  "private": true,
+  "workspaces": ["packages/api", "packages/web"],
+  "scripts": {
+    "dev:api": "npm run dev -w packages/api",
+    "build": "npm run build -w packages/api && npm run build -w packages/web",
+    "test": "npm run test -w packages/api"
+  }
+}
