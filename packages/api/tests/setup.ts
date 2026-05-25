@@ -1,4 +1,4 @@
-import { beforeAll, afterAll } from 'vitest'
+import { beforeAll } from 'vitest'
 
 beforeAll(() => {
   process.env.DATA_DIR = '/tmp/vl-test'
