@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Shot {
+  id                String    @id @default(uuid())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  startTime         DateTime
+
+  filePath          String
+  sha256            String    @unique
+
+  duration          Float?
+  beanWeight        Float?
+  drinkWeight       Float?
+  drinkTds          Float?
+  drinkEy           Float?
+
+  profileTitle      String?
+  grinderModel      String?
+  grinderSetting    String?
+  barista           String?
+
+  beanBrand         String?
+  beanType          String?
+  roastDate         DateTime?
+  roastLevel        String?
+
+  espressoEnjoyment Int?
+  fragrance         Float?
+  aroma             Float?
+  flavor            Float?
+  aftertaste        Float?
+  acidity           Float?
+  bitterness        Float?
+  sweetness         Float?
+  mouthfeel         Float?
+
+  beanNotes         String?
+  espressoNotes     String?
+  privateNotes      String?
+
+  shotData          String    // JSON as TEXT
+
+  tags              Tag[]
+
+  @@index([startTime])
+  @@index([beanBrand])
+  @@index([beanType])
+  @@index([profileTitle])
+  @@index([grinderModel])
+}
+
+model Tag {
+  id    String  @id @default(uuid())
+  name  String  @unique
+  shots Shot[]
+}
+
+model Settings {
+  key   String @id
+  value String
+}
