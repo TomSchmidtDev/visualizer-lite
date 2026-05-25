@@ -13,7 +13,8 @@ export function getPrisma(): PrismaClient {
 export const prisma = getPrisma()
 
 export async function enableWal(): Promise<void> {
-  await prisma.$executeRaw`PRAGMA journal_mode=WAL`
-  await prisma.$executeRaw`PRAGMA synchronous=NORMAL`
-  await prisma.$executeRaw`PRAGMA foreign_keys=ON`
+  // PRAGMA journal_mode returns a result row in SQLite, so use $queryRaw
+  await prisma.$queryRaw`PRAGMA journal_mode=WAL`
+  await prisma.$queryRaw`PRAGMA synchronous=NORMAL`
+  await prisma.$queryRaw`PRAGMA foreign_keys=ON`
 }
