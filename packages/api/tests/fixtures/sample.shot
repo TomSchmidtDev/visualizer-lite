@@ -1,0 +1,21 @@
+clock 1716624120
+drink_weight 36.2
+bean_weight 18.0
+grinder_model {EK43s}
+grinder_setting 2.8
+profile_title {Blooming Espresso}
+bean_brand {Gardelli}
+bean_type {Ethiopia Guji Hambela}
+roast_level light
+roast_date {2026-05-10}
+barista {Schmidt}
+espresso_elapsed {0.0 0.2 0.4 0.6 0.8 1.0 25.0 27.4}
+espresso_pressure {0.0 0.5 7.2 8.8 9.0 9.1 9.0 8.9}
+espresso_pressure_goal {9.0 9.0 9.0 9.0 9.0 9.0 9.0 9.0}
+espresso_flow {0.0 0.0 1.5 2.1 2.0 1.9 2.0 1.8}
+espresso_flow_goal {0.0 0.0 2.0 2.0 2.0 2.0 2.0 2.0}
+espresso_flow_weight {0.0 0.0 0.1 0.5 1.0 1.5 1.8 1.9}
+espresso_weight {0.0 0.0 0.0 0.5 1.2 2.1 30.0 36.2}
+espresso_temperature_mix {93.5 93.5 93.4 93.4 93.5 93.5 93.4 93.3}
+espresso_temperature_basket {94.0 94.1 94.0 94.0 94.1 94.0 93.9 93.8}
+espresso_state_change {0 0 1 0 0 0 0 0}
