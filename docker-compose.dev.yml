@@ -1,0 +1,24 @@
+services:
+  api:
+    build: { context: ., target: builder }
+    command: npm run dev:api
+    ports: ["3000:3000"]
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: "file:/data/visualizer.db"
+      DATA_DIR: /data
+      VL_USERNAME: admin
+      VL_PASSWORD: changeme
+      VL_SESSION_SECRET: "dev-secret-must-be-32-chars-ok!!"
+    volumes:
+      - ./data:/data
+      - ./packages/api/src:/app/packages/api/src
+
+  web:
+    build: { context: ., target: builder }
+    command: npm run dev -w packages/web
+    ports: ["5173:5173"]
+    environment:
+      VITE_API_URL: "http://localhost:3000"
+    volumes:
+      - ./packages/web/src:/app/packages/web/src
