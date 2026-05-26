@@ -90,6 +90,33 @@ function parseJsonShot(content: string): ParsedShot {
 // Tcl format
 
 /**
+ * Return only the "flat" (non-block) lines from a Tcl-like file.
+ * Multi-line blocks delimited by `{` / `}` at the top level are stripped.
+ * This prevents content inside blocks (like read_only_backup) from polluting
+ * the top-level key-value map.
+ */
+function stripTopLevelBlocks(content: string): string {
+  const lines = content.split('\n')
+  const result: string[] = []
+  let depth = 0
+
+  for (const line of lines) {
+    // Count brace opens/closes — only simple heuristic needed for Tcl shot format
+    const opens  = (line.match(/\{/g) ?? []).length
+    const closes = (line.match(/\}/g) ?? []).length
+
+    if (depth === 0) {
+      result.push(line)
+    }
+
+    depth += opens - closes
+    if (depth < 0) depth = 0
+  }
+
+  return result.join('\n')
+}
+
+/**
  * Extract a single value from indented lines inside blocks like settings {}.
  * Indented lines are NOT matched by the top-level regex (which requires col-0 keys).
  * Matches:  <whitespace>key {value}  or  <whitespace>key scalar
@@ -114,12 +141,16 @@ function normalizeDateStr(s: string): string {
 function parseTclShot(content: string): ParsedShot {
   const vars: Record<string, string> = {}
 
+  // Strip the settings {} block (and any other top-level multi-line blocks)
+  // so that col-0 lines inside nested blocks don't pollute vars{}.
+  const contentForVars = stripTopLevelBlocks(content)
+
   // Matches top-level (non-indented) lines only: key {braced} or key scalar
   const lineRe =
     /^(?:set\s+)?([a-zA-Z_][a-zA-Z0-9_]*)\s+(?:\{([^}]*)\}|(\S+))\s*$/gm
 
   let m: RegExpExecArray | null
-  while ((m = lineRe.exec(content)) !== null) {
+  while ((m = lineRe.exec(contentForVars)) !== null) {
     const [, name, braced, scalar] = m
     vars[name] = braced ?? scalar ?? ''
   }
@@ -169,7 +200,7 @@ function parseTclShot(content: string): ParsedShot {
   }
 
   for (const [key] of Object.entries(vars)) {
-    if (key.startsWith('espresso_') && !(key in shotData)) {
+    if (key.startsWith('espresso_') && !(key in shotData) && key !== 'espresso_elapsed') {
       const list = numList(key)
       if (list) shotData[key] = list
     }
@@ -181,7 +212,9 @@ function parseTclShot(content: string): ParsedShot {
 
   // espresso_enjoyment: 0 means "not rated" in DE1 firmware -> store as null
   const enjoymentRaw = numFb('espresso_enjoyment')
-  const espressoEnjoyment = enjoymentRaw != null && enjoymentRaw !== 0 ? enjoymentRaw : null
+  const espressoEnjoyment = enjoymentRaw != null && enjoymentRaw !== 0
+    ? Math.round(enjoymentRaw)
+    : null
 
   // beanWeight: top-level key is bean_weight; DE1 API uses grinder_dose_weight
   const beanWeight = num('bean_weight') ?? numFb('grinder_dose_weight')

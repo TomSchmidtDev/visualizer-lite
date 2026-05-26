@@ -118,7 +118,7 @@ describe('parseDecentShot - DE1 API Tcl format', () => {
   it('parses pressure channel', () => {
     const result = parseDecentShot(sampleDe1)
     expect(result.shotData.espresso_pressure).toBeDefined()
-    expect(result.shotData.espresso_pressure!.length).toBeGreaterThan(0)
+    expect(result.shotData.espresso_pressure!.length).toBeGreaterThan(100)
   })
 
   it('computes duration from last elapsed value', () => {
@@ -132,6 +132,12 @@ describe('parseDecentShot - new ParsedShot fields backward compat', () => {
     const result = parseDecentShot('clock 1716624120\nespresso_elapsed {1.0 2.0}')
     expect(result.espressoEnjoyment).toBeNull()
     expect(result.espressoNotes).toBeNull()
+  })
+
+  it('maps espresso_enjoyment > 0 to the numeric value', () => {
+    const content = 'clock 1000\nespresso_elapsed {1.0}\nespresso_enjoyment 7'
+    const result = parseDecentShot(content)
+    expect(result.espressoEnjoyment).toBe(7)
   })
 
   it('JSON v2 format returns null for new fields', () => {
