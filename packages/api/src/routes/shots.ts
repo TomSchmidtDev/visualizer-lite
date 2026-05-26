@@ -8,6 +8,7 @@ import {
   getShotFilePath,
 } from '../services/shotService.js'
 import { readFile, deleteFile } from '../services/fileStorage.js'
+import { searchShots } from '../services/searchService.js'
 
 const shotRoutes: FastifyPluginAsync = async (fastify) => {
   const auth = { preHandler: [(fastify as any).requireAuth] }
@@ -16,7 +17,8 @@ const shotRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/', auth, async (request, reply) => {
     const q = request.query as Record<string, string>
     return reply.send(
-      await listShots({
+      await searchShots({
+        q:            q.q,
         page:         q.page    ? parseInt(q.page, 10)  : 1,
         limit:        q.limit   ? parseInt(q.limit, 10) : 20,
         beanBrand:    q.beanBrand,

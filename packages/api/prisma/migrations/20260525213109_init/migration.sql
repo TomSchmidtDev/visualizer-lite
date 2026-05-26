@@ -90,8 +90,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS shots_fts USING fts5(
   grinderModel,
   espressoNotes,
   beanNotes,
-  content='Shot',
-  content_rowid='id'
+  content='Shot'
 );
 
 CREATE TRIGGER IF NOT EXISTS shots_fts_ai AFTER INSERT ON Shot BEGIN

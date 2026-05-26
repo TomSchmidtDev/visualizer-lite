@@ -3,6 +3,7 @@ import type { FastifyPluginAsync } from 'fastify'
 import { sha256, saveFile } from '../services/fileStorage.js'
 import { parseDecentShot } from '../parsers/decent.js'
 import { createShot } from '../services/shotService.js'
+import { prisma } from '../db.js'
 
 const uploadRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post(
@@ -16,6 +17,12 @@ const uploadRoutes: FastifyPluginAsync = async (fastify) => {
       const hash = sha256(buffer)
       const content = buffer.toString('utf8')
 
+      // Check for duplicate before writing to disk
+      const existing = await prisma.shot.findUnique({ where: { sha256: hash }, select: { id: true } })
+      if (existing) {
+        return reply.status(409).send({ error: 'Shot already uploaded (duplicate)' })
+      }
+
       let parsed
       try {
         parsed = parseDecentShot(content)
@@ -25,16 +32,8 @@ const uploadRoutes: FastifyPluginAsync = async (fastify) => {
 
       const date = new Date(parsed.clock * 1000)
       const filePath = saveFile(buffer, hash, date)
-
-      try {
-        const shot = await createShot(parsed, hash, filePath)
-        return reply.send({ id: shot.id })
-      } catch (e: any) {
-        if (e?.code === 'P2002') {
-          return reply.status(409).send({ error: 'Shot already uploaded (duplicate)' })
-        }
-        throw e
-      }
+      const shot = await createShot(parsed, hash, filePath)
+      return reply.send({ id: shot.id })
     }
   )
 }
