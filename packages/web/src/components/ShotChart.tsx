@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import type { ShotData } from '../types.js'
 
 interface Channel {
-  key: keyof ShotData
+  key: string
   labelKey: string
   color: string
   dash?: number[]
@@ -32,8 +32,9 @@ export default function ShotChart({ shotData }: Props) {
   const { t } = useTranslation()
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<uPlot | null>(null)
+  const sd = shotData as Record<string, number[] | undefined>
   const [visible, setVisible] = useState<Set<string>>(
-    new Set(CHANNELS.filter((c) => shotData[c.key]).map((c) => c.key))
+    new Set(CHANNELS.filter((c) => sd[c.key]).map((c) => c.key))
   )
 
   const toggle = (key: string) => {
@@ -49,12 +50,12 @@ export default function ShotChart({ shotData }: Props) {
     if (!containerRef.current) return
     chartRef.current?.destroy()
 
-    const activeChannels = CHANNELS.filter((c) => visible.has(c.key) && shotData[c.key])
+    const activeChannels = CHANNELS.filter((c) => visible.has(c.key) && sd[c.key])
     if (activeChannels.length === 0 || shotData.timeframe.length === 0) return
 
     const data: uPlot.AlignedData = [
       Float64Array.from(shotData.timeframe),
-      ...activeChannels.map((c) => Float64Array.from(shotData[c.key]!)),
+      ...activeChannels.map((c) => Float64Array.from(sd[c.key]!)),
     ]
 
     const series: uPlot.Series[] = [
@@ -94,7 +95,7 @@ export default function ShotChart({ shotData }: Props) {
     <div>
       {/* Channel toggles */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-        {CHANNELS.filter((c) => shotData[c.key]).map((c) => (
+        {CHANNELS.filter((c) => sd[c.key]).map((c) => (
           <button
             key={c.key}
             onClick={() => toggle(c.key)}
@@ -120,7 +121,7 @@ export default function ShotChart({ shotData }: Props) {
 
       {/* Legend */}
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 12 }}>
-        {CHANNELS.filter((c) => visible.has(c.key) && shotData[c.key]).map((c) => (
+        {CHANNELS.filter((c) => visible.has(c.key) && sd[c.key]).map((c) => (
           <div key={c.key} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text-muted)' }}>
             <div style={{ width: 14, height: 2, background: c.color, borderRadius: 1 }} />
             {t(c.labelKey)}
