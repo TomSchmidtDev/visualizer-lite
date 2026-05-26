@@ -7,28 +7,39 @@ interface Props {
   shot: Omit<Shot, 'shotData'>
 }
 
-function Sparkline({ data }: { data: number[] }) {
-  if (data.length < 2) return null
+interface SparkSeries { data: number[]; color: string }
+
+function Sparkline({ series }: { series: SparkSeries[] }) {
   const W = 120, H = 44, PAD = 2
-  const min = Math.min(...data)
-  const max = Math.max(...data)
+  // Compute global min/max across all series for shared scale
+  const allVals = series.flatMap((s) => s.data)
+  if (allVals.length === 0) return null
+  const min = Math.min(...allVals)
+  const max = Math.max(...allVals)
   const range = max - min || 1
-  const pts = data.map((v, i) => {
-    const x = PAD + (i / (data.length - 1)) * (W - 2 * PAD)
-    const y = H - PAD - ((v - min) / range) * (H - 2 * PAD)
-    return `${x.toFixed(1)},${y.toFixed(1)}`
-  })
+
   return (
     <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
-      <polyline
-        points={pts.join(' ')}
-        fill="none"
-        stroke="#5cb85c"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-        opacity="0.8"
-      />
+      {series.map(({ data, color }, si) => {
+        if (data.length < 2) return null
+        const pts = data.map((v, i) => {
+          const x = PAD + (i / (data.length - 1)) * (W - 2 * PAD)
+          const y = H - PAD - ((v - min) / range) * (H - 2 * PAD)
+          return `${x.toFixed(1)},${y.toFixed(1)}`
+        })
+        return (
+          <polyline
+            key={si}
+            points={pts.join(' ')}
+            fill="none"
+            stroke={color}
+            strokeWidth="1.5"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            opacity="0.85"
+          />
+        )
+      })}
     </svg>
   )
 }
@@ -43,6 +54,12 @@ export default function ShotCard({ shot }: Props) {
   const ratio = shot.beanWeight && shot.drinkWeight
     ? `1 : ${(shot.drinkWeight / shot.beanWeight).toFixed(2)}`
     : null
+
+  const sparkSeries: SparkSeries[] = [
+    shot.sparkline?.pressure   && { data: shot.sparkline.pressure,   color: '#5cb85c' },
+    shot.sparkline?.flow       && { data: shot.sparkline.flow,       color: '#4fa6e8' },
+    shot.sparkline?.weightFlow && { data: shot.sparkline.weightFlow, color: '#c87d32' },
+  ].filter(Boolean) as SparkSeries[]
 
   return (
     <div
@@ -89,9 +106,9 @@ export default function ShotCard({ shot }: Props) {
       </div>
 
       {/* Sparkline */}
-      <div style={{ width: 120, opacity: 0.85 }}>
-        {shot.sparkline && shot.sparkline.length > 1
-          ? <Sparkline data={shot.sparkline} />
+      <div style={{ width: 120, opacity: 0.9 }}>
+        {sparkSeries.length > 0
+          ? <Sparkline series={sparkSeries} />
           : (
             <svg width="120" height="44" viewBox="0 0 120 44">
               <line x1="0" y1="42" x2="120" y2="42" stroke="var(--border)" strokeWidth="1" />

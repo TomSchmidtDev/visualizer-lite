@@ -45,7 +45,7 @@ export interface Shot {
   privateNotes: string | null
   tags: string[]
   shotData?: ShotData
-  sparkline?: number[]
+  sparkline?: { pressure?: number[]; flow?: number[]; weightFlow?: number[] }
 }
 
 export interface ShotListResponse {

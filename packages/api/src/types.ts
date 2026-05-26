@@ -61,8 +61,8 @@ export interface ShotResponse {
   privateNotes: string | null
   tags: string[]
   shotData?: ShotData
-  /** Downsampled pressure curve for list sparkline (≤60 points) */
-  sparkline?: number[]
+  /** Downsampled curves for list sparkline (≤60 points each) */
+  sparkline?: { pressure?: number[]; flow?: number[]; weightFlow?: number[] }
 }
 
 export interface ShotListResponse {

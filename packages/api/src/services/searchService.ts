@@ -57,7 +57,11 @@ export async function searchShots(opts: ListOptions & { q?: string }): Promise<S
       sparkline: (() => {
         try {
           const sd = JSON.parse((s as any).shotData) as ShotData
-          return sd.espresso_pressure?.length ? downsample(sd.espresso_pressure) : undefined
+          return {
+            pressure:   sd.espresso_pressure?.length   ? downsample(sd.espresso_pressure)   : undefined,
+            flow:       sd.espresso_flow?.length        ? downsample(sd.espresso_flow)        : undefined,
+            weightFlow: sd.espresso_flow_weight?.length ? downsample(sd.espresso_flow_weight) : undefined,
+          }
         } catch { return undefined }
       })(),
     })),

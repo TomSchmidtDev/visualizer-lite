@@ -56,8 +56,12 @@ function toResponse(row: ShotWithTags, includeShotData = false, includeSparkline
   if (includeShotData || includeSparkline) {
     const sd = JSON.parse(row.shotData) as ShotData
     if (includeShotData) base.shotData = sd
-    if (includeSparkline && sd.espresso_pressure?.length) {
-      base.sparkline = downsample(sd.espresso_pressure)
+    if (includeSparkline) {
+      base.sparkline = {
+        pressure:   sd.espresso_pressure?.length   ? downsample(sd.espresso_pressure)   : undefined,
+        flow:       sd.espresso_flow?.length        ? downsample(sd.espresso_flow)        : undefined,
+        weightFlow: sd.espresso_flow_weight?.length ? downsample(sd.espresso_flow_weight) : undefined,
+      }
     }
   }
   return base

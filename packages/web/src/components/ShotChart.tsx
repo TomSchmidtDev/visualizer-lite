@@ -14,7 +14,6 @@ interface Channel {
   unit: string
 }
 
-// Colors matched to original Visualizer
 const CHANNELS: Channel[] = [
   { key: 'espresso_pressure',           labelKey: 'detail.pressure',       color: '#5cb85c', width: 2.5, unit: 'bar' },
   { key: 'espresso_pressure_goal',      labelKey: 'detail.pressureGoal',   color: '#5cb85c', dash: [5, 4], width: 1.5, unit: 'bar' },
@@ -28,10 +27,39 @@ const CHANNELS: Channel[] = [
   { key: 'espresso_resistance',         labelKey: 'detail.resistance',     color: '#f5e642', width: 1.5, unit: 'lΩ' },
 ]
 
+// Default-aktive Kanäle in der Detailansicht
+const DEFAULT_CHANNELS = new Set([
+  'espresso_pressure', 'espresso_pressure_goal',
+  'espresso_flow', 'espresso_flow_goal',
+  'espresso_flow_weight',
+])
+
+const TEMP_CHANNELS = new Set([
+  'espresso_temperature_mix', 'espresso_temperature_basket',
+])
+
+// Sentinel-Wert der DE1 für "kein Step-Wechsel"
+const STATE_SENTINEL = 9_000_000
+
+/** Liefert die Zeitpunkte (in Sekunden) der Profil-Steps aus espresso_state_change */
+function getStepTimes(stateChange: number[] | undefined, timeframe: number[]): number[] {
+  if (!stateChange || !timeframe.length) return []
+  const seen = new Set<number>()
+  const result: number[] = []
+  for (let i = 1; i < stateChange.length; i++) {
+    const v = stateChange[i]
+    if (v < STATE_SENTINEL && v > 0) {
+      const t = Math.round(timeframe[i] * 100) / 100
+      if (!seen.has(t)) { seen.add(t); result.push(t) }
+    }
+  }
+  return result
+}
+
+// ─── Tooltip plugin ──────────────────────────────────────────────────────────
+
 function el<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  styles?: Partial<CSSStyleDeclaration>,
-  text?: string
+  tag: K, styles?: Partial<CSSStyleDeclaration>, text?: string
 ): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag)
   if (styles) Object.assign(e.style, styles)
@@ -39,26 +67,18 @@ function el<K extends keyof HTMLElementTagNameMap>(
   return e
 }
 
-// uPlot plugin: floating tooltip on cursor move
 function tooltipPlugin(
   channels: Channel[],
   data: uPlot.AlignedData,
+  stepTimes: number[],
   translate: (k: string) => string
 ): uPlot.Plugin {
   const tooltip = el('div', {
-    position: 'absolute',
-    background: 'rgba(10,13,26,0.93)',
-    color: '#e2e8f0',
-    border: '1px solid rgba(255,255,255,0.12)',
-    borderRadius: '8px',
-    padding: '8px 12px',
-    pointerEvents: 'none',
-    fontSize: '12px',
-    lineHeight: '1.75',
-    display: 'none',
-    zIndex: '100',
-    whiteSpace: 'nowrap',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+    position: 'absolute', background: 'rgba(10,13,26,0.93)',
+    color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.12)',
+    borderRadius: '8px', padding: '8px 12px', pointerEvents: 'none',
+    fontSize: '12px', lineHeight: '1.75', display: 'none',
+    zIndex: '100', whiteSpace: 'nowrap', boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
   })
 
   const fmtTime = (s: number): string => {
@@ -74,37 +94,42 @@ function tooltipPlugin(
         const { left, top, idx } = u.cursor
         if (idx == null || left == null) { tooltip.style.display = 'none'; return }
 
-        // Clear and rebuild tooltip content
         while (tooltip.firstChild) tooltip.removeChild(tooltip.firstChild)
 
         const t0 = data[0][idx] as number
-        tooltip.appendChild(el('div', { color: '#94a3b8', marginBottom: '3px' }, fmtTime(t0)))
+
+        // Nächster Step?
+        const nearStep = stepTimes.find((st) => Math.abs(st - t0) < 0.3)
+        const stepIdx  = nearStep != null ? stepTimes.indexOf(nearStep) : -1
+
+        const timeRow = el('div', { color: '#94a3b8', marginBottom: '3px' })
+        timeRow.appendChild(document.createTextNode(fmtTime(t0)))
+        if (stepIdx >= 0) {
+          const badge = el('span', {
+            marginLeft: '8px', background: 'rgba(255,255,255,0.15)',
+            borderRadius: '4px', padding: '1px 6px', fontSize: '11px', color: '#e2e8f0',
+          }, `Step ${stepIdx + 1}`)
+          timeRow.appendChild(badge)
+        }
+        tooltip.appendChild(timeRow)
 
         channels.forEach((ch, ci) => {
           const val = (data[ci + 1] as Float64Array)?.[idx]
           if (val == null || isNaN(val)) return
-
           const row = el('div', { display: 'flex', alignItems: 'center', gap: '6px' })
-
           const swatch = el('span', { display: 'inline-block', width: '16px' })
-          swatch.style.borderTop = ch.dash
-            ? `1.5px dashed ${ch.color}`
-            : `2px solid ${ch.color}`
+          swatch.style.borderTop = ch.dash ? `1.5px dashed ${ch.color}` : `2px solid ${ch.color}`
           row.appendChild(swatch)
           row.appendChild(el('span', {}, translate(ch.labelKey) + ':'))
-
-          const valEl = el('strong', {}, `${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${ch.unit}`)
-          row.appendChild(valEl)
+          row.appendChild(el('strong', {},
+            `${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${ch.unit}`
+          ))
           tooltip.appendChild(row)
         })
 
         tooltip.style.display = 'block'
-
-        // Position: avoid right/bottom overflow
-        const ow = u.over.offsetWidth
-        const oh = u.over.offsetHeight
-        const tw = tooltip.offsetWidth || 210
-        const th = tooltip.offsetHeight || 120
+        const ow = u.over.offsetWidth, oh = u.over.offsetHeight
+        const tw = tooltip.offsetWidth || 210, th = tooltip.offsetHeight || 120
         tooltip.style.left = `${left + 15 + tw > ow ? left - tw - 10 : left + 15}px`
         tooltip.style.top  = `${(top ?? 0) + 10 + th > oh ? (top ?? 0) - th - 5 : (top ?? 0) + 10}px`
       },
@@ -112,20 +137,59 @@ function tooltipPlugin(
   }
 }
 
-interface Props {
-  shotData: ShotData
+// ─── Step-Markierungen plugin ─────────────────────────────────────────────────
+
+function stepMarkersPlugin(stepTimes: number[]): uPlot.Plugin {
+  if (stepTimes.length === 0) return { hooks: {} }
+  return {
+    hooks: {
+      draw: (u) => {
+        const ctx = u.ctx
+        const { left, top, width, height } = u.bbox
+        ctx.save()
+        ctx.strokeStyle = 'rgba(255,255,255,0.28)'
+        ctx.lineWidth = 1
+        ctx.setLineDash([4, 4])
+        ctx.font = '10px sans-serif'
+        ctx.fillStyle = 'rgba(255,255,255,0.45)'
+        ctx.textAlign = 'center'
+
+        stepTimes.forEach((t, i) => {
+          const x = Math.round(u.valToPos(t, 'x', true))
+          if (x < left || x > left + width) return
+          ctx.beginPath()
+          ctx.moveTo(x, top)
+          ctx.lineTo(x, top + height)
+          ctx.stroke()
+          // Label
+          ctx.setLineDash([])
+          ctx.fillText(`${i + 1}`, x, top + 10)
+          ctx.setLineDash([4, 4])
+        })
+        ctx.restore()
+      },
+    },
+  }
 }
+
+// ─── Hauptkomponente ──────────────────────────────────────────────────────────
+
+interface Props { shotData: ShotData }
 
 export default function ShotChart({ shotData }: Props) {
   const { t } = useTranslation()
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<uPlot | null>(null)
   const sd = shotData as Record<string, number[] | undefined>
-  const [visible, setVisible] = useState<Set<string>>(
-    new Set(CHANNELS.filter((c) => sd[c.key]).map((c) => c.key))
+
+  const [visible, setVisible] = useState<Set<string>>(() =>
+    new Set(CHANNELS.filter((c) => sd[c.key] && DEFAULT_CHANNELS.has(c.key)).map((c) => c.key))
   )
+  const [tempMode, setTempMode] = useState(false)
+  const prevVisible = useRef<Set<string>>(visible)
 
   const toggle = (key: string) => {
+    if (tempMode) return // im Temp-Modus kein Einzelschalten
     setVisible((prev) => {
       const next = new Set(prev)
       if (next.has(key)) next.delete(key)
@@ -133,6 +197,18 @@ export default function ShotChart({ shotData }: Props) {
       return next
     })
   }
+
+  const toggleTempMode = () => {
+    if (!tempMode) {
+      prevVisible.current = new Set(visible)
+      setVisible(new Set(CHANNELS.filter((c) => sd[c.key] && TEMP_CHANNELS.has(c.key)).map((c) => c.key)))
+    } else {
+      setVisible(new Set(prevVisible.current))
+    }
+    setTempMode((m) => !m)
+  }
+
+  const stepTimes = getStepTimes(sd['espresso_state_change'], shotData.timeframe)
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -149,10 +225,7 @@ export default function ShotChart({ shotData }: Props) {
     const series: uPlot.Series[] = [
       {},
       ...activeChannels.map((c) => ({
-        label: t(c.labelKey),
-        stroke: c.color,
-        width: c.width ?? 2,
-        dash: c.dash,
+        label: t(c.labelKey), stroke: c.color, width: c.width ?? 2, dash: c.dash,
       })),
     ]
 
@@ -168,37 +241,37 @@ export default function ShotChart({ shotData }: Props) {
           { stroke: '#64748b', size: 50, ticks: { stroke: '#1e293b' }, grid: { stroke: '#1e293b' } },
         ],
         series,
-        plugins: [tooltipPlugin(activeChannels, data, t)],
+        plugins: [
+          stepMarkersPlugin(stepTimes),
+          tooltipPlugin(activeChannels, data, stepTimes, t),
+        ],
       },
       data,
       containerRef.current
     )
 
-    return () => {
-      chartRef.current?.destroy()
-      chartRef.current = null
-    }
-  }, [visible, shotData, t])
+    return () => { chartRef.current?.destroy(); chartRef.current = null }
+  }, [visible, shotData, t, stepTimes])
+
+  const hasTempData = CHANNELS.some((c) => TEMP_CHANNELS.has(c.key) && sd[c.key])
 
   return (
     <div>
-      {/* Channel toggles */}
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+      {/* Toolbar: Kanal-Toggles + Temp-Schalter */}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10, alignItems: 'center' }}>
         {CHANNELS.filter((c) => sd[c.key]).map((c) => (
           <button
             key={c.key}
             onClick={() => toggle(c.key)}
+            disabled={tempMode}
             style={{
               background: visible.has(c.key) ? `${c.color}22` : 'var(--bg-input)',
               border: `1px solid ${visible.has(c.key) ? c.color : 'var(--border-focus)'}`,
-              borderRadius: 4,
-              padding: '3px 10px',
-              fontSize: 11,
+              borderRadius: 4, padding: '3px 10px', fontSize: 11,
               color: visible.has(c.key) ? c.color : 'var(--text-muted)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
+              cursor: tempMode ? 'default' : 'pointer',
+              opacity: tempMode && !TEMP_CHANNELS.has(c.key) ? 0.4 : 1,
+              display: 'flex', alignItems: 'center', gap: 6,
             }}
           >
             <span style={{
@@ -208,6 +281,22 @@ export default function ShotChart({ shotData }: Props) {
             {t(c.labelKey)}
           </button>
         ))}
+
+        {hasTempData && (
+          <button
+            onClick={toggleTempMode}
+            style={{
+              marginLeft: 8,
+              background: tempMode ? '#e87d3222' : 'var(--bg-input)',
+              border: `1px solid ${tempMode ? '#e87d32' : 'var(--border-focus)'}`,
+              borderRadius: 4, padding: '3px 12px', fontSize: 11,
+              color: tempMode ? '#e87d32' : 'var(--text-muted)',
+              cursor: 'pointer', fontWeight: 600,
+            }}
+          >
+            {tempMode ? '↩ ' : ''}°C
+          </button>
+        )}
       </div>
 
       {/* uPlot chart */}
