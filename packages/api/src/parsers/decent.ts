@@ -4,8 +4,9 @@ import type { ParsedShot, ShotData } from '../types.js'
 /**
  * Parse a Decent Espresso .shot file.
  * Supports:
- *   - Legacy Tcl format (no version header, set varname value lines)
- *   - JSON format version 2 ({"version":"2", "elapsed":[...], ...})
+ *   - Legacy Tcl format (top-level key-value pairs)
+ *   - DE1 API Tcl format (metadata inside settings {} block)
+ *   - JSON format version 2
  */
 export function parseDecentShot(content: string): ParsedShot {
   const trimmed = content.trimStart()
@@ -15,7 +16,7 @@ export function parseDecentShot(content: string): ParsedShot {
   return parseTclShot(content)
 }
 
-// ─── JSON format (version 2) ─────────────────────────────────────────────────
+// JSON format (version 2)
 
 function parseJsonShot(content: string): ParsedShot {
   const data = JSON.parse(content)
@@ -34,7 +35,6 @@ function parseJsonShot(content: string): ParsedShot {
     return isNaN(n) ? null : n
   }
 
-  // Metadata: v2 nests under profile / meta / meta.bean / meta.grinder
   const profile = data.profile ?? {}
   const meta    = data.meta    ?? {}
   const bean    = meta.bean    ?? {}
@@ -42,7 +42,6 @@ function parseJsonShot(content: string): ParsedShot {
 
   const timeframe = numArr(data.elapsed) ?? []
 
-  // state_change: sentinel value 10000000.0 means "no change at this step" — keep raw
   const shotData: ShotData = {
     timeframe,
     espresso_pressure:           numArr(data.pressure?.pressure),
@@ -57,7 +56,6 @@ function parseJsonShot(content: string): ParsedShot {
     espresso_state_change:       numArr(data.state_change),
   }
 
-  // Extra channels present in v2
   const extras: Record<string, unknown> = {
     espresso_resistance:       data.resistance?.resistance,
     espresso_flow_weight_raw:  data.flow?.by_weight_raw,
@@ -72,27 +70,51 @@ function parseJsonShot(content: string): ParsedShot {
 
   return {
     clock,
-    beanBrand:      str(bean.brand)   ?? str(data.bean_brand),
-    beanType:       str(bean.type)    ?? str(data.bean_type),
-    beanWeight:     num(meta.in)      ?? num(data.bean_weight),
-    drinkWeight:    num(meta.out)     ?? num(data.drink_weight),
-    duration:       timeframe.length > 0 ? timeframe[timeframe.length - 1] : null,
-    grinderModel:   str(grinder.model)   ?? str(data.grinder_model),
-    grinderSetting: str(grinder.setting) ?? str(data.grinder_setting),
-    barista:        str(data.barista),
-    profileTitle:   str(profile.title)   ?? str(data.profile_title),
-    roastLevel:     str(bean.roast_level) ?? str(data.roast_level),
-    roastDate:      str(bean.roast_date)  ?? str(data.roast_date),
+    beanBrand:         str(bean.brand)        ?? str(data.bean_brand),
+    beanType:          str(bean.type)         ?? str(data.bean_type),
+    beanWeight:        num(meta.in)           ?? num(data.bean_weight),
+    drinkWeight:       num(meta.out)          ?? num(data.drink_weight),
+    duration:          timeframe.length > 0 ? timeframe[timeframe.length - 1] : null,
+    grinderModel:      str(grinder.model)     ?? str(data.grinder_model),
+    grinderSetting:    str(grinder.setting)   ?? str(data.grinder_setting),
+    barista:           str(data.barista),
+    profileTitle:      str(profile.title)     ?? str(data.profile_title),
+    roastLevel:        str(bean.roast_level)  ?? str(data.roast_level),
+    roastDate:         str(bean.roast_date)   ?? str(data.roast_date),
+    espressoEnjoyment: null,
+    espressoNotes:     null,
     shotData,
   }
 }
 
-// ─── Tcl format (legacy) ──────────────────────────────────────────────────────
+// Tcl format
+
+/**
+ * Extract a single value from indented lines inside blocks like settings {}.
+ * Indented lines are NOT matched by the top-level regex (which requires col-0 keys).
+ * Matches:  <whitespace>key {value}  or  <whitespace>key scalar
+ */
+function extractFromSettings(content: string, key: string): string | null {
+  const re = new RegExp(`^\\s+${key}\\s+(?:\\{([^}]*)\\}|(\\S+))`, 'm')
+  const m = content.match(re)
+  if (!m) return null
+  return (m[1] ?? m[2] ?? '').trim() || null
+}
+
+/**
+ * Normalize DD.MM.YYYY to YYYY-MM-DD so new Date() parses it correctly.
+ * Returns the original string unchanged for any other format.
+ */
+function normalizeDateStr(s: string): string {
+  const m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/)
+  if (!m) return s
+  return `${m[3]}-${m[2]}-${m[1]}`
+}
 
 function parseTclShot(content: string): ParsedShot {
   const vars: Record<string, string> = {}
 
-  // Match: (set )?identifier {braced content} or scalar
+  // Matches top-level (non-indented) lines only: key {braced} or key scalar
   const lineRe =
     /^(?:set\s+)?([a-zA-Z_][a-zA-Z0-9_]*)\s+(?:\{([^}]*)\}|(\S+))\s*$/gm
 
@@ -114,12 +136,20 @@ function parseTclShot(content: string): ParsedShot {
   const numList = (key: string): number[] | undefined => {
     const v = vars[key]
     if (!v) return undefined
-    const nums = v
-      .trim()
-      .split(/\s+/)
-      .map(Number)
-      .filter((n) => !isNaN(n))
+    const nums = v.trim().split(/\s+/).map(Number).filter((n) => !isNaN(n))
     return nums.length > 0 ? nums : undefined
+  }
+
+  // Fallback helpers: prefer settings {} block (avoids read_only_backup pollution),
+  // fall back to top-level top-level vars.
+  const strFb = (key: string): string | null =>
+    extractFromSettings(content, key) ?? str(key)
+
+  const numFb = (key: string): number | null => {
+    const v = strFb(key)
+    if (!v) return null
+    const n = parseFloat(v)
+    return isNaN(n) ? null : n
   }
 
   const timeframe = numList('espresso_elapsed') ?? []
@@ -138,7 +168,6 @@ function parseTclShot(content: string): ParsedShot {
     espresso_state_change:       numList('espresso_state_change'),
   }
 
-  // Preserve any additional espresso_ channels from future firmware
   for (const [key] of Object.entries(vars)) {
     if (key.startsWith('espresso_') && !(key in shotData)) {
       const list = numList(key)
@@ -146,19 +175,35 @@ function parseTclShot(content: string): ParsedShot {
     }
   }
 
+  // roast_date: may be ISO (sample.shot) or DD.MM.YYYY (DE1 API shot)
+  const rawRoastDate = strFb('roast_date')
+  const roastDate = rawRoastDate ? normalizeDateStr(rawRoastDate) : null
+
+  // espresso_enjoyment: 0 means "not rated" in DE1 firmware -> store as null
+  const enjoymentRaw = numFb('espresso_enjoyment')
+  const espressoEnjoyment = enjoymentRaw != null && enjoymentRaw !== 0 ? enjoymentRaw : null
+
+  // beanWeight: top-level key is bean_weight; DE1 API uses grinder_dose_weight
+  const beanWeight = num('bean_weight') ?? numFb('grinder_dose_weight')
+
+  // barista: top-level key is barista; DE1 API uses drinker_name inside settings
+  const barista = str('barista') ?? strFb('drinker_name')
+
   return {
-    clock:          num('clock') ?? Math.floor(Date.now() / 1000),
-    beanBrand:      str('bean_brand'),
-    beanType:       str('bean_type'),
-    beanWeight:     num('bean_weight'),
-    drinkWeight:    num('drink_weight'),
-    duration:       timeframe.length > 0 ? timeframe[timeframe.length - 1] : null,
-    grinderModel:   str('grinder_model'),
-    grinderSetting: str('grinder_setting'),
-    barista:        str('barista'),
-    profileTitle:   str('profile_title'),
-    roastLevel:     str('roast_level'),
-    roastDate:      str('roast_date'),
+    clock:            num('clock') ?? Math.floor(Date.now() / 1000),
+    beanBrand:        strFb('bean_brand'),
+    beanType:         strFb('bean_type'),
+    beanWeight,
+    drinkWeight:      numFb('drink_weight'),
+    duration:         timeframe.length > 0 ? timeframe[timeframe.length - 1] : null,
+    grinderModel:     strFb('grinder_model'),
+    grinderSetting:   strFb('grinder_setting'),
+    barista,
+    profileTitle:     strFb('profile_title'),
+    roastLevel:       strFb('roast_level'),
+    roastDate,
+    espressoEnjoyment,
+    espressoNotes:    strFb('espresso_notes'),
     shotData,
   }
 }

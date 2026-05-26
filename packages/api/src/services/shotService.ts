@@ -88,6 +88,8 @@ export async function createShot(
       beanType: parsed.beanType,
       roastLevel: parsed.roastLevel,
       roastDate: parsed.roastDate ? new Date(parsed.roastDate) : null,
+      espressoEnjoyment: parsed.espressoEnjoyment,
+      espressoNotes:     parsed.espressoNotes,
       shotData: JSON.stringify(parsed.shotData),
     },
     include: { tags: true },

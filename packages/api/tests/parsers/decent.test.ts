@@ -66,6 +66,82 @@ describe('parseDecentShot', () => {
   })
 })
 
+describe('parseDecentShot - DE1 API Tcl format', () => {
+  const sampleDe1 = readFileSync(join(__dirname, '../fixtures/sample-de1-api.shot'), 'utf8')
+
+  it('parses clock from top-level', () => {
+    const result = parseDecentShot(sampleDe1)
+    expect(result.clock).toBe(1779790787)
+  })
+
+  it('parses bean metadata from settings block', () => {
+    const result = parseDecentShot(sampleDe1)
+    expect(result.beanBrand).toBe('Machhörndl')
+    expect(result.beanType).toBe('Brasilien Corrego do Macedo')
+    expect(result.beanWeight).toBe(18.0)
+    expect(result.drinkWeight).toBe(40.0)
+  })
+
+  it('parses grinder metadata from settings block', () => {
+    const result = parseDecentShot(sampleDe1)
+    expect(result.grinderModel).toBe('Timemore Sculptor 078S')
+    expect(result.grinderSetting).toBe('3.9')
+    expect(result.profileTitle).toBe('Slayer 4 (AMOC)')
+  })
+
+  it('normalizes DD.MM.YYYY roast date to ISO YYYY-MM-DD', () => {
+    const result = parseDecentShot(sampleDe1)
+    expect(result.roastDate).toBe('2026-04-30')
+  })
+
+  it('maps espresso_enjoyment=0 to null', () => {
+    const result = parseDecentShot(sampleDe1)
+    expect(result.espressoEnjoyment).toBeNull()
+  })
+
+  it('maps empty espresso_notes to null', () => {
+    const result = parseDecentShot(sampleDe1)
+    expect(result.espressoNotes).toBeNull()
+  })
+
+  it('maps empty drinker_name to null barista', () => {
+    const result = parseDecentShot(sampleDe1)
+    expect(result.barista).toBeNull()
+  })
+
+  it('parses time series from top-level espresso_elapsed', () => {
+    const result = parseDecentShot(sampleDe1)
+    expect(result.shotData.timeframe.length).toBeGreaterThan(0)
+    expect(result.shotData.timeframe[0]).toBeCloseTo(0.037)
+  })
+
+  it('parses pressure channel', () => {
+    const result = parseDecentShot(sampleDe1)
+    expect(result.shotData.espresso_pressure).toBeDefined()
+    expect(result.shotData.espresso_pressure!.length).toBeGreaterThan(0)
+  })
+
+  it('computes duration from last elapsed value', () => {
+    const result = parseDecentShot(sampleDe1)
+    expect(result.duration).toBeGreaterThan(40)
+  })
+})
+
+describe('parseDecentShot - new ParsedShot fields backward compat', () => {
+  it('regular Tcl format returns null for new fields', () => {
+    const result = parseDecentShot('clock 1716624120\nespresso_elapsed {1.0 2.0}')
+    expect(result.espressoEnjoyment).toBeNull()
+    expect(result.espressoNotes).toBeNull()
+  })
+
+  it('JSON v2 format returns null for new fields', () => {
+    const sampleV2 = readFileSync(join(__dirname, '../fixtures/sample-v2.shot'), 'utf8')
+    const result = parseDecentShot(sampleV2)
+    expect(result.espressoEnjoyment).toBeNull()
+    expect(result.espressoNotes).toBeNull()
+  })
+})
+
 describe('parseDecentShot – JSON v2 format', () => {
   it('detects and parses JSON format', () => {
     const result = parseDecentShot(sampleShotV2)

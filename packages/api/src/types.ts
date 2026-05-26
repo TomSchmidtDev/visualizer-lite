@@ -28,6 +28,8 @@ export interface ParsedShot {
   profileTitle: string | null
   roastLevel: string | null
   roastDate: string | null
+  espressoEnjoyment: number | null
+  espressoNotes: string | null
   shotData: ShotData
 }
 
