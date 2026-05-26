@@ -4,7 +4,7 @@ import { api } from '../api/client.js'
 
 export function useAuth() {
   const [loggedIn, setLoggedIn] = useState(() => {
-    return document.cookie.includes('token=')
+    return document.cookie.includes('vl_loggedin=')
   })
 
   const login = useCallback(async (password: string) => {

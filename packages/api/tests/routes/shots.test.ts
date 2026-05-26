@@ -25,7 +25,7 @@ function multipart(file: Buffer, filename: string): string {
 async function upload() {
   return app.inject({
     method: 'POST',
-    url: '/shots/upload',
+    url: '/api/shots/upload',
     headers: { cookie, 'content-type': 'multipart/form-data; boundary=B' },
     payload: multipart(shotFile, 'test.shot'),
   })
@@ -65,7 +65,7 @@ describe('POST /shots/upload', () => {
 
   it('returns 401 without auth', async () => {
     const res = await app.inject({
-      method: 'POST', url: '/shots/upload',
+      method: 'POST', url: '/api/shots/upload',
       headers: { 'content-type': 'multipart/form-data; boundary=B' },
       payload: multipart(shotFile, 'test.shot'),
     })
@@ -75,7 +75,7 @@ describe('POST /shots/upload', () => {
   it('accepts Basic Auth (Visualizer API compat)', async () => {
     const auth = 'Basic ' + Buffer.from('admin:testpass').toString('base64')
     const res = await app.inject({
-      method: 'POST', url: '/shots/upload',
+      method: 'POST', url: '/api/shots/upload',
       headers: { authorization: auth, 'content-type': 'multipart/form-data; boundary=B' },
       payload: multipart(shotFile, 'test.shot'),
     })

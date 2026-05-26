@@ -10,7 +10,7 @@ import Upload from './pages/Upload.js'
 import Settings from './pages/Settings.js'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const loggedIn = document.cookie.includes('token=')
+  const loggedIn = document.cookie.includes('vl_loggedin=')
   return loggedIn ? <>{children}</> : <Navigate to="/login" replace />
 }
 

@@ -28,11 +28,23 @@ export async function buildServer(httpsOpts?: { key: Buffer; cert: Buffer }) {
   })
   await fastify.register(multipart, { limits: { fileSize: 50 * 1024 * 1024 } })
   await fastify.register(cors, { origin: false })
+
+  // Normalize non-standard multipart Content-Type sent by Decent Espresso plugin:
+  // "multipart/form-data, charset=utf-8, boundary=..." → "multipart/form-data; boundary=..."
+  fastify.addHook('preParsing', async (request) => {
+    const ct = request.headers['content-type']
+    if (ct?.startsWith('multipart/form-data') && ct.includes(',')) {
+      const normalized = ct.replace(/,\s*/g, '; ')
+      request.raw.headers['content-type'] = normalized
+      ;(request.headers as any)['content-type'] = normalized
+    }
+  })
+
   await fastify.register(authPlugin)
 
   await fastify.register(authRoutes,     { prefix: '/api/auth' })
   await fastify.register(shotRoutes,     { prefix: '/api/shots' })
-  await fastify.register(uploadRoutes)                             // /shots/upload
+  await fastify.register(uploadRoutes,   { prefix: '/api' })       // /api/shots/upload
   await fastify.register(searchRoutes,   { prefix: '/api/search' })
   await fastify.register(settingsRoutes, { prefix: '/api/settings' })
   await fastify.register(statsRoutes,    { prefix: '/api/stats' })
