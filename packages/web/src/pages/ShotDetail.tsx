@@ -72,7 +72,7 @@ export default function ShotDetail() {
           {/* Extraction values */}
           <div className="card" style={{ marginBottom: 16 }}>
             <div className="card-title">{t('detail.extractionValues')}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
               {[
                 { label: `${t('shots.dose')} → ${t('shots.yield')}`, value: shot.beanWeight && shot.drinkWeight ? `${shot.beanWeight}g → ${shot.drinkWeight}g` : null },
                 { label: t('shots.ratio'), value: ratio },
