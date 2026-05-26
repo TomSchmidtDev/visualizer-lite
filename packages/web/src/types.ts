@@ -67,6 +67,7 @@ export interface AppSettings {
   language: string
   theme: string
   username: string
+  de1Url: string
 }
 
 export interface Stats {

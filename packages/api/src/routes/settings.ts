@@ -11,8 +11,9 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
     const map = Object.fromEntries(rows.map((r) => [r.key, r.value]))
     return reply.send({
       language: map.language ?? 'auto',
-      theme: map.theme ?? 'dark',
+      theme:    map.theme    ?? 'dark',
       username: map.username ?? 'admin',
+      de1Url:   map.de1Url   ?? '',
     })
   })
 
@@ -20,11 +21,13 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
     Body: {
       language?: string
       theme?: string
+      de1Url?: string
       currentPassword?: string
       newPassword?: string
     }
   }>('/', auth, async (request, reply) => {
-    const { language, theme, currentPassword, newPassword } = request.body
+    const { language, theme, de1Url, currentPassword, newPassword } = request.body
+
     if (language)
       await prisma.settings.upsert({
         where: { key: 'language' },
@@ -36,6 +39,12 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
         where: { key: 'theme' },
         create: { key: 'theme', value: theme },
         update: { value: theme },
+      })
+    if (de1Url !== undefined)
+      await prisma.settings.upsert({
+        where: { key: 'de1Url' },
+        create: { key: 'de1Url', value: de1Url },
+        update: { value: de1Url },
       })
     if (currentPassword && newPassword) {
       const row = await prisma.settings.findUnique({ where: { key: 'passwordHash' } })

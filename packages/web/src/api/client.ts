@@ -97,4 +97,25 @@ export const api = {
   exportAll: () => {
     window.location.href = '/api/export'
   },
+
+  // DE1 direct import
+  testDe1Connection: () =>
+    request<{ ok: boolean; total: number }>('/api/de1/test'),
+
+  previewDe1Import: (dateFrom: string, dateTo: string) =>
+    request<{ count: number; shots: { filename: string; date: string }[] }>(
+      '/api/de1/preview',
+      { method: 'POST', body: JSON.stringify({ dateFrom, dateTo }) }
+    ),
+
+  startDe1Import: (dateFrom: string, dateTo: string) =>
+    request<{
+      imported: number
+      updated: number
+      errors: number
+      errorDetails: { filename: string; message: string }[]
+    }>(
+      '/api/de1/import',
+      { method: 'POST', body: JSON.stringify({ dateFrom, dateTo }) }
+    ),
 }
