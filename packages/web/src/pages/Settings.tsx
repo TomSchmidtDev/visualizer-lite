@@ -1,5 +1,5 @@
 // packages/web/src/pages/Settings.tsx
-import { useState, FormEvent } from 'react'
+import { useState, useEffect, FormEvent } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api/client.js'
@@ -30,17 +30,22 @@ export default function Settings() {
 
   const [de1Url, setDe1Url] = useState('')
   const [de1Phase, setDe1Phase] = useState<De1Phase>({ name: 'idle' })
+  const [de1Total, setDe1Total] = useState(0)
   const [dateFrom, setDateFrom] = useState('2020-01-01')
   const [dateTo, setDateTo] = useState(todayStr)
 
   const { data: settings } = useQuery({
     queryKey: ['settings'],
-    queryFn: async () => {
-      const s = await api.getSettings()
-      setDe1Url((prev) => prev || s.de1Url || '')
-      return s
-    },
+    queryFn: () => api.getSettings(),
   })
+
+  // Initialize de1Url from settings once on first load (when field is still empty)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (settings?.de1Url && !de1Url) {
+      setDe1Url(settings.de1Url)
+    }
+  }, [settings?.de1Url])
 
   const { data: stats } = useQuery({
     queryKey: ['stats'],
@@ -84,6 +89,7 @@ export default function Settings() {
     setDe1Phase({ name: 'testing' })
     try {
       const res = await api.testDe1Connection()
+      setDe1Total(res.total)
       setDe1Phase({ name: 'connected', total: res.total })
     } catch (err) {
       setDe1Phase({
@@ -121,11 +127,6 @@ export default function Settings() {
       })
     }
   }
-
-  const totalForDateReset =
-    de1Phase.name === 'connected' ? de1Phase.total :
-    de1Phase.name === 'previewing' || de1Phase.name === 'previewed' ||
-    de1Phase.name === 'importing'  || de1Phase.name === 'done' ? 0 : 0
 
   const showDateRange =
     de1Phase.name === 'connected'   || de1Phase.name === 'previewing' ||
@@ -258,7 +259,7 @@ export default function Settings() {
                   value={dateFrom}
                   onChange={(e) => {
                     setDateFrom(e.target.value)
-                    setDe1Phase({ name: 'connected', total: totalForDateReset })
+                    setDe1Phase({ name: 'connected', total: de1Total })
                   }}
                 />
               </div>
@@ -271,7 +272,7 @@ export default function Settings() {
                   value={dateTo}
                   onChange={(e) => {
                     setDateTo(e.target.value)
-                    setDe1Phase({ name: 'connected', total: totalForDateReset })
+                    setDe1Phase({ name: 'connected', total: de1Total })
                   }}
                 />
               </div>

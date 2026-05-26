@@ -54,6 +54,15 @@ afterEach(() => {
 })
 
 describe('GET /api/de1/test', () => {
+  // Ensure de1Url setting is present before each test in this describe
+  beforeEach(async () => {
+    await prisma.settings.upsert({
+      where: { key: 'de1Url' },
+      create: { key: 'de1Url', value: DE1_URL },
+      update: { value: DE1_URL },
+    })
+  })
+
   it('returns ok and total when DE1 is reachable', async () => {
     vi.stubGlobal('fetch', makeFetch({
       [`${DE1_URL}/api/shot/`]: {
@@ -87,8 +96,7 @@ describe('GET /api/de1/test', () => {
       method: 'GET', url: '/api/de1/test', headers: { cookie },
     })
     expect(res.statusCode).toBe(400)
-    // Restore
-    await prisma.settings.create({ data: { key: 'de1Url', value: DE1_URL } })
+    // Restoration is handled by the beforeEach above
   })
 
   it('returns 401 without auth', async () => {

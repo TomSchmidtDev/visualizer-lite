@@ -26,7 +26,8 @@ export async function getDe1Url(): Promise<string | null> {
  * Times out after 5 seconds. Throws on network error or non-200 response.
  */
 export async function fetchShotList(de1Url: string): Promise<string[]> {
-  const res = await fetch(`${de1Url}/api/shot/`, {
+  const base = de1Url.replace(/\/+$/, '')
+  const res = await fetch(`${base}/api/shot/`, {
     signal: AbortSignal.timeout(5000),
   })
   if (!res.ok) throw new Error(`DE1 returned HTTP ${res.status}`)
@@ -34,7 +35,8 @@ export async function fetchShotList(de1Url: string): Promise<string[]> {
 }
 
 /**
- * Parse a shot filename like "20260526T121947.shot" into an ISO date string.
+ * Parse a shot filename like "20260526T121947.shot" into an ISO date string (UTC).
+ * The filename date is local machine time; use the date prefix for date-range filtering.
  * Returns null for filenames that do not match the expected pattern.
  */
 export function parseFilenameDate(filename: string): string | null {
@@ -44,8 +46,8 @@ export function parseFilenameDate(filename: string): string | null {
 }
 
 /**
- * Filter filenames to those whose timestamp falls within
- * [dateFrom 00:00:00 UTC, dateTo 23:59:59.999 UTC].
+ * Filter filenames to those whose date prefix (YYYYMMDD) falls within
+ * [dateFrom, dateTo] inclusive, compared as plain date strings.
  * dateFrom and dateTo are ISO date strings like "2026-05-26".
  */
 export function filterByDateRange(
@@ -53,15 +55,16 @@ export function filterByDateRange(
   dateFrom: string,
   dateTo: string
 ): De1ShotInfo[] {
-  const from = new Date(`${dateFrom}T00:00:00.000Z`).getTime()
-  const to   = new Date(`${dateTo}T23:59:59.999Z`).getTime()
+  // Convert ISO dates to compact form for direct string comparison with filename prefix
+  const from = dateFrom.replace(/-/g, '')  // "2026-05-26" → "20260526"
+  const to   = dateTo.replace(/-/g, '')    // "2026-12-31" → "20261231"
 
   const result: De1ShotInfo[] = []
   for (const filename of filenames) {
     const isoDate = parseFilenameDate(filename)
     if (!isoDate) continue
-    const t = new Date(isoDate).getTime()
-    if (t >= from && t <= to) result.push({ filename, date: isoDate })
+    const prefix = filename.slice(0, 8)  // "20260526"
+    if (prefix >= from && prefix <= to) result.push({ filename, date: isoDate })
   }
   return result
 }
@@ -75,7 +78,8 @@ export async function fetchAndImportShot(
   de1Url: string,
   filename: string
 ): Promise<'created' | 'updated'> {
-  const res = await fetch(`${de1Url}/api/shot/${filename}`, {
+  const base = de1Url.replace(/\/+$/, '')
+  const res = await fetch(`${base}/api/shot/${filename}`, {
     signal: AbortSignal.timeout(10000),
   })
   if (!res.ok) throw new Error(`DE1 returned HTTP ${res.status} for ${filename}`)
