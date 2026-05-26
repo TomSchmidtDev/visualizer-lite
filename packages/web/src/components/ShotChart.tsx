@@ -38,8 +38,12 @@ const TEMP_CHANNELS = new Set([
   'espresso_temperature_mix', 'espresso_temperature_basket',
 ])
 
-// Sentinel-Wert der DE1 für "kein Step-Wechsel"
-const STATE_SENTINEL = 9_000_000
+// Sentinel-Werte der DE1:
+//   Upload-Format:   step = 0 < v < 9_000_000
+//   DE1-API-Format:  step = Übergang +10_000_000 → -10_000_000
+const STATE_SENTINEL     =  9_000_000
+const DE1_POS_SENTINEL   = 10_000_000
+const DE1_NEG_SENTINEL   = -9_000_000
 
 /** Liefert die Zeitpunkte (in Sekunden) der Profil-Steps aus espresso_state_change */
 function getStepTimes(stateChange: number[] | undefined, timeframe: number[]): number[] {
@@ -47,8 +51,14 @@ function getStepTimes(stateChange: number[] | undefined, timeframe: number[]): n
   const seen = new Set<number>()
   const result: number[] = []
   for (let i = 1; i < stateChange.length; i++) {
-    const v = stateChange[i]
-    if (v < STATE_SENTINEL && v > 0) {
+    const v    = stateChange[i]
+    const prev = stateChange[i - 1]
+    const isStep =
+      // Upload-Format: nicht-Sentinel positiver Wert
+      (v > 0 && v < STATE_SENTINEL) ||
+      // DE1-API-Format: Übergang +10M → -10M
+      (prev >= DE1_POS_SENTINEL && v <= DE1_NEG_SENTINEL)
+    if (isStep) {
       const t = Math.round(timeframe[i] * 100) / 100
       if (!seen.has(t)) { seen.add(t); result.push(t) }
     }
@@ -237,7 +247,7 @@ export default function ShotChart({ shotData }: Props) {
         legend: { show: false },
         scales: { x: { time: false } },
         axes: [
-          { stroke: '#64748b', label: 's', size: 40, ticks: { stroke: '#1e293b' }, grid: { stroke: '#1e293b' } },
+          { stroke: '#64748b', label: 's', size: 40, ticks: { stroke: '#1e293b' }, grid: { show: false } },
           { stroke: '#64748b', size: 50, ticks: { stroke: '#1e293b' }, grid: { stroke: '#1e293b' } },
         ],
         series,
