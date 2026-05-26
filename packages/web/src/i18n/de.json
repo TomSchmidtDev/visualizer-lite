@@ -107,7 +107,22 @@
     "exportButton": "ZIP herunterladen",
     "dbInfo": "Datenbank-Info",
     "totalShots": "Shots gesamt",
-    "auto": "Automatisch (Browser)"
+    "auto": "Automatisch (Browser)",
+    "de1Import": "DE1 Direktimport",
+    "de1Url": "Maschinen-URL",
+    "de1Connect": "Verbinden",
+    "de1Connected": "Verbindung OK — {{count}} Shots verfügbar",
+    "de1ConnectionError": "Verbindungsfehler: {{message}}",
+    "de1DateFrom": "Von",
+    "de1DateTo": "Bis",
+    "de1Preview": "Vorschau laden",
+    "de1PreviewResult": "{{count}} Shots im Zeitraum gefunden",
+    "de1ImportAction": "Importieren ({{count}})",
+    "de1Importing": "Importiere…",
+    "de1Done": "{{imported}} importiert, {{updated}} aktualisiert, {{errors}} Fehler",
+    "de1NoUrl": "Bitte zuerst eine Maschinen-URL eingeben",
+    "de1NoShots": "Keine Shots im gewählten Zeitraum gefunden",
+    "de1ErrorDetails": "Fehler: {{count}} Shot(s) konnten nicht importiert werden"
   },
   "common": {
     "loading": "Wird geladen…",
