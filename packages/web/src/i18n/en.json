@@ -58,6 +58,8 @@
     "tempMix": "Temp. Mix",
     "tempBasket": "Temp. Basket",
     "waterDispensed": "Water Dispensed",
+    "weightFlow": "Weight Flow",
+    "resistance": "Resistance",
     "stateChange": "State Change"
   },
   "edit": {

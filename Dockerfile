@@ -18,17 +18,19 @@ RUN cd packages/web && npm run build
 FROM node:22-alpine AS runtime
 WORKDIR /app
 
-COPY --from=builder /app/packages/api/dist        ./packages/api/dist
-COPY --from=builder /app/packages/api/node_modules ./packages/api/node_modules
-COPY --from=builder /app/packages/api/prisma      ./packages/api/prisma
-COPY --from=builder /app/packages/web/dist        ./packages/web/dist
-COPY --from=builder /app/node_modules             ./node_modules
+COPY --from=builder /app/packages/api/dist         ./packages/api/dist
+COPY --from=builder /app/packages/api/node_modules  ./packages/api/node_modules
+COPY --from=builder /app/packages/api/prisma        ./packages/api/prisma
+COPY --from=builder /app/packages/api/package.json  ./packages/api/package.json
+COPY --from=builder /app/packages/web/dist          ./packages/web/dist
+COPY --from=builder /app/node_modules               ./node_modules
 COPY package.json ./
 
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOST=0.0.0.0
+ENV DATA_DIR=/data
 EXPOSE 3000
 
 CMD ["sh", "-c", \
-  "cd packages/api && npx prisma migrate deploy && node dist/app.js"]
+  "export DATABASE_URL=\"file:${DATA_DIR}/visualizer.db\" && cd packages/api && npx prisma migrate deploy && node dist/app.js"]

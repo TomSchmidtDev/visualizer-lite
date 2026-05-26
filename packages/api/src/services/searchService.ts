@@ -1,7 +1,7 @@
 // packages/api/src/services/searchService.ts
 import { prisma } from '../db.js'
-import { listShots, type ListOptions } from './shotService.js'
-import type { ShotListResponse } from '../types.js'
+import { listShots, downsample, type ListOptions } from './shotService.js'
+import type { ShotListResponse, ShotData } from '../types.js'
 
 export async function searchShots(opts: ListOptions & { q?: string }): Promise<ShotListResponse> {
   if (!opts.q?.trim()) return listShots(opts)
@@ -54,6 +54,12 @@ export async function searchShots(opts: ListOptions & { q?: string }): Promise<S
       espressoNotes: s.espressoNotes,
       privateNotes: s.privateNotes,
       tags: (s as any).tags.map((t: { name: string }) => t.name),
+      sparkline: (() => {
+        try {
+          const sd = JSON.parse((s as any).shotData) as ShotData
+          return sd.espresso_pressure?.length ? downsample(sd.espresso_pressure) : undefined
+        } catch { return undefined }
+      })(),
     })),
     total: ids.length,
     page,

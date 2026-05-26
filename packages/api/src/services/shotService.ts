@@ -16,7 +16,13 @@ export interface ListOptions {
 type ShotWithTags = Awaited<ReturnType<typeof prisma.shot.findUniqueOrThrow>>
   & { tags: { name: string }[] }
 
-function toResponse(row: ShotWithTags, includeShotData = false): ShotResponse {
+export function downsample(arr: number[], target = 60): number[] {
+  if (arr.length <= target) return arr
+  const step = arr.length / target
+  return Array.from({ length: target }, (_, i) => arr[Math.round(i * step)])
+}
+
+function toResponse(row: ShotWithTags, includeShotData = false, includeSparkline = false): ShotResponse {
   const base: ShotResponse = {
     id: row.id,
     startTime: row.startTime.toISOString(),
@@ -47,8 +53,12 @@ function toResponse(row: ShotWithTags, includeShotData = false): ShotResponse {
     privateNotes: row.privateNotes,
     tags: row.tags.map((t) => t.name),
   }
-  if (includeShotData) {
-    base.shotData = JSON.parse(row.shotData) as ShotData
+  if (includeShotData || includeSparkline) {
+    const sd = JSON.parse(row.shotData) as ShotData
+    if (includeShotData) base.shotData = sd
+    if (includeSparkline && sd.espresso_pressure?.length) {
+      base.sparkline = downsample(sd.espresso_pressure)
+    }
   }
   return base
 }
@@ -118,7 +128,7 @@ export async function listShots(opts: ListOptions): Promise<ShotListResponse> {
   ])
 
   return {
-    shots: rows.map((r) => toResponse(r as ShotWithTags)),
+    shots: rows.map((r) => toResponse(r as ShotWithTags, false, true)),
     total,
     page,
     limit,

@@ -58,6 +58,8 @@
     "tempMix": "Temp. Mix",
     "tempBasket": "Temp. Korb",
     "waterDispensed": "Wassermenge",
+    "weightFlow": "Gewichtsfluss",
+    "resistance": "Widerstand",
     "stateChange": "Zustandsänderung"
   },
   "edit": {

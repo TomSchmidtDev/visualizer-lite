@@ -45,6 +45,7 @@ export interface Shot {
   privateNotes: string | null
   tags: string[]
   shotData?: ShotData
+  sparkline?: number[]
 }
 
 export interface ShotListResponse {

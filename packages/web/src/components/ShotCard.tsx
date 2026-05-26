@@ -7,6 +7,32 @@ interface Props {
   shot: Omit<Shot, 'shotData'>
 }
 
+function Sparkline({ data }: { data: number[] }) {
+  if (data.length < 2) return null
+  const W = 120, H = 44, PAD = 2
+  const min = Math.min(...data)
+  const max = Math.max(...data)
+  const range = max - min || 1
+  const pts = data.map((v, i) => {
+    const x = PAD + (i / (data.length - 1)) * (W - 2 * PAD)
+    const y = H - PAD - ((v - min) / range) * (H - 2 * PAD)
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  })
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
+      <polyline
+        points={pts.join(' ')}
+        fill="none"
+        stroke="#5cb85c"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+        opacity="0.8"
+      />
+    </svg>
+  )
+}
+
 export default function ShotCard({ shot }: Props) {
   const navigate = useNavigate()
   const { t } = useTranslation()
@@ -62,11 +88,16 @@ export default function ShotCard({ shot }: Props) {
         </div>
       </div>
 
-      {/* Sparkline placeholder */}
-      <div style={{ width: 120, opacity: 0.6 }}>
-        <svg width="120" height="44" viewBox="0 0 120 44">
-          <line x1="0" y1="42" x2="120" y2="42" stroke="var(--border)" strokeWidth="1" />
-        </svg>
+      {/* Sparkline */}
+      <div style={{ width: 120, opacity: 0.85 }}>
+        {shot.sparkline && shot.sparkline.length > 1
+          ? <Sparkline data={shot.sparkline} />
+          : (
+            <svg width="120" height="44" viewBox="0 0 120 44">
+              <line x1="0" y1="42" x2="120" y2="42" stroke="var(--border)" strokeWidth="1" />
+            </svg>
+          )
+        }
       </div>
 
       {/* Stats */}
