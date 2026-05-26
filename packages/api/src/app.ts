@@ -17,10 +17,10 @@ async function start() {
   const app = await buildServer(httpsOpts)
 
   // Serve built React SPA in production
-  const webDist = join(__dirname, '../../../web/dist')
+  const webDist = join(__dirname, '../../web/dist')
   if (existsSync(webDist)) {
-    await app.register(staticPlugin, { root: webDist, prefix: '/', decorateReply: false })
-    app.setNotFoundHandler((_req, reply) => reply.sendFile('index.html', webDist))
+    await app.register(staticPlugin, { root: webDist, prefix: '/' })
+    app.setNotFoundHandler((_req, reply) => reply.sendFile('index.html'))
   }
 
   startCertWatcher()
