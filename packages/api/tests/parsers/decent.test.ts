@@ -5,7 +5,8 @@ import { fileURLToPath } from 'url'
 import { parseDecentShot } from '../../src/parsers/decent.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const sampleShot = readFileSync(join(__dirname, '../fixtures/sample.shot'), 'utf8')
+const sampleShot   = readFileSync(join(__dirname, '../fixtures/sample.shot'),    'utf8')
+const sampleShotV2 = readFileSync(join(__dirname, '../fixtures/sample-v2.shot'), 'utf8')
 
 describe('parseDecentShot', () => {
   it('parses scalar metadata fields', () => {
@@ -62,5 +63,64 @@ describe('parseDecentShot', () => {
     expect(result.shotData.espresso_flow).toBeDefined()
     expect(result.shotData.espresso_temperature_mix).toBeDefined()
     expect(result.shotData.espresso_state_change).toBeDefined()
+  })
+})
+
+describe('parseDecentShot – JSON v2 format', () => {
+  it('detects and parses JSON format', () => {
+    const result = parseDecentShot(sampleShotV2)
+    expect(result.clock).toBe(1779817679)
+  })
+
+  it('parses timeframe from elapsed array', () => {
+    const result = parseDecentShot(sampleShotV2)
+    expect(result.shotData.timeframe.length).toBeGreaterThan(0)
+    expect(result.shotData.timeframe[0]).toBe(0.001)
+  })
+
+  it('parses pressure channel', () => {
+    const result = parseDecentShot(sampleShotV2)
+    expect(result.shotData.espresso_pressure).toBeDefined()
+    expect(result.shotData.espresso_pressure![0]).toBe(0.0)
+  })
+
+  it('parses flow channel', () => {
+    const result = parseDecentShot(sampleShotV2)
+    expect(result.shotData.espresso_flow).toBeDefined()
+    expect(result.shotData.espresso_flow!.length).toBeGreaterThan(0)
+  })
+
+  it('parses temperature channels', () => {
+    const result = parseDecentShot(sampleShotV2)
+    expect(result.shotData.espresso_temperature_basket).toBeDefined()
+    expect(result.shotData.espresso_temperature_mix).toBeDefined()
+  })
+
+  it('parses weight from totals', () => {
+    const result = parseDecentShot(sampleShotV2)
+    expect(result.shotData.espresso_weight).toBeDefined()
+    expect(result.shotData.espresso_weight!.length).toBeGreaterThan(0)
+  })
+
+  it('includes extra v2 channels (resistance, flow_weight_raw)', () => {
+    const result = parseDecentShot(sampleShotV2)
+    expect(result.shotData['espresso_resistance']).toBeDefined()
+    expect(result.shotData['espresso_flow_weight_raw']).toBeDefined()
+  })
+
+  it('computes duration from last elapsed value', () => {
+    const result = parseDecentShot(sampleShotV2)
+    expect(result.duration).toBeGreaterThan(0)
+  })
+
+  it('parses nested metadata (profile, meta.bean, meta.grinder)', () => {
+    const result = parseDecentShot(sampleShotV2)
+    expect(result.profileTitle).toBe('Londonium')
+    expect(result.beanBrand).toBe('A Matter of Concrete')
+    expect(result.beanType).toBe('Egypr')
+    expect(result.beanWeight).toBe(15)
+    expect(result.drinkWeight).toBe(32.0)
+    expect(result.grinderModel).toBe('Timemore Sculptor 078S')
+    expect(result.grinderSetting).toBe('11.5')
   })
 })
