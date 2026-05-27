@@ -72,9 +72,38 @@ export function filterByDateRange(
 }
 
 /**
- * Fetch a single shot file from the DE1 machine, parse it, and upsert into DB.
+ * Fetch a shot's raw content from the DE1 machine.
+ *
+ * Strategy:
+ *   1. Try the v2 JSON endpoint  GET /api/v2/shot/<filename>  (preferred)
+ *   2. If v2 returns 404, fall back to the legacy proprietary-format endpoint
+ *      GET /api/shot/<filename>
+ *   3. Any non-404 error from v2, or any error from v1, is thrown.
+ *
+ * Both legs time out independently after 10 s.
+ */
+async function fetchShotContent(base: string, filename: string): Promise<string> {
+  const v2Res = await fetch(`${base}/api/v2/shot/${filename}`, {
+    signal: AbortSignal.timeout(10000),
+  })
+  if (v2Res.ok) return v2Res.text()
+
+  // Fall back only when v2 explicitly says the shot is not available
+  if (v2Res.status !== 404) {
+    throw new Error(`DE1 v2 API returned HTTP ${v2Res.status} for ${filename}`)
+  }
+
+  const v1Res = await fetch(`${base}/api/shot/${filename}`, {
+    signal: AbortSignal.timeout(10000),
+  })
+  if (!v1Res.ok) throw new Error(`DE1 returned HTTP ${v1Res.status} for ${filename}`)
+  return v1Res.text()
+}
+
+/**
+ * Fetch a single shot from the DE1 machine, parse it, and upsert into DB.
  * Returns 'created' if new, 'updated' if updated, 'skipped' if already existed
- * and updateExisting is false. Times out after 10 seconds.
+ * and updateExisting is false.
  */
 export async function fetchAndImportShot(
   de1Url: string,
@@ -82,13 +111,9 @@ export async function fetchAndImportShot(
   updateExisting = true,
 ): Promise<'created' | 'updated' | 'skipped'> {
   const base = de1Url.replace(/\/+$/, '')
-  const res = await fetch(`${base}/api/shot/${filename}`, {
-    signal: AbortSignal.timeout(10000),
-  })
-  if (!res.ok) throw new Error(`DE1 returned HTTP ${res.status} for ${filename}`)
+  const content = await fetchShotContent(base, filename)
 
-  const buffer = Buffer.from(await res.text(), 'utf8')
-  const content = buffer.toString('utf8')
+  const buffer = Buffer.from(content, 'utf8')
   const hash = createHash('sha256').update(buffer).digest('hex')
   const parsed = parseDecentShot(content)
   const date = new Date(parsed.clock * 1000)
@@ -114,7 +139,14 @@ export async function fetchAndImportShot(
     shotData:          JSON.stringify(parsed.shotData),
   }
 
-  const existing = await prisma.shot.findUnique({ where: { sha256: hash } })
+  // Primary deduplication: same file content → same SHA256
+  let existing = await prisma.shot.findUnique({ where: { sha256: hash } })
+  // Secondary deduplication by startTime: handles v1 → v2 migration where the same
+  // physical shot produces different hashes because JSON ≠ TCL content
+  if (!existing) {
+    existing = await prisma.shot.findFirst({ where: { startTime: date } })
+  }
+
   if (existing) {
     if (!updateExisting) return 'skipped'
     await prisma.shot.update({ where: { id: existing.id }, data: shotFields })

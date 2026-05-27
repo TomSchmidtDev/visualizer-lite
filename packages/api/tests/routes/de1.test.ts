@@ -15,6 +15,13 @@ const MINIMAL_SHOT = [
   'espresso_pressure {0.0 7.0 7.5}',
 ].join('\n')
 
+// Same shot as MINIMAL_SHOT but in v2 JSON format (same clock → same startTime)
+const MINIMAL_SHOT_V2 = JSON.stringify({
+  clock: 1779790787,
+  elapsed: [0.0, 1.0, 30.0],
+  pressure: { pressure: [0.0, 7.0, 7.5] },
+})
+
 function makeFetch(
   responses: Record<string, { ok: boolean; status: number; body: string }>
 ) {
@@ -192,6 +199,7 @@ describe('POST /api/de1/import', () => {
         ok: true, status: 200,
         body: JSON.stringify(['20260526T121947.shot']),
       },
+      // v2 returns 404 → fallback; v1 also fails → counted as error
       [`${DE1_URL}/api/shot/20260526T121947.shot`]: {
         ok: false, status: 404, body: 'Not found',
       },
@@ -205,5 +213,114 @@ describe('POST /api/de1/import', () => {
     const body = JSON.parse(res.body)
     expect(body.errors).toBe(1)
     expect(body.errorDetails[0].filename).toBe('20260526T121947.shot')
+  })
+
+  it('uses v2 JSON API when available, skipping v1', async () => {
+    vi.stubGlobal('fetch', makeFetch({
+      [`${DE1_URL}/api/shot/`]: {
+        ok: true, status: 200,
+        body: JSON.stringify(['20260526T121947.shot']),
+      },
+      [`${DE1_URL}/api/v2/shot/20260526T121947.shot`]: {
+        ok: true, status: 200, body: MINIMAL_SHOT_V2,
+      },
+      // v1 not mocked → would return 404 if called; test verifies it is NOT called
+    }))
+
+    const res = await app.inject({
+      method: 'POST', url: '/api/de1/import', headers: { cookie },
+      payload: { dateFrom: '2026-01-01', dateTo: '2026-12-31' },
+    })
+    expect(res.statusCode).toBe(200)
+    const body = JSON.parse(res.body)
+    expect(body.imported).toBe(1)
+    expect(body.errors).toBe(0)
+  })
+
+  it('falls back to v1 when v2 returns 404', async () => {
+    vi.stubGlobal('fetch', makeFetch({
+      [`${DE1_URL}/api/shot/`]: {
+        ok: true, status: 200,
+        body: JSON.stringify(['20260526T121947.shot']),
+      },
+      [`${DE1_URL}/api/v2/shot/20260526T121947.shot`]: {
+        ok: false, status: 404, body: 'Not found',
+      },
+      [`${DE1_URL}/api/shot/20260526T121947.shot`]: {
+        ok: true, status: 200, body: MINIMAL_SHOT,
+      },
+    }))
+
+    const res = await app.inject({
+      method: 'POST', url: '/api/de1/import', headers: { cookie },
+      payload: { dateFrom: '2026-01-01', dateTo: '2026-12-31' },
+    })
+    expect(res.statusCode).toBe(200)
+    const body = JSON.parse(res.body)
+    expect(body.imported).toBe(1)
+    expect(body.errors).toBe(0)
+  })
+
+  it('counts as error when v2 returns non-404 error without falling back', async () => {
+    vi.stubGlobal('fetch', makeFetch({
+      [`${DE1_URL}/api/shot/`]: {
+        ok: true, status: 200,
+        body: JSON.stringify(['20260526T121947.shot']),
+      },
+      [`${DE1_URL}/api/v2/shot/20260526T121947.shot`]: {
+        ok: false, status: 500, body: 'Internal Server Error',
+      },
+      // v1 is mocked but must NOT be reached when v2 returns 500
+      [`${DE1_URL}/api/shot/20260526T121947.shot`]: {
+        ok: true, status: 200, body: MINIMAL_SHOT,
+      },
+    }))
+
+    const res = await app.inject({
+      method: 'POST', url: '/api/de1/import', headers: { cookie },
+      payload: { dateFrom: '2026-01-01', dateTo: '2026-12-31' },
+    })
+    expect(res.statusCode).toBe(200)
+    const body = JSON.parse(res.body)
+    expect(body.errors).toBe(1)
+    expect(body.imported).toBe(0)
+    expect(body.errorDetails[0].message).toContain('v2 API returned HTTP 500')
+  })
+
+  it('deduplicates by startTime when re-importing via v2 after initial v1 import', async () => {
+    // First import via v1 (v2 returns 404)
+    vi.stubGlobal('fetch', makeFetch({
+      [`${DE1_URL}/api/shot/`]: {
+        ok: true, status: 200,
+        body: JSON.stringify(['20260526T121947.shot']),
+      },
+      [`${DE1_URL}/api/shot/20260526T121947.shot`]: {
+        ok: true, status: 200, body: MINIMAL_SHOT,
+      },
+    }))
+    await app.inject({
+      method: 'POST', url: '/api/de1/import', headers: { cookie },
+      payload: { dateFrom: '2026-01-01', dateTo: '2026-12-31' },
+    })
+
+    // Second import: v2 now returns JSON (different SHA256, same startTime)
+    vi.stubGlobal('fetch', makeFetch({
+      [`${DE1_URL}/api/shot/`]: {
+        ok: true, status: 200,
+        body: JSON.stringify(['20260526T121947.shot']),
+      },
+      [`${DE1_URL}/api/v2/shot/20260526T121947.shot`]: {
+        ok: true, status: 200, body: MINIMAL_SHOT_V2,
+      },
+    }))
+    const res = await app.inject({
+      method: 'POST', url: '/api/de1/import', headers: { cookie },
+      payload: { dateFrom: '2026-01-01', dateTo: '2026-12-31', updateExisting: true },
+    })
+    const body = JSON.parse(res.body)
+    // Same startTime → treated as update, not a second import
+    expect(body.imported).toBe(0)
+    expect(body.updated).toBe(1)
+    expect(body.errors).toBe(0)
   })
 })
