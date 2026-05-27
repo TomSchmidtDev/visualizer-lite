@@ -1,4 +1,5 @@
 // packages/web/src/pages/ShotDetail.tsx
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -11,6 +12,8 @@ export default function ShotDetail() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const qc = useQueryClient()
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const { data: shot, isLoading } = useQuery({
     queryKey: ['shot', id],
@@ -19,10 +22,15 @@ export default function ShotDetail() {
   })
 
   async function handleDelete() {
-    if (!confirm(t('detail.confirmDelete'))) return
-    await api.deleteShot(id!)
-    qc.invalidateQueries({ queryKey: ['shots'] })
-    navigate('/')
+    setDeleteError(null)
+    try {
+      await api.deleteShot(id!)
+      qc.removeQueries({ queryKey: ['shots'] })
+      navigate('/')
+    } catch (err) {
+      setConfirmDelete(false)
+      setDeleteError(err instanceof Error ? err.message : t('common.error'))
+    }
   }
 
   if (isLoading) return <div style={{ padding: 24, color: 'var(--text-muted)' }}>{t('common.loading')}</div>
@@ -52,10 +60,19 @@ export default function ShotDetail() {
               {shot.tags.map((tag) => <span key={tag} style={{ background: 'var(--bg-input)', border: '1px solid var(--border-focus)', borderRadius: 20, padding: '3px 10px', fontSize: 11, color: 'var(--text-muted)' }}>#{tag}</span>)}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <button className="btn btn-secondary" onClick={() => api.downloadShot(id!)}>{t('detail.download')}</button>
             <button className="btn btn-secondary" onClick={() => navigate(`/shots/${id}/edit`)}>{t('detail.edit')}</button>
-            <button className="btn btn-danger" onClick={handleDelete}>{t('detail.delete')}</button>
+            {confirmDelete ? (
+              <>
+                <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('detail.confirmDelete')}</span>
+                <button className="btn btn-danger" onClick={handleDelete}>{t('common.yes')}</button>
+                <button className="btn btn-secondary" onClick={() => setConfirmDelete(false)}>{t('common.cancel')}</button>
+              </>
+            ) : (
+              <button className="btn btn-danger" onClick={() => setConfirmDelete(true)}>{t('detail.delete')}</button>
+            )}
+            {deleteError && <span style={{ fontSize: 12, color: 'var(--error, #e05252)' }}>{deleteError}</span>}
           </div>
         </div>
       </div>

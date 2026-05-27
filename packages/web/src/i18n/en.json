@@ -129,6 +129,8 @@
     "error": "Something went wrong",
     "notFound": "Not found",
     "seconds": "s",
-    "grams": "g"
+    "grams": "g",
+    "yes": "Yes",
+    "cancel": "Cancel"
   }
 }
