@@ -11,38 +11,34 @@ export default function Pagination({ page, total, limit, onChange }: Props) {
   const pages = Math.ceil(total / limit)
   if (pages <= 1) return null
 
+  // Show a window of up to 5 page numbers centred on the current page
+  const windowSize = 5
+  const half = Math.floor(windowSize / 2)
+  const start = Math.max(1, Math.min(page - half, pages - windowSize + 1))
+  const end   = Math.min(pages, start + windowSize - 1)
+  const pageNums = Array.from({ length: end - start + 1 }, (_, i) => start + i)
+
+  const btn = (label: string, target: number, disabled: boolean, active = false) => (
+    <button
+      key={label}
+      className={`btn ${active ? 'btn-primary' : 'btn-secondary'}`}
+      onClick={() => onChange(target)}
+      disabled={disabled}
+      style={{ fontSize: 13, minWidth: 36 }}
+    >
+      {label}
+    </button>
+  )
+
   return (
-    <div style={{ display: 'flex', gap: 8, justifyContent: 'center', padding: '20px 24px' }}>
-      <button
-        className="btn btn-secondary"
-        onClick={() => onChange(page - 1)}
-        disabled={page <= 1}
-        style={{ fontSize: 13 }}
-      >
-        ‹
-      </button>
-      {Array.from({ length: Math.min(7, pages) }, (_, i) => {
-        const p = i + 1
-        return (
-          <button
-            key={p}
-            className={`btn ${p === page ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => onChange(p)}
-            style={{ fontSize: 13, minWidth: 36 }}
-          >
-            {p}
-          </button>
-        )
-      })}
-      {pages > 7 && <span style={{ color: 'var(--text-dim)', alignSelf: 'center' }}>…</span>}
-      <button
-        className="btn btn-secondary"
-        onClick={() => onChange(page + 1)}
-        disabled={page >= pages}
-        style={{ fontSize: 13 }}
-      >
-        ›
-      </button>
+    <div style={{ display: 'flex', gap: 6, justifyContent: 'center', padding: '20px 24px', flexWrap: 'wrap' }}>
+      {btn('«', 1,     page <= 1)}
+      {btn('‹', page - 1, page <= 1)}
+      {start > 1 && <span style={{ color: 'var(--text-dim)', alignSelf: 'center', fontSize: 13 }}>…</span>}
+      {pageNums.map((p) => btn(String(p), p, false, p === page))}
+      {end < pages && <span style={{ color: 'var(--text-dim)', alignSelf: 'center', fontSize: 13 }}>…</span>}
+      {btn('›', page + 1, page >= pages)}
+      {btn('»', pages,  page >= pages)}
     </div>
   )
 }

@@ -51,6 +51,9 @@ export default function ShotCard({ shot }: Props) {
   const date = new Date(shot.startTime)
   const day = date.getDate()
   const month = date.toLocaleString('default', { month: 'short' })
+  const showYear = date.getFullYear() !== new Date().getFullYear()
+  const year = date.getFullYear()
+  const time = date.toLocaleTimeString('default', { hour: '2-digit', minute: '2-digit' })
   const ratio = shot.beanWeight && shot.drinkWeight
     ? `1 : ${(shot.drinkWeight / shot.beanWeight).toFixed(2)}`
     : null
@@ -78,9 +81,11 @@ export default function ShotCard({ shot }: Props) {
       onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
     >
       {/* Date */}
-      <div style={{ textAlign: 'center', minWidth: 48 }}>
+      <div style={{ textAlign: 'center', minWidth: 40 }}>
         <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--accent)', lineHeight: 1 }}>{day}</div>
         <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>{month}</div>
+        {showYear && <div style={{ fontSize: 10, color: 'var(--text-dim)', letterSpacing: 0.5 }}>{year}</div>}
+        <div style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 1 }}>{time}</div>
       </div>
 
       {/* Info */}
