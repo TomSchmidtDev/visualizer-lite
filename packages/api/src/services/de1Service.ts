@@ -2,6 +2,7 @@
 import { createHash } from 'crypto'
 import { prisma } from '../db.js'
 import { parseDecentShot } from '../parsers/decent.js'
+import { saveFile } from './fileStorage.js'
 
 export interface De1ShotInfo {
   filename: string
@@ -84,13 +85,16 @@ export async function fetchAndImportShot(
   })
   if (!res.ok) throw new Error(`DE1 returned HTTP ${res.status} for ${filename}`)
 
-  const content = await res.text()
-  const hash = createHash('sha256').update(content).digest('hex')
+  const buffer = Buffer.from(await res.text(), 'utf8')
+  const content = buffer.toString('utf8')
+  const hash = createHash('sha256').update(buffer).digest('hex')
   const parsed = parseDecentShot(content)
+  const date = new Date(parsed.clock * 1000)
+  const filePath = saveFile(buffer, hash, date)
 
   const shotFields = {
-    startTime:         new Date(parsed.clock * 1000),
-    filePath:          `de1://${filename}`,
+    startTime:         date,
+    filePath,
     sha256:            hash,
     duration:          parsed.duration,
     beanWeight:        parsed.beanWeight,
