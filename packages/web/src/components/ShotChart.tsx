@@ -69,6 +69,8 @@ function getStepTimes(stateChange: number[] | undefined, timeframe: number[]): n
 
 // ─── Tooltip plugin ──────────────────────────────────────────────────────────
 
+const TOOLTIP_COMPACT_LIMIT = 5
+
 function el<K extends keyof HTMLElementTagNameMap>(
   tag: K, styles?: Partial<CSSStyleDeclaration>, text?: string
 ): HTMLElementTagNameMap[K] {
@@ -93,10 +95,114 @@ function tooltipPlugin(
     zIndex: '100', whiteSpace: 'nowrap', boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
   })
 
+  // Expand state persists across setCursor calls within the same plugin instance
+  let expanded = false
+  let lastIdx = 0
+  let lastT0  = 0
+  let lastLeft = 0
+  let lastTop  = 0
+  let lastOW   = 0
+  let lastOH   = 0
+
   const fmtTime = (s: number): string => {
     const m = Math.floor(s / 60)
     const sec = (s % 60).toFixed(3).padStart(6, '0')
     return `${String(m).padStart(2, '0')}:${sec}`
+  }
+
+  function renderContent(idx: number, t0: number) {
+    while (tooltip.firstChild) tooltip.removeChild(tooltip.firstChild)
+
+    // Time + step badge
+    const nearStep = stepTimes.find((st) => Math.abs(st - t0) < 0.3)
+    const stepIdx  = nearStep != null ? stepTimes.indexOf(nearStep) : -1
+    const timeRow = el('div', { color: '#94a3b8', marginBottom: '3px' })
+    timeRow.appendChild(document.createTextNode(fmtTime(t0)))
+    if (stepIdx >= 0) {
+      const badge = el('span', {
+        marginLeft: '8px', background: 'rgba(255,255,255,0.15)',
+        borderRadius: '4px', padding: '1px 6px', fontSize: '11px', color: '#e2e8f0',
+      }, `Step ${stepIdx + 1}`)
+      timeRow.appendChild(badge)
+    }
+    tooltip.appendChild(timeRow)
+
+    // Profile step details
+    const currentStepIndex = stepTimes.filter((st) => st <= t0).length
+    const step = profileSteps?.[currentStepIndex]
+    if (step) {
+      tooltip.appendChild(el('div', { borderTop: '1px solid rgba(255,255,255,0.12)', margin: '5px 0 4px' }))
+      const nameRow = el('div', { fontWeight: '600', color: '#e2e8f0', marginBottom: '3px' })
+      nameRow.textContent = step.name
+      tooltip.appendChild(nameRow)
+      const pumpRow = el('div', { color: '#94a3b8', fontSize: '11px' })
+      pumpRow.textContent = `${step.pump} · ${step.transition}`
+      tooltip.appendChild(pumpRow)
+      const parts: string[] = []
+      if (step.temperature) parts.push(`${step.temperature}°C`)
+      if (step.pump === 'pressure' && step.pressure) parts.push(`${step.pressure} bar`)
+      if (step.pump === 'flow' && step.flow) parts.push(`${step.flow} ml/s`)
+      if (step.seconds && step.seconds !== '0') parts.push(`${step.seconds}s`)
+      if (step.limiter?.value) parts.push(`lim ${step.limiter.value}`)
+      if (parts.length) {
+        const paramRow = el('div', { color: '#94a3b8', fontSize: '11px' })
+        paramRow.textContent = parts.join(' · ')
+        tooltip.appendChild(paramRow)
+      }
+      if (step.exit) {
+        const exitRow = el('div', { color: '#64748b', fontSize: '10px', marginTop: '2px' })
+        exitRow.textContent = `exit: ${step.exit.condition} ${step.exit.type} ${step.exit.value}`
+        tooltip.appendChild(exitRow)
+      }
+    }
+
+    // Channel rows — compact (≤5) or expanded (all)
+    tooltip.appendChild(el('div', { borderTop: '1px solid rgba(255,255,255,0.12)', margin: '5px 0 4px' }))
+
+    let shown = 0
+    let hidden = 0
+    channels.forEach((ch, ci) => {
+      const val = (data[ci + 1] as Float64Array)?.[idx]
+      if (val == null || isNaN(val)) return
+      if (!expanded && shown >= TOOLTIP_COMPACT_LIMIT) { hidden++; return }
+      shown++
+      const row = el('div', { display: 'flex', alignItems: 'center', gap: '6px' })
+      const swatch = el('span', { display: 'inline-block', width: '16px' })
+      swatch.style.borderTop = ch.dash ? `1.5px dashed ${ch.color}` : `2px solid ${ch.color}`
+      row.appendChild(swatch)
+      row.appendChild(el('span', {}, translate(ch.labelKey) + ':'))
+      row.appendChild(el('strong', {},
+        `${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${ch.unit}`
+      ))
+      tooltip.appendChild(row)
+    })
+
+    // Expand / collapse toggle — pointer-events: auto so the button is clickable
+    // even though the parent tooltip has pointer-events: none
+    if (!expanded && hidden > 0) {
+      const moreRow = el('div', {
+        marginTop: '5px', paddingTop: '4px',
+        borderTop: '1px solid rgba(255,255,255,0.1)',
+        color: '#94a3b8', fontSize: '11px',
+        pointerEvents: 'auto', cursor: 'pointer', userSelect: 'none',
+      }, `+ ${hidden} weitere…`)
+      moreRow.addEventListener('click', () => { expanded = true; renderContent(lastIdx, lastT0) })
+      tooltip.appendChild(moreRow)
+    } else if (expanded && channels.length > TOOLTIP_COMPACT_LIMIT) {
+      const lessRow = el('div', {
+        marginTop: '5px', paddingTop: '4px',
+        borderTop: '1px solid rgba(255,255,255,0.1)',
+        color: '#94a3b8', fontSize: '11px',
+        pointerEvents: 'auto', cursor: 'pointer', userSelect: 'none',
+      }, '↑ Weniger')
+      lessRow.addEventListener('click', () => { expanded = false; renderContent(lastIdx, lastT0) })
+      tooltip.appendChild(lessRow)
+    }
+
+    // Reposition (needed when called from click handler without a new u reference)
+    const tw = tooltip.offsetWidth || 210, th = tooltip.offsetHeight || 120
+    tooltip.style.left = `${lastLeft + 15 + tw > lastOW ? lastLeft - tw - 10 : lastLeft + 15}px`
+    tooltip.style.top  = `${lastTop + 10 + th > lastOH ? lastTop - th - 5 : lastTop + 10}px`
   }
 
   return {
@@ -106,81 +212,15 @@ function tooltipPlugin(
         const { left, top, idx } = u.cursor
         if (idx == null || left == null) { tooltip.style.display = 'none'; return }
 
-        while (tooltip.firstChild) tooltip.removeChild(tooltip.firstChild)
+        lastIdx  = idx
+        lastT0   = data[0][idx] as number
+        lastLeft = left
+        lastTop  = top ?? 0
+        lastOW   = u.over.offsetWidth
+        lastOH   = u.over.offsetHeight
 
-        const t0 = data[0][idx] as number
-
-        // Nächster Step?
-        const nearStep = stepTimes.find((st) => Math.abs(st - t0) < 0.3)
-        const stepIdx  = nearStep != null ? stepTimes.indexOf(nearStep) : -1
-
-        const timeRow = el('div', { color: '#94a3b8', marginBottom: '3px' })
-        timeRow.appendChild(document.createTextNode(fmtTime(t0)))
-        if (stepIdx >= 0) {
-          const badge = el('span', {
-            marginLeft: '8px', background: 'rgba(255,255,255,0.15)',
-            borderRadius: '4px', padding: '1px 6px', fontSize: '11px', color: '#e2e8f0',
-          }, `Step ${stepIdx + 1}`)
-          timeRow.appendChild(badge)
-        }
-        tooltip.appendChild(timeRow)
-
-        // Profile step details — show the step the cursor is currently inside,
-        // based on how many transition markers have already been passed.
-        // This makes step 0 visible from t=0 without needing a marker there.
-        const currentStepIndex = stepTimes.filter((st) => st <= t0).length
-        const step = profileSteps?.[currentStepIndex]
-        if (step) {
-          const divider = el('div', {
-            borderTop: '1px solid rgba(255,255,255,0.12)',
-            margin: '5px 0 4px',
-          })
-          tooltip.appendChild(divider)
-
-          const nameRow = el('div', { fontWeight: '600', color: '#e2e8f0', marginBottom: '3px' })
-          nameRow.textContent = step.name
-          tooltip.appendChild(nameRow)
-
-          const pumpRow = el('div', { color: '#94a3b8', fontSize: '11px' })
-          pumpRow.textContent = `${step.pump} · ${step.transition}`
-          tooltip.appendChild(pumpRow)
-
-          const paramRow = el('div', { color: '#94a3b8', fontSize: '11px' })
-          const parts: string[] = []
-          if (step.temperature) parts.push(`${step.temperature}°C`)
-          if (step.pump === 'pressure' && step.pressure) parts.push(`${step.pressure} bar`)
-          if (step.pump === 'flow' && step.flow) parts.push(`${step.flow} ml/s`)
-          if (step.seconds && step.seconds !== '0') parts.push(`${step.seconds}s`)
-          if (step.limiter?.value) parts.push(`lim ${step.limiter.value}`)
-          paramRow.textContent = parts.join(' · ')
-          tooltip.appendChild(paramRow)
-
-          if (step.exit) {
-            const exitRow = el('div', { color: '#64748b', fontSize: '10px', marginTop: '2px' })
-            exitRow.textContent = `exit: ${step.exit.condition} ${step.exit.type} ${step.exit.value}`
-            tooltip.appendChild(exitRow)
-          }
-        }
-
-        channels.forEach((ch, ci) => {
-          const val = (data[ci + 1] as Float64Array)?.[idx]
-          if (val == null || isNaN(val)) return
-          const row = el('div', { display: 'flex', alignItems: 'center', gap: '6px' })
-          const swatch = el('span', { display: 'inline-block', width: '16px' })
-          swatch.style.borderTop = ch.dash ? `1.5px dashed ${ch.color}` : `2px solid ${ch.color}`
-          row.appendChild(swatch)
-          row.appendChild(el('span', {}, translate(ch.labelKey) + ':'))
-          row.appendChild(el('strong', {},
-            `${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${ch.unit}`
-          ))
-          tooltip.appendChild(row)
-        })
-
+        renderContent(lastIdx, lastT0)
         tooltip.style.display = 'block'
-        const ow = u.over.offsetWidth, oh = u.over.offsetHeight
-        const tw = tooltip.offsetWidth || 210, th = tooltip.offsetHeight || 120
-        tooltip.style.left = `${left + 15 + tw > ow ? left - tw - 10 : left + 15}px`
-        tooltip.style.top  = `${(top ?? 0) + 10 + th > oh ? (top ?? 0) - th - 5 : (top ?? 0) + 10}px`
       },
     },
   }
