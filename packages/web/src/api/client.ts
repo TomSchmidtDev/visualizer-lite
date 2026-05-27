@@ -6,8 +6,13 @@ const BASE = ''  // Same origin; Vite proxies /api → localhost:3000 in dev
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...init?.headers },
     ...init,
+    // Only set Content-Type when there is a body — DELETE/GET have no body and
+    // Fastify returns 400 if it receives Content-Type: application/json with an empty body.
+    headers: {
+      ...(init?.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      ...init?.headers,
+    },
   })
   if (!res.ok) {
     if (res.status === 401) {
