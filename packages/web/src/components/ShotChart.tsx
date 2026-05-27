@@ -78,6 +78,27 @@ function el<K extends keyof HTMLElementTagNameMap>(
   return e
 }
 
+/**
+ * Returns colour tokens for the tooltip based on the current active theme.
+ * Called on every setCursor so theme switches take effect without a chart rebuild.
+ */
+function getThemeColors(opacity: number) {
+  const light = document.documentElement.getAttribute('data-theme') === 'light'
+  return {
+    bg:        light ? `rgba(245,247,250,${opacity})` : `rgba(10,13,26,${opacity})`,
+    border:    light ? 'rgba(0,0,0,0.14)'              : 'rgba(255,255,255,0.10)',
+    divider:   light ? 'rgba(0,0,0,0.10)'              : 'rgba(255,255,255,0.10)',
+    textTime:  light ? '#475569'                        : '#94a3b8',
+    textPrim:  light ? '#0f172a'                        : '#e2e8f0',
+    textMuted: light ? '#374151'                        : '#94a3b8',
+    textDim:   light ? '#6b7280'                        : '#64748b',
+    textLabel: light ? '#374151'                        : '#cbd5e1',
+    textValue: light ? '#0f172a'                        : '#f1f5f9',
+    badge:     light ? 'rgba(0,0,0,0.08)'               : 'rgba(255,255,255,0.15)',
+    badgeText: light ? '#1e293b'                        : '#e2e8f0',
+  }
+}
+
 function tooltipPlugin(
   channels: Channel[],
   data: uPlot.AlignedData,
@@ -88,10 +109,7 @@ function tooltipPlugin(
 ): uPlot.Plugin {
   const tooltip = el('div', {
     position: 'absolute',
-    background: `rgba(10,13,26,${opacity})`,
     backdropFilter: 'blur(4px)',
-    color: '#e2e8f0',
-    border: '1px solid rgba(255,255,255,0.10)',
     borderRadius: '8px',
     padding: '7px 10px',
     pointerEvents: 'none',
@@ -99,7 +117,7 @@ function tooltipPlugin(
     lineHeight: '1.6',
     display: 'none',
     zIndex: '100',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.35)',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
   })
 
   const fmtTime = (s: number): string => {
@@ -115,6 +133,12 @@ function tooltipPlugin(
         const { left, top, idx } = u.cursor
         if (idx == null || left == null) { tooltip.style.display = 'none'; return }
 
+        // Re-evaluate theme on every call — reacts to live theme switches
+        const c = getThemeColors(opacity)
+        tooltip.style.background = c.bg
+        tooltip.style.border     = `1px solid ${c.border}`
+        tooltip.style.color      = c.textPrim
+
         while (tooltip.firstChild) tooltip.removeChild(tooltip.firstChild)
 
         const t0 = data[0][idx] as number
@@ -122,12 +146,12 @@ function tooltipPlugin(
         // ── Zeit + Step-Badge ────────────────────────────────────────────────
         const nearStep = stepTimes.find((st) => Math.abs(st - t0) < 0.3)
         const stepIdx  = nearStep != null ? stepTimes.indexOf(nearStep) : -1
-        const timeRow  = el('div', { color: '#94a3b8', marginBottom: '4px' })
+        const timeRow  = el('div', { color: c.textTime, marginBottom: '4px' })
         timeRow.appendChild(document.createTextNode(fmtTime(t0)))
         if (stepIdx >= 0) {
           const badge = el('span', {
-            marginLeft: '8px', background: 'rgba(255,255,255,0.15)',
-            borderRadius: '4px', padding: '1px 6px', fontSize: '10px', color: '#e2e8f0',
+            marginLeft: '8px', background: c.badge,
+            borderRadius: '4px', padding: '1px 6px', fontSize: '10px', color: c.badgeText,
           }, `Step ${stepIdx + 1}`)
           timeRow.appendChild(badge)
         }
@@ -138,12 +162,12 @@ function tooltipPlugin(
         const step = profileSteps?.[currentStepIndex]
         if (step) {
           tooltip.appendChild(el('div', {
-            borderTop: '1px solid rgba(255,255,255,0.10)', margin: '4px 0',
+            borderTop: `1px solid ${c.divider}`, margin: '4px 0',
           }))
-          const nameRow = el('div', { fontWeight: '600', color: '#e2e8f0', marginBottom: '2px' })
+          const nameRow = el('div', { fontWeight: '600', color: c.textPrim, marginBottom: '2px' })
           nameRow.textContent = step.name
           tooltip.appendChild(nameRow)
-          const pumpRow = el('div', { color: '#94a3b8', fontSize: '10.5px' })
+          const pumpRow = el('div', { color: c.textMuted, fontSize: '10.5px' })
           pumpRow.textContent = `${step.pump} · ${step.transition}`
           tooltip.appendChild(pumpRow)
           const parts: string[] = []
@@ -153,12 +177,12 @@ function tooltipPlugin(
           if (step.seconds && step.seconds !== '0')      parts.push(`${step.seconds}s`)
           if (step.limiter?.value)                        parts.push(`lim ${step.limiter.value}`)
           if (parts.length) {
-            const paramRow = el('div', { color: '#94a3b8', fontSize: '10.5px' })
+            const paramRow = el('div', { color: c.textMuted, fontSize: '10.5px' })
             paramRow.textContent = parts.join(' · ')
             tooltip.appendChild(paramRow)
           }
           if (step.exit) {
-            const exitRow = el('div', { color: '#64748b', fontSize: '10px', marginTop: '1px' })
+            const exitRow = el('div', { color: c.textDim, fontSize: '10px', marginTop: '1px' })
             exitRow.textContent = `exit: ${step.exit.condition} ${step.exit.type} ${step.exit.value}`
             tooltip.appendChild(exitRow)
           }
@@ -166,10 +190,9 @@ function tooltipPlugin(
 
         // ── Kanal-Werte in 2 Spalten ─────────────────────────────────────────
         tooltip.appendChild(el('div', {
-          borderTop: '1px solid rgba(255,255,255,0.10)', margin: '4px 0 2px',
+          borderTop: `1px solid ${c.divider}`, margin: '4px 0 2px',
         }))
 
-        // Collect rows that actually have data at this cursor position
         const rows: HTMLElement[] = []
         channels.forEach((ch, ci) => {
           const val = (data[ci + 1] as Float64Array)?.[idx]
@@ -178,9 +201,9 @@ function tooltipPlugin(
           const swatch = el('span', { display: 'inline-block', width: '14px', flexShrink: '0' })
           swatch.style.borderTop = ch.dash ? `1.5px dashed ${ch.color}` : `2px solid ${ch.color}`
           row.appendChild(swatch)
-          row.appendChild(el('span', { color: '#cbd5e1' }, translate(ch.labelKey) + ':'))
-          row.appendChild(el('strong', { color: '#f1f5f9' },
-            ` ${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${ch.unit}`
+          row.appendChild(el('span', { color: c.textLabel }, translate(ch.labelKey) + ':'))
+          row.appendChild(el('strong', { color: c.textValue },
+            ` ${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${ch.unit}`
           ))
           rows.push(row)
         })
@@ -194,7 +217,6 @@ function tooltipPlugin(
           rowGap: '0px',
         })
         rows.forEach((row, i) => {
-          // Place first half in column 1, second half in column 2
           row.style.gridColumn = i < half ? '1' : '2'
           row.style.gridRow    = String(i < half ? i + 1 : i - half + 1)
           grid.appendChild(row)
