@@ -91,15 +91,21 @@ namespace eval ::plugins::${plugin_name} {
         
         set content [encoding convertto utf-8 $content]
 
+        set proto [::plugins::visualizer_upload::get_protocol $settings(visualizer_url)]
         lassign [::plugins::visualizer_upload::parse_host_port $settings(visualizer_url)] vhost vport
-        http::register https $vport [list ::tls::socket -servername $vhost]
+
+        if {$proto eq "https"} {
+            http::register https $vport [list ::tls::socket -servername $vhost]
+        }
 
         set auth "Basic [binary encode base64 $settings(visualizer_username):$settings(visualizer_password)]"
         set boundary "--------[clock seconds]"
         set type "multipart/form-data, charset=utf-8, boundary=$boundary"
         set headerl [list Authorization "$auth"]
 
-        set url "https://$settings(visualizer_url)/$settings(visualizer_endpoint)"
+        # Strip any explicit protocol prefix before prepending the detected one
+        set bare_url [regsub {^https?://} $settings(visualizer_url) ""]
+        set url "${proto}://${bare_url}/$settings(visualizer_endpoint)"
 
         set contentHeader "Content-Disposition: form-data; name=\"file\"; filename=\"file.shot\"\r\nContent-Type: application/octet-stream\r\n"
         set body "--$boundary\r\n$contentHeader\r\n$content\r\n--$boundary--\r\n"
@@ -266,7 +272,10 @@ namespace eval ::plugins::${plugin_name} {
         } else {
             # Build browse URL from the configured visualizer_url so that
             # self-hosted instances generate correct QR codes and browser links.
-            set url "https://$settings(visualizer_url)/shots/<ID>"
+            # Respect the configured protocol (http vs https).
+            set proto [::plugins::visualizer_upload::get_protocol $settings(visualizer_url)]
+            set bare  [regsub {^https?://} $settings(visualizer_url) ""]
+            set url "${proto}://${bare}/shots/<ID>"
         }
         
         if { $visualizer_id ne "" && $url ne "" } {
@@ -319,9 +328,13 @@ namespace eval ::plugins::${plugin_name} {
         set download_link [id_to_url $visualizer_id $url_type]
         msg "downloading url '$download_link'"
 
-        lassign [::plugins::visualizer_upload::parse_host_port $settings(visualizer_url)] vhost vport
-        ::http::register https $vport ::tls::socket
-        tls::init -tls1 0 -ssl2 0 -ssl3 0 -tls1.1 0 -tls1.2 1 -servername $vhost $vhost $vport
+        # Register TLS only when the URL to be fetched actually uses HTTPS
+        set link_proto [::plugins::visualizer_upload::get_protocol $download_link]
+        lassign [::plugins::visualizer_upload::parse_host_port $download_link] dl_host dl_port
+        if {$link_proto eq "https"} {
+            ::http::register https $dl_port ::tls::socket
+            tls::init -tls1 0 -ssl2 0 -ssl3 0 -tls1.1 0 -tls1.2 1 -servername $dl_host $dl_host $dl_port
+        }
         
         set headerl {}
         if {[has_credentials] && $url_type == "download_all_last_shared"} {
@@ -392,9 +405,13 @@ namespace eval ::plugins::${plugin_name} {
         set profile {}
         msg "downloading profile url '$profile_url'"
 
-        lassign [::plugins::visualizer_upload::parse_host_port $settings(visualizer_url)] vhost vport
-        ::http::register https $vport ::tls::socket
-        tls::init -tls1 0 -ssl2 0 -ssl3 0 -tls1.1 0 -tls1.2 1 -servername $vhost $vhost $vport
+        # Register TLS only when the profile URL itself uses HTTPS
+        set link_proto [::plugins::visualizer_upload::get_protocol $profile_url]
+        lassign [::plugins::visualizer_upload::parse_host_port $profile_url] dl_host dl_port
+        if {$link_proto eq "https"} {
+            ::http::register https $dl_port ::tls::socket
+            tls::init -tls1 0 -ssl2 0 -ssl3 0 -tls1.1 0 -tls1.2 1 -servername $dl_host $dl_host $dl_port
+        }
         
         set headerl {}
         if { [has_credentials] } {
@@ -443,8 +460,23 @@ namespace eval ::plugins::${plugin_name} {
         return [expr { [string trim $settings(visualizer_username)] ne "" && $settings(visualizer_username) ne "demo@demo123" && [string trim $settings(visualizer_password)] ne "" }]
     }
 
-    # Parse "hostname" or "hostname:port" → returns {hostname port}
+    # Returns "http" or "https" depending on whether the URL starts with "http://".
+    # Everything else (including no prefix) is treated as HTTPS.
+    proc get_protocol { url } {
+        if {[string match "http://*" $url]} { return "http" }
+        return "https"
+    }
+
+    # Parse "hostname", "hostname:port", or a full URL with optional http(s):// prefix.
+    # Returns {hostname port}.  The default port is adjusted to 80 for plain HTTP.
     proc parse_host_port { host_port {default_port 443} } {
+        # Strip protocol prefix and adjust default port for plain HTTP
+        if {[string match "http://*" $host_port]} {
+            set host_port [string range $host_port 7 end]
+            if {$default_port == 443} { set default_port 80 }
+        } elseif {[string match "https://*" $host_port]} {
+            set host_port [string range $host_port 8 end]
+        }
         if {[string match "*:*" $host_port]} {
             set idx [string last ":" $host_port]
             set host [string range $host_port 0 [expr {$idx - 1}]]
@@ -488,7 +520,8 @@ namespace eval ::plugins::${plugin_name}::visualizer_settings {
         # Visualizer URL (custom server) - shown first
         dui add entry $page_name 280 505 -tags visualizer_url_entry -width 38 -font Helv_8 -borderwidth 1 -bg #fbfaff -foreground #4e85f4 -textvariable ::plugins::visualizer_upload::settings(visualizer_url) -relief flat -highlightthickness 1 -highlightcolor #000000 \
             -label [translate "Visualizer URL (empty = visualizer.coffee)"] -label_pos {280 450} -label_font Helv_8 -label_width 1100 -label_fill "#444444"
-        bind $widgets(visualizer_url_entry) <Return> [namespace current]::save_settings
+        bind $widgets(visualizer_url_entry) <Return>   [namespace current]::save_settings
+        bind $widgets(visualizer_url_entry) <FocusOut> [namespace current]::check_http_protocol
 
         # Username
         dui add entry $page_name 280 670 -tags username -width 38 -font Helv_8  -borderwidth 1 -bg #fbfaff -foreground #4e85f4 -textvariable ::plugins::visualizer_upload::settings(visualizer_username) -relief flat  -highlightthickness 1 -highlightcolor #000000 \
@@ -571,6 +604,17 @@ namespace eval ::plugins::${plugin_name}::visualizer_settings {
         }
     }
     
+    # Show a popup warning when the user leaves the URL field with an http:// URL.
+    proc check_http_protocol {} {
+        set url [string trim $::plugins::visualizer_upload::settings(visualizer_url)]
+        if {[string match "http://*" $url]} {
+            after 150 {
+                popup [translate_toast \
+                    "⚠ Insecure connection (HTTP). Only recommended within a private network — never over the internet!"]
+            }
+        }
+    }
+
     proc save_settings {} {
         # Reset to default if URL left empty
         if {[string trim $::plugins::visualizer_upload::settings(visualizer_url)] eq ""} {
