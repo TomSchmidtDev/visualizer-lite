@@ -125,6 +125,22 @@ describe('parseDecentShot - DE1 API Tcl format', () => {
     const result = parseDecentShot(sampleDe1)
     expect(result.duration).toBeGreaterThan(40)
   })
+
+  it('parses profile steps from the profile {} block', () => {
+    const result = parseDecentShot(sampleDe1)
+    const steps = result.shotData.profileSteps
+    expect(steps).toBeDefined()
+    expect(steps!.length).toBe(4)
+    expect(steps![0].name).toBe('preinfusion')
+    expect(steps![0].pump).toBe('flow')
+    expect(steps![1].name).toBe('forced rise without limit')
+    expect(steps![1].pump).toBe('pressure')
+    expect(steps![1].pressure).toBe('7.5')
+    expect(steps![2].name).toBe('rise and hold')
+    expect(steps![2].limiter).toBeDefined()
+    expect(steps![2].limiter!.value).toBe('2.0')
+    expect(steps![3].name).toBe('decline')
+  })
 })
 
 describe('parseDecentShot - new ParsedShot fields backward compat', () => {

@@ -1,5 +1,5 @@
 // packages/api/src/parsers/decent.ts
-import type { ParsedShot, ShotData } from '../types.js'
+import type { ParsedShot, ProfileStep, ShotData } from '../types.js'
 
 /**
  * Parse a Decent Espresso .shot file.
@@ -129,6 +129,61 @@ function extractFromSettings(content: string, key: string): string | null {
 }
 
 /**
+ * Extract the JSON content of a top-level Tcl block like `profile { ... }`.
+ *
+ * The DE1 API shot format stores the profile as:
+ *   profile {
+ *     "title": "...",
+ *     ...
+ *   }
+ * where the opening `{` is simultaneously the Tcl block delimiter and the
+ * JSON object opening brace.  We extract the block content, wrap it in `{}`
+ * and return valid JSON.
+ */
+function extractTclBlock(content: string, key: string): string | null {
+  const re = new RegExp(`^${key} \\{`, 'm')
+  const match = re.exec(content)
+  if (!match) return null
+
+  const openPos = match.index + match[0].length - 1 // position of the opening '{'
+  let depth = 0
+  let i = openPos
+
+  while (i < content.length) {
+    if (content[i] === '{') depth++
+    else if (content[i] === '}') {
+      depth--
+      if (depth === 0) {
+        // Return content between the outer braces, wrapped as JSON object
+        return '{' + content.slice(openPos + 1, i) + '}'
+      }
+    }
+    i++
+  }
+  return null
+}
+
+/**
+ * Parse the profile steps from a DE1 shot's `profile {}` block.
+ * Returns an empty array if the block is absent or malformed.
+ */
+function parseProfileSteps(content: string): ProfileStep[] {
+  const json = extractTclBlock(content, 'profile')
+  if (!json) return []
+  try {
+    const parsed = JSON.parse(json) as { steps?: unknown }
+    const steps = parsed.steps
+    if (!Array.isArray(steps)) return []
+    return steps.filter(
+      (s): s is ProfileStep =>
+        s !== null && typeof s === 'object' && typeof (s as ProfileStep).name === 'string',
+    )
+  } catch {
+    return []
+  }
+}
+
+/**
  * Normalize DD.MM.YYYY to YYYY-MM-DD so new Date() parses it correctly.
  * Returns the original string unchanged for any other format.
  */
@@ -205,6 +260,10 @@ function parseTclShot(content: string): ParsedShot {
       if (list) shotData[key] = list
     }
   }
+
+  // Profile steps (DE1 API shots only — stored in the `profile {}` JSON block)
+  const profileSteps = parseProfileSteps(content)
+  if (profileSteps.length > 0) shotData.profileSteps = profileSteps
 
   // roast_date: may be ISO (sample.shot) or DD.MM.YYYY (DE1 API shot)
   const rawRoastDate = strFb('roast_date')

@@ -1,5 +1,20 @@
 // packages/api/src/types.ts
 
+export interface ProfileStep {
+  name: string
+  temperature: string
+  sensor: string
+  pump: string
+  transition: string
+  pressure: string
+  flow: string
+  seconds: string
+  volume: string
+  weight: string
+  exit?: { type: string; condition: string; value: string }
+  limiter?: { value: string; range: string }
+}
+
 export interface ShotData {
   timeframe: number[]
   espresso_pressure?: number[]
@@ -12,7 +27,8 @@ export interface ShotData {
   espresso_temperature_basket?: number[]
   espresso_water_dispensed?: number[]
   espresso_state_change?: number[]
-  [key: string]: number[] | undefined
+  profileSteps?: ProfileStep[]
+  [key: string]: number[] | ProfileStep[] | undefined
 }
 
 export interface ParsedShot {

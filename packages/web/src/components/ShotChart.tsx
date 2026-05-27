@@ -3,7 +3,7 @@ import { useRef, useEffect, useState } from 'react'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
 import { useTranslation } from 'react-i18next'
-import type { ShotData } from '../types.js'
+import type { ProfileStep, ShotData } from '../types.js'
 
 interface Channel {
   key: string
@@ -56,8 +56,9 @@ function getStepTimes(stateChange: number[] | undefined, timeframe: number[]): n
     const isStep =
       // Upload-Format: nicht-Sentinel positiver Wert
       (v > 0 && v < STATE_SENTINEL) ||
-      // DE1-API-Format: Übergang +10M → -10M
-      (prev >= DE1_POS_SENTINEL && v <= DE1_NEG_SENTINEL)
+      // DE1-API-Format: Übergang +10M → -10M  oder  -10M → +10M
+      (prev >= DE1_POS_SENTINEL && v <= DE1_NEG_SENTINEL) ||
+      (prev <= DE1_NEG_SENTINEL && v >= DE1_POS_SENTINEL)
     if (isStep) {
       const t = Math.round(timeframe[i] * 100) / 100
       if (!seen.has(t)) { seen.add(t); result.push(t) }
@@ -81,7 +82,8 @@ function tooltipPlugin(
   channels: Channel[],
   data: uPlot.AlignedData,
   stepTimes: number[],
-  translate: (k: string) => string
+  translate: (k: string) => string,
+  profileSteps?: ProfileStep[],
 ): uPlot.Plugin {
   const tooltip = el('div', {
     position: 'absolute', background: 'rgba(10,13,26,0.93)',
@@ -122,6 +124,40 @@ function tooltipPlugin(
           timeRow.appendChild(badge)
         }
         tooltip.appendChild(timeRow)
+
+        // Profile step details (DE1 shots with embedded profile)
+        const step = stepIdx >= 0 ? profileSteps?.[stepIdx + 1] : undefined
+        if (step) {
+          const divider = el('div', {
+            borderTop: '1px solid rgba(255,255,255,0.12)',
+            margin: '5px 0 4px',
+          })
+          tooltip.appendChild(divider)
+
+          const nameRow = el('div', { fontWeight: '600', color: '#e2e8f0', marginBottom: '3px' })
+          nameRow.textContent = step.name
+          tooltip.appendChild(nameRow)
+
+          const pumpRow = el('div', { color: '#94a3b8', fontSize: '11px' })
+          pumpRow.textContent = `${step.pump} · ${step.transition}`
+          tooltip.appendChild(pumpRow)
+
+          const paramRow = el('div', { color: '#94a3b8', fontSize: '11px' })
+          const parts: string[] = []
+          if (step.temperature) parts.push(`${step.temperature}°C`)
+          if (step.pump === 'pressure' && step.pressure) parts.push(`${step.pressure} bar`)
+          if (step.pump === 'flow' && step.flow) parts.push(`${step.flow} ml/s`)
+          if (step.seconds && step.seconds !== '0') parts.push(`${step.seconds}s`)
+          if (step.limiter?.value) parts.push(`lim ${step.limiter.value}`)
+          paramRow.textContent = parts.join(' · ')
+          tooltip.appendChild(paramRow)
+
+          if (step.exit) {
+            const exitRow = el('div', { color: '#64748b', fontSize: '10px', marginTop: '2px' })
+            exitRow.textContent = `exit: ${step.exit.condition} ${step.exit.type} ${step.exit.value}`
+            tooltip.appendChild(exitRow)
+          }
+        }
 
         channels.forEach((ch, ci) => {
           const val = (data[ci + 1] as Float64Array)?.[idx]
@@ -190,7 +226,7 @@ export default function ShotChart({ shotData }: Props) {
   const { t } = useTranslation()
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<uPlot | null>(null)
-  const sd = shotData as Record<string, number[] | undefined>
+  const sd = shotData as unknown as Record<string, number[] | undefined>
 
   const [visible, setVisible] = useState<Set<string>>(() =>
     new Set(CHANNELS.filter((c) => sd[c.key] && DEFAULT_CHANNELS.has(c.key)).map((c) => c.key))
@@ -253,7 +289,7 @@ export default function ShotChart({ shotData }: Props) {
         series,
         plugins: [
           stepMarkersPlugin(stepTimes),
-          tooltipPlugin(activeChannels, data, stepTimes, t),
+          tooltipPlugin(activeChannels, data, stepTimes, t, shotData.profileSteps),
         ],
       },
       data,
