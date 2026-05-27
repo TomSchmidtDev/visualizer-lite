@@ -125,8 +125,11 @@ function tooltipPlugin(
         }
         tooltip.appendChild(timeRow)
 
-        // Profile step details (DE1 shots with embedded profile)
-        const step = stepIdx >= 0 ? profileSteps?.[stepIdx + 1] : undefined
+        // Profile step details — show the step the cursor is currently inside,
+        // based on how many transition markers have already been passed.
+        // This makes step 0 visible from t=0 without needing a marker there.
+        const currentStepIndex = stepTimes.filter((st) => st <= t0).length
+        const step = profileSteps?.[currentStepIndex]
         if (step) {
           const divider = el('div', {
             borderTop: '1px solid rgba(255,255,255,0.12)',
