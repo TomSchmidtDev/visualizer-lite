@@ -42,15 +42,15 @@ const de1Routes: FastifyPluginAsync = async (fastify) => {
     }
   )
 
-  fastify.post<{ Body: { dateFrom: string; dateTo: string } }>(
+  fastify.post<{ Body: { dateFrom: string; dateTo: string; updateExisting?: boolean } }>(
     '/import', auth, async (request, reply) => {
-      const { dateFrom, dateTo } = request.body
+      const { dateFrom, dateTo, updateExisting = true } = request.body
       if (!dateFrom || !dateTo || new Date(dateFrom) > new Date(dateTo))
         return reply.status(400).send({ error: 'Invalid date range' })
       const url = await getDe1Url()
       if (!url) return reply.status(400).send({ error: 'DE1 URL not configured' })
       try {
-        const result = await importShotsInRange(url, dateFrom, dateTo)
+        const result = await importShotsInRange(url, dateFrom, dateTo, updateExisting)
         return reply.send(result)
       } catch (err) {
         return reply.status(502).send({

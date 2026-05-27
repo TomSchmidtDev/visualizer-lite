@@ -108,14 +108,15 @@ export const api = {
       { method: 'POST', body: JSON.stringify({ dateFrom, dateTo }) }
     ),
 
-  startDe1Import: (dateFrom: string, dateTo: string) =>
+  startDe1Import: (dateFrom: string, dateTo: string, updateExisting: boolean) =>
     request<{
       imported: number
       updated: number
+      skipped: number
       errors: number
       errorDetails: { filename: string; message: string }[]
     }>(
       '/api/de1/import',
-      { method: 'POST', body: JSON.stringify({ dateFrom, dateTo }) }
+      { method: 'POST', body: JSON.stringify({ dateFrom, dateTo, updateExisting }) }
     ),
 }

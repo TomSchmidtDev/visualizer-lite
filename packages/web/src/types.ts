@@ -84,6 +84,7 @@ export interface AppSettings {
   theme: string
   username: string
   de1Url: string
+  tooltipOpacity: number
 }
 
 export interface Stats {

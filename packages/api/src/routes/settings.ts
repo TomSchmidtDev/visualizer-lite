@@ -10,10 +10,11 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
     const rows = await prisma.settings.findMany()
     const map = Object.fromEntries(rows.map((r) => [r.key, r.value]))
     return reply.send({
-      language: map.language ?? 'auto',
-      theme:    map.theme    ?? 'dark',
-      username: map.username ?? 'admin',
-      de1Url:   map.de1Url   ?? '',
+      language:       map.language       ?? 'auto',
+      theme:          map.theme          ?? 'dark',
+      username:       map.username       ?? 'admin',
+      de1Url:         map.de1Url         ?? '',
+      tooltipOpacity: map.tooltipOpacity ? parseFloat(map.tooltipOpacity) : 0.72,
     })
   })
 
@@ -22,11 +23,12 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
       language?: string
       theme?: string
       de1Url?: string
+      tooltipOpacity?: number
       currentPassword?: string
       newPassword?: string
     }
   }>('/', auth, async (request, reply) => {
-    const { language, theme, de1Url, currentPassword, newPassword } = request.body
+    const { language, theme, de1Url, tooltipOpacity, currentPassword, newPassword } = request.body
 
     if (language)
       await prisma.settings.upsert({
@@ -45,6 +47,12 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
         where: { key: 'de1Url' },
         create: { key: 'de1Url', value: de1Url },
         update: { value: de1Url },
+      })
+    if (tooltipOpacity !== undefined)
+      await prisma.settings.upsert({
+        where: { key: 'tooltipOpacity' },
+        create: { key: 'tooltipOpacity', value: String(tooltipOpacity) },
+        update: { value: String(tooltipOpacity) },
       })
     if (currentPassword && newPassword) {
       const row = await prisma.settings.findUnique({ where: { key: 'passwordHash' } })

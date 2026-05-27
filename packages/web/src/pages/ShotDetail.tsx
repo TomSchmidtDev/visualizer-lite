@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api/client.js'
 import ShotChart from '../components/ShotChart.js'
 import TastingScores from '../components/TastingScores.js'
+import type { AppSettings } from '../types.js'
 
 export default function ShotDetail() {
   const { id } = useParams<{ id: string }>()
@@ -19,6 +20,12 @@ export default function ShotDetail() {
     queryKey: ['shot', id],
     queryFn: () => api.getShot(id!),
     enabled: !!id,
+  })
+
+  const { data: settings } = useQuery<AppSettings>({
+    queryKey: ['settings'],
+    queryFn: () => api.getSettings(),
+    staleTime: 60_000,
   })
 
   async function handleDelete() {
@@ -83,7 +90,9 @@ export default function ShotDetail() {
           {/* Chart */}
           <div className="card" style={{ marginBottom: 16 }}>
             <div className="card-title">{t('detail.extractionCurves')}</div>
-            {shot.shotData ? <ShotChart shotData={shot.shotData} /> : <p style={{ color: 'var(--text-dim)' }}>No chart data</p>}
+            {shot.shotData
+              ? <ShotChart shotData={shot.shotData} tooltipOpacity={settings?.tooltipOpacity} />
+              : <p style={{ color: 'var(--text-dim)' }}>No chart data</p>}
           </div>
 
           {/* Extraction values */}

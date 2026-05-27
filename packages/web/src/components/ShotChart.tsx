@@ -84,11 +84,11 @@ function tooltipPlugin(
   stepTimes: number[],
   translate: (k: string) => string,
   profileSteps?: ProfileStep[],
+  opacity = 0.55,
 ): uPlot.Plugin {
-  // Semi-transparent background so the chart shows through
   const tooltip = el('div', {
     position: 'absolute',
-    background: 'rgba(10,13,26,0.72)',
+    background: `rgba(10,13,26,${opacity})`,
     backdropFilter: 'blur(4px)',
     color: '#e2e8f0',
     border: '1px solid rgba(255,255,255,0.10)',
@@ -248,9 +248,12 @@ function stepMarkersPlugin(stepTimes: number[]): uPlot.Plugin {
 
 // ─── Hauptkomponente ──────────────────────────────────────────────────────────
 
-interface Props { shotData: ShotData }
+interface Props {
+  shotData: ShotData
+  tooltipOpacity?: number  // 0.0–1.0, default 0.55
+}
 
-export default function ShotChart({ shotData }: Props) {
+export default function ShotChart({ shotData, tooltipOpacity = 0.55 }: Props) {
   const { t } = useTranslation()
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<uPlot | null>(null)
@@ -317,7 +320,7 @@ export default function ShotChart({ shotData }: Props) {
         series,
         plugins: [
           stepMarkersPlugin(stepTimes),
-          tooltipPlugin(activeChannels, data, stepTimes, t, shotData.profileSteps),
+          tooltipPlugin(activeChannels, data, stepTimes, t, shotData.profileSteps, tooltipOpacity),
         ],
       },
       data,
@@ -325,7 +328,7 @@ export default function ShotChart({ shotData }: Props) {
     )
 
     return () => { chartRef.current?.destroy(); chartRef.current = null }
-  }, [visible, shotData, t, stepTimes])
+  }, [visible, shotData, t, stepTimes, tooltipOpacity])
 
   const hasTempData = CHANNELS.some((c) => TEMP_CHANNELS.has(c.key) && sd[c.key])
 

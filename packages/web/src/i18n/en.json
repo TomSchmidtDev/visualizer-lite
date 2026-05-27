@@ -119,10 +119,14 @@
     "de1PreviewResult": "{{count}} shots in range",
     "de1ImportAction": "Import ({{count}})",
     "de1Importing": "Importing…",
-    "de1Done": "{{imported}} imported, {{updated}} updated, {{errors}} errors",
+    "de1Done": "{{imported}} imported, {{updated}} updated, {{skipped}} skipped, {{errors}} errors",
+    "de1UpdateExisting": "Update already existing shots",
     "de1NoUrl": "Please enter a machine URL first",
     "de1NoShots": "No shots found in selected date range",
-    "de1ErrorDetails": "Errors: {{count}} shot(s) could not be imported"
+    "de1ErrorDetails": "Errors: {{count}} shot(s) could not be imported",
+    "tooltipOpacity": "Tooltip Opacity",
+    "tooltipTransparent": "Transparent",
+    "tooltipOpaque": "Opaque"
   },
   "common": {
     "loading": "Loading…",

@@ -119,10 +119,14 @@
     "de1PreviewResult": "{{count}} Shots im Zeitraum gefunden",
     "de1ImportAction": "Importieren ({{count}})",
     "de1Importing": "Importiere…",
-    "de1Done": "{{imported}} importiert, {{updated}} aktualisiert, {{errors}} Fehler",
+    "de1Done": "{{imported}} importiert, {{updated}} aktualisiert, {{skipped}} übersprungen, {{errors}} Fehler",
+    "de1UpdateExisting": "Bereits vorhandene Shots aktualisieren",
     "de1NoUrl": "Bitte zuerst eine Maschinen-URL eingeben",
     "de1NoShots": "Keine Shots im gewählten Zeitraum gefunden",
-    "de1ErrorDetails": "Fehler: {{count}} Shot(s) konnten nicht importiert werden"
+    "de1ErrorDetails": "Fehler: {{count}} Shot(s) konnten nicht importiert werden",
+    "tooltipOpacity": "Tooltip-Transparenz",
+    "tooltipTransparent": "Transparent",
+    "tooltipOpaque": "Opak"
   },
   "common": {
     "loading": "Wird geladen…",

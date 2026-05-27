@@ -15,7 +15,7 @@ type De1Phase =
   | { name: 'previewing' }
   | { name: 'previewed'; count: number }
   | { name: 'importing' }
-  | { name: 'done'; imported: number; updated: number; errors: number; errorDetails: { filename: string; message: string }[] }
+  | { name: 'done'; imported: number; updated: number; skipped: number; errors: number; errorDetails: { filename: string; message: string }[] }
 
 function todayStr(): string {
   return new Date().toISOString().slice(0, 10)
@@ -33,6 +33,7 @@ export default function Settings() {
   const [de1Total, setDe1Total] = useState(0)
   const [dateFrom, setDateFrom] = useState('2020-01-01')
   const [dateTo, setDateTo] = useState(todayStr)
+  const [updateExisting, setUpdateExisting] = useState(false)
 
   const { data: settings } = useQuery({
     queryKey: ['settings'],
@@ -116,7 +117,7 @@ export default function Settings() {
     if (de1Phase.name !== 'previewed') return
     setDe1Phase({ name: 'importing' })
     try {
-      const res = await api.startDe1Import(dateFrom, dateTo)
+      const res = await api.startDe1Import(dateFrom, dateTo, updateExisting)
       setDe1Phase({ name: 'done', ...res })
       qc.invalidateQueries({ queryKey: ['shots'] })
       qc.invalidateQueries({ queryKey: ['stats'] })
@@ -140,7 +141,7 @@ export default function Settings() {
       {/* Theme */}
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="card-title">{t('settings.theme')}</div>
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
           {['dark', 'light'].map((th) => (
             <button
               key={th}
@@ -150,6 +151,33 @@ export default function Settings() {
               {th === 'dark' ? `🌙 ${t('settings.dark')}` : `☀️ ${t('settings.light')}`}
             </button>
           ))}
+        </div>
+
+        {/* Tooltip opacity slider */}
+        <div>
+          <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-dim)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+            <span>{t('settings.tooltipOpacity')}</span>
+            <span style={{ color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+              {Math.round((settings?.tooltipOpacity ?? 0.55) * 100)}%
+            </span>
+          </label>
+          <input
+            type="range"
+            min="0.1"
+            max="0.95"
+            step="0.05"
+            value={settings?.tooltipOpacity ?? 0.55}
+            onChange={async (e) => {
+              const val = parseFloat(e.target.value)
+              await api.updateSettings({ tooltipOpacity: val })
+              qc.invalidateQueries({ queryKey: ['settings'] })
+            }}
+            style={{ width: '100%', accentColor: 'var(--accent)' }}
+          />
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-dim)', marginTop: 2 }}>
+            <span>{t('settings.tooltipTransparent')}</span>
+            <span>{t('settings.tooltipOpaque')}</span>
+          </div>
         </div>
       </div>
 
@@ -278,6 +306,17 @@ export default function Settings() {
               </div>
             </div>
 
+            {/* Update-existing checkbox */}
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: 13, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>
+              <input
+                type="checkbox"
+                checked={updateExisting}
+                onChange={(e) => setUpdateExisting(e.target.checked)}
+                style={{ accentColor: 'var(--accent)', width: 14, height: 14 }}
+              />
+              {t('settings.de1UpdateExisting')}
+            </label>
+
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <button
                 className="btn btn-secondary"
@@ -317,6 +356,7 @@ export default function Settings() {
                   {'✓'} {t('settings.de1Done', {
                     imported: de1Phase.imported,
                     updated:  de1Phase.updated,
+                    skipped:  de1Phase.skipped,
                     errors:   de1Phase.errors,
                   })}
                 </p>

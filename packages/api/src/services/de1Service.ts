@@ -12,6 +12,7 @@ export interface De1ShotInfo {
 export interface ImportResult {
   imported: number
   updated: number
+  skipped: number
   errors: number
   errorDetails: { filename: string; message: string }[]
 }
@@ -72,13 +73,14 @@ export function filterByDateRange(
 
 /**
  * Fetch a single shot file from the DE1 machine, parse it, and upsert into DB.
- * Returns 'created' if new, 'updated' if an existing record (matched by SHA-256)
- * was overwritten. Times out after 10 seconds.
+ * Returns 'created' if new, 'updated' if updated, 'skipped' if already existed
+ * and updateExisting is false. Times out after 10 seconds.
  */
 export async function fetchAndImportShot(
   de1Url: string,
-  filename: string
-): Promise<'created' | 'updated'> {
+  filename: string,
+  updateExisting = true,
+): Promise<'created' | 'updated' | 'skipped'> {
   const base = de1Url.replace(/\/+$/, '')
   const res = await fetch(`${base}/api/shot/${filename}`, {
     signal: AbortSignal.timeout(10000),
@@ -114,6 +116,7 @@ export async function fetchAndImportShot(
 
   const existing = await prisma.shot.findUnique({ where: { sha256: hash } })
   if (existing) {
+    if (!updateExisting) return 'skipped'
     await prisma.shot.update({ where: { id: existing.id }, data: shotFields })
     return 'updated'
   }
@@ -128,21 +131,24 @@ export async function fetchAndImportShot(
 export async function importShotsInRange(
   de1Url: string,
   dateFrom: string,
-  dateTo: string
+  dateTo: string,
+  updateExisting = true,
 ): Promise<ImportResult> {
   const allFilenames = await fetchShotList(de1Url)
   const filtered = filterByDateRange(allFilenames, dateFrom, dateTo)
 
   let imported = 0
   let updated  = 0
+  let skipped  = 0
   let errors   = 0
   const errorDetails: { filename: string; message: string }[] = []
 
   for (const { filename } of filtered) {
     try {
-      const outcome = await fetchAndImportShot(de1Url, filename)
-      if (outcome === 'created') imported++
-      else updated++
+      const outcome = await fetchAndImportShot(de1Url, filename, updateExisting)
+      if      (outcome === 'created') imported++
+      else if (outcome === 'updated') updated++
+      else                            skipped++
     } catch (err) {
       errors++
       errorDetails.push({
@@ -152,5 +158,5 @@ export async function importShotsInRange(
     }
   }
 
-  return { imported, updated, errors, errorDetails }
+  return { imported, updated, skipped, errors, errorDetails }
 }
