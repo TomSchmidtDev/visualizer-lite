@@ -480,33 +480,33 @@ namespace eval ::plugins::${plugin_name}::visualizer_settings {
         set page_name [namespace tail [namespace current]]
         
         # "Done" button
-        dui add dbutton $page_name 980 1250 1580 1450 -tags page_done -label [translate "Done"] -label_pos {0.5 0.5} -label_font Helv_10_bold -label_fill "#fAfBff"
+        dui add dbutton $page_name 980 1210 1580 1390 -tags page_done -label [translate "Done"] -label_pos {0.5 0.5} -label_font Helv_10_bold -label_fill "#fAfBff"
         
         # Headline
         dui add dtext $page_name 1280 300 -text [translate "Visualizer Upload"] -font Helv_20_bold -width 1200 -fill "#444444" -anchor "center" -justify "center"
         
         # Visualizer URL (custom server) - shown first
-        dui add entry $page_name 280 540 -tags visualizer_url_entry -width 38 -font Helv_8 -borderwidth 1 -bg #fbfaff -foreground #4e85f4 -textvariable ::plugins::visualizer_upload::settings(visualizer_url) -relief flat -highlightthickness 1 -highlightcolor #000000 \
-            -label [translate "Visualizer URL (empty = visualizer.coffee)"] -label_pos {280 480} -label_font Helv_8 -label_width 1100 -label_fill "#444444"
+        dui add entry $page_name 280 505 -tags visualizer_url_entry -width 38 -font Helv_8 -borderwidth 1 -bg #fbfaff -foreground #4e85f4 -textvariable ::plugins::visualizer_upload::settings(visualizer_url) -relief flat -highlightthickness 1 -highlightcolor #000000 \
+            -label [translate "Visualizer URL (empty = visualizer.coffee)"] -label_pos {280 450} -label_font Helv_8 -label_width 1100 -label_fill "#444444"
         bind $widgets(visualizer_url_entry) <Return> [namespace current]::save_settings
 
         # Username
-        dui add entry $page_name 280 720 -tags username -width 38 -font Helv_8  -borderwidth 1 -bg #fbfaff -foreground #4e85f4 -textvariable ::plugins::visualizer_upload::settings(visualizer_username) -relief flat  -highlightthickness 1 -highlightcolor #000000 \
-            -label [translate "Username"] -label_pos {280 660} -label_font Helv_8 -label_width 1000 -label_fill "#444444"
+        dui add entry $page_name 280 670 -tags username -width 38 -font Helv_8  -borderwidth 1 -bg #fbfaff -foreground #4e85f4 -textvariable ::plugins::visualizer_upload::settings(visualizer_username) -relief flat  -highlightthickness 1 -highlightcolor #000000 \
+            -label [translate "Username"] -label_pos {280 615} -label_font Helv_8 -label_width 1000 -label_fill "#444444"
         bind $widgets(username) <Return> [namespace current]::save_settings
 
         # Password
-        dui add entry $page_name 280 900 -tags password -width 38 -font Helv_8  -borderwidth 1 -bg #fbfaff -foreground #4e85f4 -textvariable ::plugins::visualizer_upload::settings(visualizer_password) -relief flat  -highlightthickness 1 -highlightcolor #000000 \
-            -label [translate "Password"] -label_pos {280 840} -label_font Helv_8 -label_width 1000 -label_fill "#444444"
+        dui add entry $page_name 280 835 -tags password -width 38 -font Helv_8  -borderwidth 1 -bg #fbfaff -foreground #4e85f4 -textvariable ::plugins::visualizer_upload::settings(visualizer_password) -relief flat  -highlightthickness 1 -highlightcolor #000000 \
+            -label [translate "Password"] -label_pos {280 780} -label_font Helv_8 -label_width 1000 -label_fill "#444444"
         bind $widgets(password) <Return> [namespace current]::save_settings
 
         # Auto-Upload
-        dui add dcheckbox $page_name 280 1020 -tags auto_upload -textvariable ::plugins::visualizer_upload::settings(auto_upload) -fill "#444444" \
+        dui add dcheckbox $page_name 280 955 -tags auto_upload -textvariable ::plugins::visualizer_upload::settings(auto_upload) -fill "#444444" \
             -label [translate "Auto-Upload"] -label_font Helv_8 -label_fill #4e85f4 -command save_settings
 
         # Mininum seconds to Auto-Upload
-        dui add entry $page_name 280 1160 -tags auto_upload_min_seconds -textvariable ::plugins::visualizer_upload::settings(auto_upload_min_seconds) -width 3 -font Helv_8  -borderwidth 1 -bg #fbfaff  -foreground #4e85f4 -relief flat -highlightthickness 1 -highlightcolor #000000 \
-            -label [translate "Minimum shot seconds to auto-upload"] -label_pos {280 1100} -label_font Helv_8 -label_width 1100 -label_fill "#444444"
+        dui add entry $page_name 280 1090 -tags auto_upload_min_seconds -textvariable ::plugins::visualizer_upload::settings(auto_upload_min_seconds) -width 3 -font Helv_8  -borderwidth 1 -bg #fbfaff  -foreground #4e85f4 -relief flat -highlightthickness 1 -highlightcolor #000000 \
+            -label [translate "Minimum shot seconds to auto-upload"] -label_pos {280 1035} -label_font Helv_8 -label_width 1100 -label_fill "#444444"
         bind $widgets(auto_upload_min_seconds) <Return> [namespace current]::save_settings
                 
         # Last upload shot
