@@ -72,25 +72,40 @@ export function filterByDateRange(
 }
 
 /**
+ * Safely parse a date string. Returns null if the string is empty, missing,
+ * or produces an invalid JavaScript Date (e.g. "Invalid Date").
+ */
+function parseOptionalDate(s: string | null | undefined): Date | null {
+  if (!s) return null
+  const d = new Date(s)
+  return isNaN(d.getTime()) ? null : d
+}
+
+/**
  * Fetch a shot's raw content from the DE1 machine.
  *
  * Strategy:
  *   1. Try the v2 JSON endpoint  GET /api/v2/shot/<filename>  (preferred)
- *   2. If v2 returns 404, fall back to the legacy proprietary-format endpoint
- *      GET /api/shot/<filename>
- *   3. Any non-404 error from v2, or any error from v1, is thrown.
+ *   2. On any v2 error (HTTP error or exception), fall back to the legacy
+ *      proprietary-format endpoint  GET /api/shot/<filename>
+ *   3. Non-404 v2 errors are logged as warnings before the fallback.
+ *   4. Any error from v1 is thrown.
  *
  * Both legs time out independently after 10 s.
  */
 async function fetchShotContent(base: string, filename: string): Promise<string> {
-  const v2Res = await fetch(`${base}/api/v2/shot/${filename}`, {
-    signal: AbortSignal.timeout(10000),
-  })
-  if (v2Res.ok) return v2Res.text()
+  try {
+    const v2Res = await fetch(`${base}/api/v2/shot/${filename}`, {
+      signal: AbortSignal.timeout(10000),
+    })
+    if (v2Res.ok) return v2Res.text()
 
-  // Fall back only when v2 explicitly says the shot is not available
-  if (v2Res.status !== 404) {
-    throw new Error(`DE1 v2 API returned HTTP ${v2Res.status} for ${filename}`)
+    if (v2Res.status !== 404) {
+      console.warn(`DE1 import: ${filename}: v2 failed (HTTP ${v2Res.status}), falling back to v1`)
+    }
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err)
+    console.warn(`DE1 import: ${filename}: v2 error (${reason}), falling back to v1`)
   }
 
   const v1Res = await fetch(`${base}/api/shot/${filename}`, {
@@ -133,7 +148,7 @@ export async function fetchAndImportShot(
     beanBrand:         parsed.beanBrand,
     beanType:          parsed.beanType,
     roastLevel:        parsed.roastLevel,
-    roastDate:         parsed.roastDate ? new Date(parsed.roastDate) : null,
+    roastDate:         parseOptionalDate(parsed.roastDate),
     espressoEnjoyment: parsed.espressoEnjoyment,
     espressoNotes:     parsed.espressoNotes,
     shotData:          JSON.stringify(parsed.shotData),

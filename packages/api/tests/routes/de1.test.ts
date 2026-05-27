@@ -36,6 +36,26 @@ function makeFetch(
   })
 }
 
+/** Parse NDJSON response body into an array of parsed objects. */
+function parseNdjson(body: string): Record<string, unknown>[] {
+  return body.trim().split('\n').filter(Boolean).map(l => JSON.parse(l))
+}
+
+/** Extract the final "done" event from an NDJSON import response. */
+function doneEvent(body: string) {
+  const events = parseNdjson(body)
+  const done = events.find(e => e.type === 'done')
+  if (!done) throw new Error('No "done" event in NDJSON response')
+  return done as {
+    type: 'done'
+    imported: number
+    updated: number
+    skipped: number
+    errors: number
+    errorDetails: { filename: string; message: string }[]
+  }
+}
+
 beforeAll(async () => {
   process.env.VL_PASSWORD = 'testpass'
   try { await prisma.settings.deleteMany() } catch {}
@@ -145,7 +165,7 @@ describe('POST /api/de1/preview', () => {
 })
 
 describe('POST /api/de1/import', () => {
-  it('imports a shot and returns counts', async () => {
+  it('streams progress and done event; imports a shot', async () => {
     vi.stubGlobal('fetch', makeFetch({
       [`${DE1_URL}/api/shot/`]: {
         ok: true, status: 200,
@@ -161,11 +181,20 @@ describe('POST /api/de1/import', () => {
       payload: { dateFrom: '2026-01-01', dateTo: '2026-12-31' },
     })
     expect(res.statusCode).toBe(200)
-    const body = JSON.parse(res.body)
-    expect(body.imported).toBe(1)
-    expect(body.updated).toBe(0)
-    expect(body.errors).toBe(0)
-    expect(body.errorDetails).toHaveLength(0)
+    expect(res.headers['content-type']).toContain('application/x-ndjson')
+
+    const events = parseNdjson(res.body)
+    const progress = events.filter(e => e.type === 'progress')
+    expect(progress).toHaveLength(1)
+    expect(progress[0].current).toBe(1)
+    expect(progress[0].total).toBe(1)
+    expect(progress[0].status).toBe('imported')
+
+    const done = doneEvent(res.body)
+    expect(done.imported).toBe(1)
+    expect(done.updated).toBe(0)
+    expect(done.errors).toBe(0)
+    expect(done.errorDetails).toHaveLength(0)
   })
 
   it('returns updated on second import of same shot', async () => {
@@ -188,12 +217,12 @@ describe('POST /api/de1/import', () => {
       method: 'POST', url: '/api/de1/import', headers: { cookie },
       payload: { dateFrom: '2026-01-01', dateTo: '2026-12-31' },
     })
-    const body = JSON.parse(res.body)
-    expect(body.imported).toBe(0)
-    expect(body.updated).toBe(1)
+    const done = doneEvent(res.body)
+    expect(done.imported).toBe(0)
+    expect(done.updated).toBe(1)
   })
 
-  it('records per-shot errors but continues and returns 200', async () => {
+  it('records per-shot errors in progress stream and done event', async () => {
     vi.stubGlobal('fetch', makeFetch({
       [`${DE1_URL}/api/shot/`]: {
         ok: true, status: 200,
@@ -210,9 +239,15 @@ describe('POST /api/de1/import', () => {
       payload: { dateFrom: '2026-01-01', dateTo: '2026-12-31' },
     })
     expect(res.statusCode).toBe(200)
-    const body = JSON.parse(res.body)
-    expect(body.errors).toBe(1)
-    expect(body.errorDetails[0].filename).toBe('20260526T121947.shot')
+
+    const events = parseNdjson(res.body)
+    const errProgress = events.filter(e => e.type === 'progress' && e.status === 'error')
+    expect(errProgress).toHaveLength(1)
+    expect(errProgress[0].filename).toBe('20260526T121947.shot')
+
+    const done = doneEvent(res.body)
+    expect(done.errors).toBe(1)
+    expect(done.errorDetails[0].filename).toBe('20260526T121947.shot')
   })
 
   it('uses v2 JSON API when available, skipping v1', async () => {
@@ -232,9 +267,9 @@ describe('POST /api/de1/import', () => {
       payload: { dateFrom: '2026-01-01', dateTo: '2026-12-31' },
     })
     expect(res.statusCode).toBe(200)
-    const body = JSON.parse(res.body)
-    expect(body.imported).toBe(1)
-    expect(body.errors).toBe(0)
+    const done = doneEvent(res.body)
+    expect(done.imported).toBe(1)
+    expect(done.errors).toBe(0)
   })
 
   it('falls back to v1 when v2 returns 404', async () => {
@@ -256,12 +291,12 @@ describe('POST /api/de1/import', () => {
       payload: { dateFrom: '2026-01-01', dateTo: '2026-12-31' },
     })
     expect(res.statusCode).toBe(200)
-    const body = JSON.parse(res.body)
-    expect(body.imported).toBe(1)
-    expect(body.errors).toBe(0)
+    const done = doneEvent(res.body)
+    expect(done.imported).toBe(1)
+    expect(done.errors).toBe(0)
   })
 
-  it('counts as error when v2 returns non-404 error without falling back', async () => {
+  it('falls back to v1 when v2 returns any non-404 HTTP error', async () => {
     vi.stubGlobal('fetch', makeFetch({
       [`${DE1_URL}/api/shot/`]: {
         ok: true, status: 200,
@@ -270,7 +305,7 @@ describe('POST /api/de1/import', () => {
       [`${DE1_URL}/api/v2/shot/20260526T121947.shot`]: {
         ok: false, status: 500, body: 'Internal Server Error',
       },
-      // v1 is mocked but must NOT be reached when v2 returns 500
+      // v1 is available and should be reached after v2 fails
       [`${DE1_URL}/api/shot/20260526T121947.shot`]: {
         ok: true, status: 200, body: MINIMAL_SHOT,
       },
@@ -281,10 +316,9 @@ describe('POST /api/de1/import', () => {
       payload: { dateFrom: '2026-01-01', dateTo: '2026-12-31' },
     })
     expect(res.statusCode).toBe(200)
-    const body = JSON.parse(res.body)
-    expect(body.errors).toBe(1)
-    expect(body.imported).toBe(0)
-    expect(body.errorDetails[0].message).toContain('v2 API returned HTTP 500')
+    const done = doneEvent(res.body)
+    expect(done.imported).toBe(1)
+    expect(done.errors).toBe(0)
   })
 
   it('deduplicates by startTime when re-importing via v2 after initial v1 import', async () => {
@@ -317,10 +351,10 @@ describe('POST /api/de1/import', () => {
       method: 'POST', url: '/api/de1/import', headers: { cookie },
       payload: { dateFrom: '2026-01-01', dateTo: '2026-12-31', updateExisting: true },
     })
-    const body = JSON.parse(res.body)
+    const done = doneEvent(res.body)
     // Same startTime → treated as update, not a second import
-    expect(body.imported).toBe(0)
-    expect(body.updated).toBe(1)
-    expect(body.errors).toBe(0)
+    expect(done.imported).toBe(0)
+    expect(done.updated).toBe(1)
+    expect(done.errors).toBe(0)
   })
 })

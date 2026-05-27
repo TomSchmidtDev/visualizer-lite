@@ -8,7 +8,7 @@ import DropZone from '../components/DropZone.js'
 
 type UploadState = 'idle' | 'uploading' | 'success' | 'duplicate' | 'error'
 
-interface Result { state: UploadState; id?: string; filename?: string }
+interface Result { state: UploadState; id?: string; filename?: string; errorMessage?: string }
 
 export default function Upload() {
   const { t } = useTranslation()
@@ -26,9 +26,10 @@ export default function Upload() {
       qc.invalidateQueries({ queryKey: ['suggestions'] })
       qc.invalidateQueries({ queryKey: ['stats'] })
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : ''
+      const message = e instanceof Error ? e.message : String(e)
+      console.error('Upload error:', e)
       const isDup = message.includes('duplicate') || message.includes('already')
-      setResults((r) => [...r, { state: isDup ? 'duplicate' : 'error', filename: file.name }])
+      setResults((r) => [...r, { state: isDup ? 'duplicate' : 'error', filename: file.name, errorMessage: message }])
     } finally {
       setUploading(false)
     }
@@ -66,6 +67,9 @@ export default function Upload() {
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <span style={{ fontSize: 12, color: stateColor[r.state], fontWeight: 600 }}>
                   {stateLabel[r.state]}
+                  {r.errorMessage && (
+                    <span style={{ fontWeight: 400, marginLeft: 6, opacity: 0.8 }}>({r.errorMessage})</span>
+                  )}
                 </span>
                 {r.id && (
                   <button className="btn btn-secondary" style={{ fontSize: 11 }} onClick={() => navigate(`/shots/${r.id}`)}>

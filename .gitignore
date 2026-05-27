@@ -9,3 +9,4 @@ dist/
 packages/api/prisma/migrations/*/migration_lock.toml
 *.DS_Store
 .DS_Store
+/.idea/

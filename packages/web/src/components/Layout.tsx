@@ -1,5 +1,5 @@
 // packages/web/src/components/Layout.tsx
-import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { Outlet, NavLink, useNavigate, type NavLinkRenderProps } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api/client.js'
 
@@ -44,13 +44,13 @@ export default function Layout({ theme, onToggleTheme }: Props) {
               Visualizer Lite
             </span>
           </div>
-          <NavLink to="/" style={({ isActive }) => ({
+          <NavLink to="/" style={({ isActive }: NavLinkRenderProps) => ({
             fontSize: 13, color: isActive ? 'var(--accent)' : 'var(--text-muted)',
             fontWeight: isActive ? 600 : 400,
           })}>
             {t('nav.shots')}
           </NavLink>
-          <NavLink to="/upload" style={({ isActive }) => ({
+          <NavLink to="/upload" style={({ isActive }: NavLinkRenderProps) => ({
             fontSize: 13, color: isActive ? 'var(--accent)' : 'var(--text-muted)',
             fontWeight: isActive ? 600 : 400,
           })}>

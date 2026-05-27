@@ -1,5 +1,6 @@
 // packages/web/src/pages/Settings.tsx
 import { useState, useEffect, FormEvent } from 'react'
+import { flushSync } from 'react-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api/client.js'
@@ -14,7 +15,7 @@ type De1Phase =
   | { name: 'connectionError'; message: string }
   | { name: 'previewing' }
   | { name: 'previewed'; count: number }
-  | { name: 'importing' }
+  | { name: 'importing'; current: number; total: number; filename: string }
   | { name: 'done'; imported: number; updated: number; skipped: number; errors: number; errorDetails: { filename: string; message: string }[] }
 
 function todayStr(): string {
@@ -115,9 +116,17 @@ export default function Settings() {
 
   async function handleDe1Import() {
     if (de1Phase.name !== 'previewed') return
-    setDe1Phase({ name: 'importing' })
+    const total = de1Phase.count
+    setDe1Phase({ name: 'importing', current: 0, total, filename: '' })
     try {
-      const res = await api.startDe1Import(dateFrom, dateTo, updateExisting)
+      const res = await api.startDe1Import(
+        dateFrom,
+        dateTo,
+        updateExisting,
+        (current, total, filename) => {
+          flushSync(() => setDe1Phase({ name: 'importing', current, total, filename }))
+        },
+      )
       setDe1Phase({ name: 'done', ...res })
       qc.invalidateQueries({ queryKey: ['shots'] })
       qc.invalidateQueries({ queryKey: ['stats'] })
@@ -333,7 +342,7 @@ export default function Settings() {
                   disabled={de1Phase.name === 'importing'}
                 >
                   {de1Phase.name === 'importing'
-                    ? t('settings.de1Importing')
+                    ? `${de1Phase.current} / ${de1Phase.total}`
                     : t('settings.de1ImportAction', { count: (de1Phase as { count: number }).count })}
                 </button>
               )}
@@ -352,7 +361,7 @@ export default function Settings() {
 
             {de1Phase.name === 'done' && (
               <div style={{ marginTop: 8 }}>
-                <p style={{ fontSize: 13, color: 'var(--green)' }}>
+                <p style={{ fontSize: 13, color: de1Phase.errors > 0 ? 'var(--text)' : 'var(--green)' }}>
                   {'✓'} {t('settings.de1Done', {
                     imported: de1Phase.imported,
                     updated:  de1Phase.updated,
@@ -361,9 +370,27 @@ export default function Settings() {
                   })}
                 </p>
                 {de1Phase.errors > 0 && (
-                  <p style={{ fontSize: 12, color: 'var(--red)', marginTop: 4 }}>
-                    {t('settings.de1ErrorDetails', { count: de1Phase.errors })}
-                  </p>
+                  <div style={{ marginTop: 8 }}>
+                    <p style={{ fontSize: 11, color: 'var(--red)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                      {t('settings.de1ErrorDetails', { count: de1Phase.errors })}
+                    </p>
+                    <div style={{
+                      background: 'var(--bg-input)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 6,
+                      padding: '6px 10px',
+                      maxHeight: 160,
+                      overflowY: 'auto',
+                    }}>
+                      {de1Phase.errorDetails.map((e) => (
+                        <div key={e.filename} style={{ fontSize: 11, color: 'var(--text-muted)', padding: '2px 0', borderBottom: '1px solid var(--border)' }}>
+                          <span style={{ color: 'var(--red)', marginRight: 6 }}>✗</span>
+                          <code style={{ fontSize: 10, color: 'var(--text-dim)', marginRight: 8 }}>{e.filename}</code>
+                          {e.message}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
             )}

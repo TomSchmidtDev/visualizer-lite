@@ -67,6 +67,12 @@ function toResponse(row: ShotWithTags, includeShotData = false, includeSparkline
   return base
 }
 
+function parseOptionalDate(s: string | null | undefined): Date | null {
+  if (!s) return null
+  const d = new Date(s)
+  return isNaN(d.getTime()) ? null : d
+}
+
 export async function createShot(
   parsed: ParsedShot,
   hash: string,
@@ -87,7 +93,7 @@ export async function createShot(
       beanBrand: parsed.beanBrand,
       beanType: parsed.beanType,
       roastLevel: parsed.roastLevel,
-      roastDate: parsed.roastDate ? new Date(parsed.roastDate) : null,
+      roastDate: parseOptionalDate(parsed.roastDate),
       espressoEnjoyment: parsed.espressoEnjoyment,
       espressoNotes:     parsed.espressoNotes,
       shotData: JSON.stringify(parsed.shotData),

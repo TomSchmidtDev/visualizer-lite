@@ -77,6 +77,8 @@ function parseJsonShot(content: string): ParsedShot {
 
   const clock = data.clock ? parseInt(String(data.clock), 10) : Math.floor(Date.now() / 1000)
 
+  const rawRoastDate = str(bean.roast_date) ?? str(data.roast_date)
+
   return {
     clock,
     beanBrand:         str(bean.brand)        ?? str(data.bean_brand),
@@ -89,7 +91,7 @@ function parseJsonShot(content: string): ParsedShot {
     barista:           str(data.barista),
     profileTitle:      str(profile.title)     ?? str(data.profile_title),
     roastLevel:        str(bean.roast_level)  ?? str(data.roast_level),
-    roastDate:         str(bean.roast_date)   ?? str(data.roast_date),
+    roastDate:         rawRoastDate ? normalizeDateStr(rawRoastDate) : null,
     espressoEnjoyment: null,
     espressoNotes:     null,
     shotData,

@@ -67,7 +67,7 @@ export const api = {
   uploadShot: (file: File): Promise<{ id: string }> => {
     const form = new FormData()
     form.append('file', file)
-    return fetch('/shots/upload', {
+    return fetch('/api/shots/upload', {
       method: 'POST',
       credentials: 'include',
       body: form,
@@ -113,15 +113,52 @@ export const api = {
       { method: 'POST', body: JSON.stringify({ dateFrom, dateTo }) }
     ),
 
-  startDe1Import: (dateFrom: string, dateTo: string, updateExisting: boolean) =>
-    request<{
-      imported: number
-      updated: number
-      skipped: number
-      errors: number
-      errorDetails: { filename: string; message: string }[]
-    }>(
-      '/api/de1/import',
-      { method: 'POST', body: JSON.stringify({ dateFrom, dateTo, updateExisting }) }
-    ),
+  startDe1Import: async (
+    dateFrom: string,
+    dateTo: string,
+    updateExisting: boolean,
+    onProgress: (current: number, total: number, filename: string, status: string) => void,
+  ): Promise<{ imported: number; updated: number; skipped: number; errors: number; errorDetails: { filename: string; message: string }[] }> => {
+    const res = await fetch('/api/de1/import', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dateFrom, dateTo, updateExisting }),
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`)
+    }
+
+    const reader = res.body!.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    let finalResult: { imported: number; updated: number; skipped: number; errors: number; errorDetails: { filename: string; message: string }[] } | null = null
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() ?? ''
+      for (const line of lines) {
+        if (!line.trim()) continue
+        try {
+          const event = JSON.parse(line) as Record<string, unknown>
+          if (event.type === 'progress') {
+            onProgress(
+              event.current as number,
+              event.total as number,
+              event.filename as string,
+              event.status as string,
+            )
+          } else if (event.type === 'done') {
+            finalResult = event as unknown as typeof finalResult
+          }
+        } catch { /* skip malformed lines */ }
+      }
+    }
+    if (!finalResult) throw new Error('Import stream ended without result')
+    return finalResult as NonNullable<typeof finalResult>
+  },
 }

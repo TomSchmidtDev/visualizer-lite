@@ -20,7 +20,8 @@ const uploadRoutes: FastifyPluginAsync = async (fastify) => {
       let parsed
       try {
         parsed = parseDecentShot(content)
-      } catch {
+      } catch (err) {
+        fastify.log.error(`upload: parse failed: ${err instanceof Error ? err.message : String(err)}`)
         return reply.status(422).send({ error: 'Failed to parse .shot file' })
       }
 
@@ -36,8 +37,15 @@ const uploadRoutes: FastifyPluginAsync = async (fastify) => {
 
       const date = new Date(parsed.clock * 1000)
       const filePath = saveFile(buffer, hash, date)
-      const shot = await createShot(parsed, hash, filePath)
-      return reply.send({ id: shot.id })
+      try {
+        const shot = await createShot(parsed, hash, filePath)
+        return reply.send({ id: shot.id })
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        const shortMsg = msg.split('\n').find(l => l.trim()) ?? msg
+        fastify.log.error(`upload: DB insert failed: ${shortMsg}`)
+        return reply.status(500).send({ error: 'Failed to save shot' })
+      }
     }
   )
 }
