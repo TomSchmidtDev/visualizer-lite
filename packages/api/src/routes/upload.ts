@@ -17,17 +17,21 @@ const uploadRoutes: FastifyPluginAsync = async (fastify) => {
       const hash = sha256(buffer)
       const content = buffer.toString('utf8')
 
-      // Check for duplicate before writing to disk
-      const existing = await prisma.shot.findUnique({ where: { sha256: hash }, select: { id: true } })
-      if (existing) {
-        return reply.status(409).send({ error: 'Shot already uploaded (duplicate)' })
-      }
-
       let parsed
       try {
         parsed = parseDecentShot(content)
       } catch {
         return reply.status(422).send({ error: 'Failed to parse .shot file' })
+      }
+
+      // Re-parse and update shotData if shot already exists (picks up parser improvements)
+      const existing = await prisma.shot.findUnique({ where: { sha256: hash }, select: { id: true } })
+      if (existing) {
+        await prisma.shot.update({
+          where: { id: existing.id },
+          data: { shotData: JSON.stringify(parsed.shotData) },
+        })
+        return reply.send({ id: existing.id })
       }
 
       const date = new Date(parsed.clock * 1000)

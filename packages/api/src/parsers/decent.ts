@@ -66,6 +66,15 @@ function parseJsonShot(content: string): ParsedShot {
     if (arr) shotData[key] = arr
   }
 
+  // Profile steps — data.profile.steps holds the same structure as the Tcl profile {} block
+  if (Array.isArray(profile.steps)) {
+    const steps = (profile.steps as unknown[]).filter(
+      (s): s is ProfileStep =>
+        s !== null && typeof s === 'object' && typeof (s as ProfileStep).name === 'string',
+    )
+    if (steps.length > 0) shotData.profileSteps = steps
+  }
+
   const clock = data.clock ? parseInt(String(data.clock), 10) : Math.floor(Date.now() / 1000)
 
   return {

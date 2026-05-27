@@ -57,10 +57,11 @@ describe('POST /shots/upload', () => {
     expect(JSON.parse(res.body).id).toBeDefined()
   })
 
-  it('returns 409 on duplicate', async () => {
-    await upload()
+  it('returns 200 and same id on duplicate (re-parses shotData)', async () => {
+    const res1 = await upload()
     const res2 = await upload()
-    expect(res2.statusCode).toBe(409)
+    expect(res2.statusCode).toBe(200)
+    expect(JSON.parse(res2.body).id).toBe(JSON.parse(res1.body).id)
   })
 
   it('returns 401 without auth', async () => {

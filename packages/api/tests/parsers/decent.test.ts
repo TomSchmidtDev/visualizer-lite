@@ -221,4 +221,14 @@ describe('parseDecentShot – JSON v2 format', () => {
     expect(result.grinderModel).toBe('Timemore Sculptor 078S')
     expect(result.grinderSetting).toBe('11.5')
   })
+
+  it('parses profile steps from data.profile.steps', () => {
+    const result = parseDecentShot(sampleShotV2)
+    const steps = result.shotData.profileSteps
+    expect(steps).toBeDefined()
+    expect(steps!.length).toBeGreaterThan(0)
+    expect(typeof steps![0].name).toBe('string')
+    expect(steps![0].name).toBe('Fill')
+    expect(steps![0].pump).toBe('pressure')
+  })
 })
