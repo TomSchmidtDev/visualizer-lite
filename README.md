@@ -16,6 +16,11 @@ On your development machine:
 docker build -t visualizer-lite:local .
 
 # For Synology NAS or any other x86_64/amd64 device (cross-compile from Apple Silicon)
+# The docker-container builder supports cross-platform file export.
+# Create it once; subsequent builds reuse it automatically.
+docker buildx create --name cross-builder --driver docker-container --use 2>/dev/null || \
+  docker buildx use cross-builder
+
 docker buildx build \
   --platform linux/amd64 \
   --output type=docker,dest=visualizer-lite.tar \
