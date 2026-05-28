@@ -6,10 +6,20 @@ import { prisma } from '../db.js'
 import { config } from '../config.js'
 
 export async function seedInitialUser(): Promise<void> {
-  const existing = await prisma.settings.findUnique({ where: { key: 'passwordHash' } })
-  if (existing) return
-
   const initialPassword = process.env.VL_PASSWORD ?? config.initialPassword
+  const existing = await prisma.settings.findUnique({ where: { key: 'passwordHash' } })
+
+  if (existing) {
+    // If VL_PASSWORD is explicitly set, always rehash — this recovers from
+    // stale or broken hashes left by a previous build (e.g. wrong bcrypt binary).
+    if (initialPassword) {
+      const hash = await bcrypt.hash(initialPassword, 12)
+      await prisma.settings.update({ where: { key: 'passwordHash' }, data: { value: hash } })
+      console.log('seedInitialUser: password hash updated from VL_PASSWORD')
+    }
+    return
+  }
+
   if (!initialPassword) {
     throw new Error('VL_PASSWORD is required on first start to initialize the admin account')
   }
@@ -23,6 +33,7 @@ export async function seedInitialUser(): Promise<void> {
       { key: 'theme', value: 'dark' },
     ],
   })
+  console.log('seedInitialUser: initial user created')
 }
 
 export async function verifyPassword(password: string): Promise<boolean> {
