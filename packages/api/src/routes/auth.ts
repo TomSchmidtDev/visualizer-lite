@@ -47,7 +47,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         // Non-httpOnly indicator so the SPA can detect login state via document.cookie
         .setCookie('vl_loggedin', '1', {
           httpOnly: false,
-          secure: process.env.NODE_ENV === 'production',
+          secure: config.useTls,
           sameSite: 'lax',
           path: '/',
           maxAge: 60 * 60 * 24 * 30,
