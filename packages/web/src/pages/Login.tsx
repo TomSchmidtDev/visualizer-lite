@@ -3,6 +3,7 @@ import { useState, FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api/client.js'
+import BuildVersion from '../components/BuildVersion.js'
 
 export default function Login() {
   const { t } = useTranslation()
@@ -60,6 +61,9 @@ export default function Login() {
             {loading ? t('common.loading') : t('auth.loginButton')}
           </button>
         </form>
+      </div>
+      <div style={{ position: 'absolute', bottom: 16, left: 0, right: 0, textAlign: 'center' }}>
+        <BuildVersion />
       </div>
     </div>
   )

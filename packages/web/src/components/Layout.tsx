@@ -2,6 +2,7 @@
 import { Outlet, NavLink, useNavigate, type NavLinkRenderProps } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api/client.js'
+import BuildVersion from './BuildVersion.js'
 
 interface Props {
   theme: 'dark' | 'light'
@@ -82,6 +83,9 @@ export default function Layout({ theme, onToggleTheme }: Props) {
       <main style={{ flex: 1 }}>
         <Outlet />
       </main>
+      <footer style={{ textAlign: 'center', padding: '8px 0 12px', borderTop: '1px solid var(--border)' }}>
+        <BuildVersion />
+      </footer>
     </div>
   )
 }

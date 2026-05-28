@@ -1,5 +1,6 @@
 # syntax=docker/dockerfile:1
 FROM node:22-alpine AS builder
+RUN apk add --no-cache git
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
@@ -9,6 +10,7 @@ RUN npm ci
 
 COPY packages/api ./packages/api
 COPY packages/web ./packages/web
+COPY .git ./.git
 
 RUN cd packages/api && npx prisma generate
 RUN cd packages/api && npm run build

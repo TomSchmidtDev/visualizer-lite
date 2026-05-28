@@ -19,10 +19,21 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       },
     },
     async (request, reply) => {
-      const valid = await verifyPassword(request.body.password)
-      if (!valid) return reply.status(401).send({ error: 'Invalid credentials' })
+      let valid: boolean
+      try {
+        valid = await verifyPassword(request.body.password)
+      } catch (err) {
+        fastify.log.error(`login: verifyPassword threw — ${err instanceof Error ? err.message : String(err)}`)
+        return reply.status(500).send({ error: 'Login error' })
+      }
+
+      if (!valid) {
+        fastify.log.warn({ ip: request.ip }, 'login: invalid password')
+        return reply.status(401).send({ error: 'Invalid credentials' })
+      }
 
       const username = await getUsername()
+      fastify.log.info({ username, ip: request.ip }, 'login: success')
       const token = fastify.jwt.sign({ username }, { expiresIn: '30d' })
 
       return reply

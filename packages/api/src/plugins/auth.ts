@@ -1,7 +1,7 @@
 // packages/api/src/plugins/auth.ts
 import fp from 'fastify-plugin'
 import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify'
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcryptjs'
 import { prisma } from '../db.js'
 import { config } from '../config.js'
 
@@ -27,8 +27,16 @@ export async function seedInitialUser(): Promise<void> {
 
 export async function verifyPassword(password: string): Promise<boolean> {
   const row = await prisma.settings.findUnique({ where: { key: 'passwordHash' } })
-  if (!row) return false
-  return bcrypt.compare(password, row.value)
+  if (!row) {
+    console.error('login: no passwordHash found in settings — was seedInitialUser called?')
+    return false
+  }
+  try {
+    return await bcrypt.compare(password, row.value)
+  } catch (err) {
+    console.error(`login: bcrypt.compare threw — ${err instanceof Error ? err.message : String(err)}`)
+    return false
+  }
 }
 
 export async function getUsername(): Promise<string> {

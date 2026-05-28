@@ -1,7 +1,7 @@
 // packages/api/src/routes/settings.ts
 import type { FastifyPluginAsync } from 'fastify'
 import { prisma } from '../db.js'
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcryptjs'
 
 const settingsRoutes: FastifyPluginAsync = async (fastify) => {
   const auth = { preHandler: [(fastify as any).requireAuth] }
