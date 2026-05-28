@@ -16,16 +16,8 @@ Auf dem Entwickler-Rechner:
 docker build -t visualizer-lite:local .
 
 # Für Synology NAS oder andere x86_64/amd64-Geräte (Cross-Compile von Apple Silicon)
-# Der docker-container-Builder wird für plattformübergreifenden Datei-Export benötigt.
-# Einmalig anlegen; nachfolgende Builds verwenden ihn automatisch.
-docker buildx create --name cross-builder --driver docker-container --use 2>/dev/null || \
-  docker buildx use cross-builder
-
-docker buildx build \
-  --platform linux/amd64 \
-  --output type=docker,dest=visualizer-lite.tar \
-  -t visualizer-lite:nas .
-gzip visualizer-lite.tar
+docker build --platform linux/amd64 -t visualizer-lite:nas .
+docker save visualizer-lite:nas | gzip > visualizer-lite.tar.gz
 ```
 
 ### 2. Übertragen und auf dem NAS laden
