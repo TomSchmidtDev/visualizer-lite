@@ -15,7 +15,8 @@
   "shots": {
     "title": "Shots",
     "noShots": "No shots yet. Upload your first shot!",
-    "found": "{{count}} shots found",
+    "found": "shots",
+    "foundOf": "of {{total}} shots",
     "avgEnjoyment": "Avg. enjoyment",
     "avgRatio": "Avg. ratio",
     "newestFirst": "Newest first",
@@ -126,7 +127,8 @@
     "de1ErrorDetails": "Errors: {{count}} shot(s) could not be imported",
     "tooltipOpacity": "Tooltip Opacity",
     "tooltipTransparent": "Transparent",
-    "tooltipOpaque": "Opaque"
+    "tooltipOpaque": "Opaque",
+    "showAvgRatio": "Show ∅ Ratio in shot list"
   },
   "common": {
     "loading": "Loading…",

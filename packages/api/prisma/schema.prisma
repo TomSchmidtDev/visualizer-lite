@@ -55,6 +55,7 @@ model Shot {
   @@index([beanType])
   @@index([profileTitle])
   @@index([grinderModel])
+  @@index([beanWeight, drinkWeight])
 }
 
 model Tag {

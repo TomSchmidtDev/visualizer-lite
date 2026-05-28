@@ -88,4 +88,5 @@ export interface ShotListResponse {
   total: number
   page: number
   limit: number
+  avgRatio: number | null
 }

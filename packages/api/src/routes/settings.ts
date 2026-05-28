@@ -15,6 +15,7 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
       username:       map.username       ?? 'admin',
       de1Url:         map.de1Url         ?? '',
       tooltipOpacity: map.tooltipOpacity ? parseFloat(map.tooltipOpacity) : 0.72,
+      showAvgRatio:   map.showAvgRatio !== undefined ? map.showAvgRatio === 'true' : true,
     })
   })
 
@@ -24,11 +25,12 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
       theme?: string
       de1Url?: string
       tooltipOpacity?: number
+      showAvgRatio?: boolean
       currentPassword?: string
       newPassword?: string
     }
   }>('/', auth, async (request, reply) => {
-    const { language, theme, de1Url, tooltipOpacity, currentPassword, newPassword } = request.body
+    const { language, theme, de1Url, tooltipOpacity, showAvgRatio, currentPassword, newPassword } = request.body
 
     if (language)
       await prisma.settings.upsert({
@@ -53,6 +55,12 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
         where: { key: 'tooltipOpacity' },
         create: { key: 'tooltipOpacity', value: String(tooltipOpacity) },
         update: { value: String(tooltipOpacity) },
+      })
+    if (showAvgRatio !== undefined)
+      await prisma.settings.upsert({
+        where: { key: 'showAvgRatio' },
+        create: { key: 'showAvgRatio', value: String(showAvgRatio) },
+        update: { value: String(showAvgRatio) },
       })
     if (currentPassword && newPassword) {
       const row = await prisma.settings.findUnique({ where: { key: 'passwordHash' } })

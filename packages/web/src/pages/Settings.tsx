@@ -163,7 +163,7 @@ export default function Settings() {
         </div>
 
         {/* Tooltip opacity slider */}
-        <div>
+        <div style={{ marginBottom: 16 }}>
           <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-dim)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.8 }}>
             <span>{t('settings.tooltipOpacity')}</span>
             <span style={{ color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
@@ -188,6 +188,20 @@ export default function Settings() {
             <span>{t('settings.tooltipOpaque')}</span>
           </div>
         </div>
+
+        {/* Show avg ratio toggle */}
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>
+          <input
+            type="checkbox"
+            checked={settings?.showAvgRatio ?? true}
+            onChange={async (e) => {
+              await api.updateSettings({ showAvgRatio: e.target.checked })
+              qc.invalidateQueries({ queryKey: ['settings'] })
+            }}
+            style={{ accentColor: 'var(--accent)', width: 14, height: 14 }}
+          />
+          {t('settings.showAvgRatio')}
+        </label>
       </div>
 
       {/* Language */}

@@ -111,6 +111,16 @@ export async function findShot(id: string): Promise<ShotResponse | null> {
   return row ? toResponse(row as ShotWithTags, true) : null
 }
 
+export async function computeAvgRatio(where: Record<string, unknown>): Promise<number | null> {
+  const rows = await prisma.shot.findMany({
+    where: { ...where, beanWeight: { gt: 0 }, drinkWeight: { not: null } },
+    select: { beanWeight: true, drinkWeight: true },
+  })
+  if (rows.length === 0) return null
+  const sum = rows.reduce((s, r) => s + r.drinkWeight! / r.beanWeight!, 0)
+  return Math.round((sum / rows.length) * 100) / 100
+}
+
 export async function listShots(opts: ListOptions): Promise<ShotListResponse> {
   const page = Math.max(1, opts.page ?? 1)
   const limit = Math.min(100, Math.max(1, opts.limit ?? 20))
@@ -128,7 +138,7 @@ export async function listShots(opts: ListOptions): Promise<ShotListResponse> {
     }
   }
 
-  const [rows, total] = await Promise.all([
+  const [rows, total, avgRatio] = await Promise.all([
     prisma.shot.findMany({
       where,
       orderBy: { startTime: 'desc' },
@@ -137,6 +147,7 @@ export async function listShots(opts: ListOptions): Promise<ShotListResponse> {
       include: { tags: true },
     }),
     prisma.shot.count({ where }),
+    computeAvgRatio(where),
   ])
 
   return {
@@ -144,6 +155,7 @@ export async function listShots(opts: ListOptions): Promise<ShotListResponse> {
     total,
     page,
     limit,
+    avgRatio,
   }
 }
 

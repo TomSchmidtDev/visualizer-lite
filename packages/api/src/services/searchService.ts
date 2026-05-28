@@ -1,6 +1,6 @@
 // packages/api/src/services/searchService.ts
 import { prisma } from '../db.js'
-import { listShots, downsample, type ListOptions } from './shotService.js'
+import { listShots, computeAvgRatio, downsample, type ListOptions } from './shotService.js'
 import type { ShotListResponse, ShotData } from '../types.js'
 
 export async function searchShots(opts: ListOptions & { q?: string }): Promise<ShotListResponse> {
@@ -11,18 +11,21 @@ export async function searchShots(opts: ListOptions & { q?: string }): Promise<S
     SELECT id FROM shots_fts WHERE shots_fts MATCH ${query} ORDER BY rank
   `
   const ids = rows.map((r) => r.id)
-  if (ids.length === 0) return { shots: [], total: 0, page: 1, limit: opts.limit ?? 20 }
+  if (ids.length === 0) return { shots: [], total: 0, page: 1, limit: opts.limit ?? 20, avgRatio: null }
 
   const page = Math.max(1, opts.page ?? 1)
   const limit = Math.min(100, opts.limit ?? 20)
 
-  const shots = await prisma.shot.findMany({
-    where: { id: { in: ids } },
-    orderBy: { startTime: 'desc' },
-    skip: (page - 1) * limit,
-    take: limit,
-    include: { tags: true },
-  })
+  const [shots, avgRatio] = await Promise.all([
+    prisma.shot.findMany({
+      where: { id: { in: ids } },
+      orderBy: { startTime: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+      include: { tags: true },
+    }),
+    computeAvgRatio({ id: { in: ids } }),
+  ])
 
   return {
     shots: shots.map((s) => ({
@@ -68,6 +71,7 @@ export async function searchShots(opts: ListOptions & { q?: string }): Promise<S
     total: ids.length,
     page,
     limit,
+    avgRatio,
   }
 }
 

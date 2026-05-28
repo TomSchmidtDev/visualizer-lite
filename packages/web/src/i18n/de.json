@@ -15,7 +15,8 @@
   "shots": {
     "title": "Shots",
     "noShots": "Noch keine Shots. Lade deinen ersten Shot hoch!",
-    "found": "{{count}} Shots gefunden",
+    "found": "Shots",
+    "foundOf": "von {{total}} Shots",
     "avgEnjoyment": "∅ Genuss",
     "avgRatio": "∅ Ratio",
     "newestFirst": "Neueste zuerst",
@@ -126,7 +127,8 @@
     "de1ErrorDetails": "Fehler: {{count}} Shot(s) konnten nicht importiert werden",
     "tooltipOpacity": "Tooltip-Transparenz",
     "tooltipTransparent": "Transparent",
-    "tooltipOpaque": "Opak"
+    "tooltipOpaque": "Opak",
+    "showAvgRatio": "∅ Ratio in der Shot-Liste anzeigen"
   },
   "common": {
     "loading": "Wird geladen…",

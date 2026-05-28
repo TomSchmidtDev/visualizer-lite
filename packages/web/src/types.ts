@@ -69,6 +69,7 @@ export interface ShotListResponse {
   total: number
   page: number
   limit: number
+  avgRatio: number | null
 }
 
 export interface Suggestions {
@@ -85,6 +86,7 @@ export interface AppSettings {
   username: string
   de1Url: string
   tooltipOpacity: number
+  showAvgRatio: boolean
 }
 
 export interface Stats {
