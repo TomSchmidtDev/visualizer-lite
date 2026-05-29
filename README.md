@@ -1,7 +1,31 @@
 # Visualizer Lite
 
 Self-hosted espresso shot manager for the [Decent Espresso DE1](https://decentespresso.com/).  
-Shots can be uploaded manually or imported directly from the machine. The web UI shows extraction curves, metadata, and tasting notes.
+Track every shot — upload manually, via the DE1 plugin, or import directly from the machine.
+Analyse extraction curves, rate taste, and find patterns across your history.
+
+| | | |
+|---|---|---|
+| ✦ Shot list with search & filter | ✦ Extraction curves (pressure, flow, weight) | ✦ Tasting notes & enjoyment score |
+| ✦ Manual .shot file upload | ✦ Auto-upload via DE1 plugin | ✦ DE1 direct import via HTTP |
+| ✦ Single Docker container, SQLite | ✦ Dark / light theme · DE + EN | ✦ ZIP data export |
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/shot-list.png" alt="Shot List" />
+      <br/><sub><b>Shot List</b></sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/shot-detail.png" alt="Extraction Curves" />
+      <br/><sub><b>Extraction Curves</b></sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/settings.png" alt="Settings &amp; Import" />
+      <br/><sub><b>Settings &amp; Import</b></sub>
+    </td>
+  </tr>
+</table>
 
 ---
 
