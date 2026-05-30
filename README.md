@@ -45,6 +45,36 @@ docker run -d \
   ghcr.io/tomschmidtdev/visualizer-lite:latest
 ```
 
+**macOS / Windows — HTTP (local use):**
+
+macOS (Terminal):
+```bash
+docker run -d \
+  --name visualizer-lite \
+  --restart unless-stopped \
+  -p 3000:3000 \
+  -v "$HOME/visualizer-lite-data:/data" \
+  -e VL_SESSION_SECRET="$(openssl rand -base64 48)" \
+  -e VL_PASSWORD="your-password" \
+  ghcr.io/tomschmidtdev/visualizer-lite:latest
+```
+
+Windows (PowerShell):
+```powershell
+docker run -d `
+  --name visualizer-lite `
+  --restart unless-stopped `
+  -p 3000:3000 `
+  -v "$env:USERPROFILE\visualizer-lite-data:/data" `
+  -e "VL_SESSION_SECRET=insert-any-long-random-string-here" `
+  -e "VL_PASSWORD=your-password" `
+  ghcr.io/tomschmidtdev/visualizer-lite:latest
+```
+
+Open http://localhost:3000 in your browser.
+
+---
+
 **HTTPS (with certificates):**
 ```bash
 docker run -d \
