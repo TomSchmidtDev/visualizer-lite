@@ -9,6 +9,7 @@ Extraktionskurven analysieren, Geschmack bewerten und Muster in der Shot-Histori
 | ✦ Shot-Liste mit Suche & Filter | ✦ Extraktionskurven (Druck, Flow, Gewicht) | ✦ Tasting Notes & Genussbewertung |
 | ✦ Manueller .shot-Datei-Upload | ✦ Automatischer Upload per DE1-Plugin | ✦ DE1-Direktimport via HTTP |
 | ✦ Einzelner Docker-Container, SQLite | ✦ Dark / Light Theme · DE + EN | ✦ ZIP-Datenexport |
+| ✦ **Shot-Vergleich** — zwei Shots überlagert oder nebeneinander vergleichen | | |
 
 <table>
   <tr>
@@ -23,6 +24,16 @@ Extraktionskurven analysieren, Geschmack bewerten und Muster in der Shot-Histori
     <td align="center" width="33%">
       <img src="docs/screenshots/settings.png" alt="Einstellungen &amp; Import" />
       <br/><sub><b>Einstellungen &amp; Import</b></sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%" colspan="2">
+      <img src="docs/screenshots/shot-comparison-overlaid.png" alt="Shot-Vergleich — Überlagert" />
+      <br/><sub><b>Shot-Vergleich — Überlagerte Kurven</b></sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="docs/screenshots/shot-comparison-split.png" alt="Shot-Vergleich — Getrennt" />
+      <br/><sub><b>Shot-Vergleich — Getrennte Ansicht</b></sub>
     </td>
   </tr>
 </table>

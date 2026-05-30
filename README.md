@@ -9,6 +9,7 @@ Analyse extraction curves, rate taste, and find patterns across your history.
 | ✦ Shot list with search & filter | ✦ Extraction curves (pressure, flow, weight) | ✦ Tasting notes & enjoyment score |
 | ✦ Manual .shot file upload | ✦ Auto-upload via DE1 plugin | ✦ DE1 direct import via HTTP |
 | ✦ Single Docker container, SQLite | ✦ Dark / light theme · DE + EN | ✦ ZIP data export |
+| ✦ **Shot comparison** — overlay or split two shots' extraction curves | | |
 
 <table>
   <tr>
@@ -23,6 +24,16 @@ Analyse extraction curves, rate taste, and find patterns across your history.
     <td align="center" width="33%">
       <img src="docs/screenshots/settings.png" alt="Settings &amp; Import" />
       <br/><sub><b>Settings &amp; Import</b></sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%" colspan="2">
+      <img src="docs/screenshots/shot-comparison-overlaid.png" alt="Shot Comparison — Overlaid" />
+      <br/><sub><b>Shot Comparison — Overlaid Curves</b></sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="docs/screenshots/shot-comparison-split.png" alt="Shot Comparison — Split View" />
+      <br/><sub><b>Shot Comparison — Split View</b></sub>
     </td>
   </tr>
 </table>
