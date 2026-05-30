@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client.js'
 import ShotCard from '../components/ShotCard.js'
 import SearchBar from '../components/SearchBar.js'
@@ -37,6 +37,16 @@ export default function ShotList() {
     staleTime: 60_000,
   })
 
+  const [searchParams] = useSearchParams()
+  const compareWith = searchParams.get('compareWith')
+
+  const { data: compareShot } = useQuery({
+    queryKey: ['shot', compareWith],
+    queryFn: () => api.getShot(compareWith!),
+    enabled: !!compareWith,
+    staleTime: 60_000,
+  })
+
   const isFiltered = !!(
     params.beanBrand || params.beanType || params.profileTitle ||
     params.grinderModel || params.dateFrom || params.dateTo || params.q
@@ -47,6 +57,33 @@ export default function ShotList() {
   return (
     <div>
       <SearchBar params={params} suggestions={suggestions} onChange={setParams} />
+
+      {/* Compare mode banner */}
+      {compareWith && (
+        <div style={{
+          padding: '10px 24px',
+          background: 'var(--accent-dim, #1a2e3b)',
+          borderBottom: '1px solid var(--accent)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          fontSize: 13,
+        }}>
+          <span style={{ color: 'var(--accent)' }}>⇄ {t('detail.compareBanner')}:</span>
+          <strong style={{ color: 'var(--text)' }}>
+            {compareShot
+              ? [compareShot.beanType, compareShot.beanBrand].filter(Boolean).join(' — ') || 'Shot'
+              : '…'}
+          </strong>
+          <button
+            className="btn btn-secondary"
+            style={{ marginLeft: 'auto', fontSize: 12 }}
+            onClick={() => navigate('/')}
+          >
+            {t('detail.cancelCompare')}
+          </button>
+        </div>
+      )}
 
       {/* Stats bar */}
       <div style={{
@@ -87,7 +124,15 @@ export default function ShotList() {
             {t('shots.noShots')}
           </p>
         )}
-        {data?.shots.map((shot) => <ShotCard key={shot.id} shot={shot} />)}
+        {data?.shots.map((shot) => (
+          <ShotCard
+            key={shot.id}
+            shot={shot}
+            onSelect={compareWith
+              ? (id) => navigate(`/compare?a=${compareWith}&b=${id}`)
+              : undefined}
+          />
+        ))}
       </div>
 
       {data && (
