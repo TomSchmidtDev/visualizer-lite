@@ -48,7 +48,7 @@ jobs:
           images: ghcr.io/${{ github.repository }}
           tags: |
             type=semver,pattern={{version}}
-            type=raw,value=latest
+            type=raw,value=latest,enable=${{ github.event.release.prerelease == false }}
 
       # ── 6. Build & push multi-arch manifest to ghcr.io ───────────────
       - name: Build and push multi-arch image
@@ -70,6 +70,7 @@ jobs:
           platforms: linux/amd64
           outputs: type=docker,dest=/tmp/visualizer-lite-amd64.tar
           tags: visualizer-lite:${{ github.event.release.tag_name }}
+          push: false
           cache-from: type=gha
 
       - name: Compress amd64 image
@@ -83,6 +84,7 @@ jobs:
           platforms: linux/arm64
           outputs: type=docker,dest=/tmp/visualizer-lite-arm64.tar
           tags: visualizer-lite:${{ github.event.release.tag_name }}
+          push: false
           cache-from: type=gha
 
       - name: Compress arm64 image
