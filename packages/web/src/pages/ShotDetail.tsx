@@ -69,6 +69,7 @@ export default function ShotDetail() {
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <button className="btn btn-secondary" onClick={() => api.downloadShot(id!)}>{t('detail.download')}</button>
+            <button className="btn btn-secondary" onClick={() => navigate(`/?compareWith=${id}`)}>{t('detail.compare')}</button>
             <button className="btn btn-secondary" onClick={() => navigate(`/shots/${id}/edit`)}>{t('detail.edit')}</button>
             {confirmDelete ? (
               <>

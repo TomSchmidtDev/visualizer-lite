@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-05-30
+
+### Added
+- Shot comparison feature: "Vergleichen" button in shot detail opens the list in compare mode; clicking a second shot navigates to `/compare?a=…&b=…`
+- Comparison page with overlaid extraction curves (Shot A solid, Shot B dashed at 70% opacity) and a toggle to split-view mode
+- Key metrics table (dose/yield, ratio, duration, enjoyment) with differing values highlighted
+- Tasting scores, bean/equipment info, and notes shown side by side
+
 ## [1.2.1] - 2026-05-30
 
 ### Added
