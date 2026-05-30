@@ -29,7 +29,40 @@ Extraktionskurven analysieren, Geschmack bewerten und Muster in der Shot-Histori
 
 ---
 
+## Schnellstart
+
+Kein Build nötig — einfach das veröffentlichte Image aus der GitHub Container Registry verwenden.
+
+**HTTP (lokales Netzwerk):**
+```bash
+docker run -d \
+  --name visualizer-lite \
+  --restart unless-stopped \
+  -p 3000:3000 \
+  -v /volume1/docker/visualizer-lite/data:/data \
+  -e VL_SESSION_SECRET="$(openssl rand -base64 48)" \
+  -e VL_PASSWORD="dein-passwort" \
+  ghcr.io/tomschmidtdev/visualizer-lite:latest
+```
+
+**HTTPS (mit Zertifikaten):**
+```bash
+docker run -d \
+  --name visualizer-lite \
+  --restart unless-stopped \
+  -p 3443:3000 \
+  -v /volume1/docker/visualizer-lite/data:/data \
+  -v /volume1/docker/visualizer-lite/certs:/certs:ro \
+  -e VL_SESSION_SECRET="$(openssl rand -base64 48)" \
+  -e VL_PASSWORD="dein-passwort" \
+  ghcr.io/tomschmidtdev/visualizer-lite:latest
+```
+
+---
+
 ## Build & Deployment
+
+> Nur nötig, wenn das Image selbst gebaut werden soll (z.B. für lokale Entwicklung oder einen Fork).
 
 ### 1. Docker-Image bauen
 

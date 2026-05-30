@@ -29,7 +29,40 @@ Analyse extraction curves, rate taste, and find patterns across your history.
 
 ---
 
+## Quick Start
+
+No build required — use the published image from GitHub Container Registry.
+
+**HTTP (local network):**
+```bash
+docker run -d \
+  --name visualizer-lite \
+  --restart unless-stopped \
+  -p 3000:3000 \
+  -v /volume1/docker/visualizer-lite/data:/data \
+  -e VL_SESSION_SECRET="$(openssl rand -base64 48)" \
+  -e VL_PASSWORD="your-password" \
+  ghcr.io/tomschmidtdev/visualizer-lite:latest
+```
+
+**HTTPS (with certificates):**
+```bash
+docker run -d \
+  --name visualizer-lite \
+  --restart unless-stopped \
+  -p 3443:3000 \
+  -v /volume1/docker/visualizer-lite/data:/data \
+  -v /volume1/docker/visualizer-lite/certs:/certs:ro \
+  -e VL_SESSION_SECRET="$(openssl rand -base64 48)" \
+  -e VL_PASSWORD="your-password" \
+  ghcr.io/tomschmidtdev/visualizer-lite:latest
+```
+
+---
+
 ## Build & Deploy
+
+> Only needed if you want to build the image yourself (e.g. for local development or a fork).
 
 ### 1. Build the Docker image
 
