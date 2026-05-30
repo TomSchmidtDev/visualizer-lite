@@ -1,0 +1,97 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write   # upload release assets
+  packages: write   # push to ghcr.io
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout ──────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # gitleaks needs full history
+
+      # ── 2. Secret scan (gate) ─────────────────────────────────────────
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── 3. Docker setup ───────────────────────────────────────────────
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # ── 4. Login to ghcr.io ───────────────────────────────────────────
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── 5. Compute image tags ─────────────────────────────────────────
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=raw,value=latest
+
+      # ── 6. Build & push multi-arch manifest to ghcr.io ───────────────
+      - name: Build and push multi-arch image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ── 7. Export amd64 tar.gz ────────────────────────────────────────
+      - name: Export amd64 image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          outputs: type=docker,dest=/tmp/visualizer-lite-amd64.tar
+          tags: visualizer-lite:${{ github.event.release.tag_name }}
+          cache-from: type=gha
+
+      - name: Compress amd64 image
+        run: gzip /tmp/visualizer-lite-amd64.tar
+
+      # ── 8. Export arm64 tar.gz ────────────────────────────────────────
+      - name: Export arm64 image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/arm64
+          outputs: type=docker,dest=/tmp/visualizer-lite-arm64.tar
+          tags: visualizer-lite:${{ github.event.release.tag_name }}
+          cache-from: type=gha
+
+      - name: Compress arm64 image
+        run: gzip /tmp/visualizer-lite-arm64.tar
+
+      # ── 9. Attach assets to GitHub Release ───────────────────────────
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            /tmp/visualizer-lite-amd64.tar.gz
+            /tmp/visualizer-lite-arm64.tar.gz
