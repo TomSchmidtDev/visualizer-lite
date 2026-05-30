@@ -5,6 +5,7 @@ import type { Shot } from '../types.js'
 
 interface Props {
   shot: Omit<Shot, 'shotData'>
+  onSelect?: (id: string) => void
 }
 
 interface SparkSeries { data: number[]; color: string }
@@ -44,7 +45,7 @@ function Sparkline({ series }: { series: SparkSeries[] }) {
   )
 }
 
-export default function ShotCard({ shot }: Props) {
+export default function ShotCard({ shot, onSelect }: Props) {
   const navigate = useNavigate()
   const { t } = useTranslation()
 
@@ -67,7 +68,7 @@ export default function ShotCard({ shot }: Props) {
   return (
     <div
       className="card"
-      onClick={() => navigate(`/shots/${shot.id}`)}
+      onClick={() => onSelect ? onSelect(shot.id) : navigate(`/shots/${shot.id}`)}
       style={{
         display: 'grid',
         gridTemplateColumns: 'auto 1fr auto auto',
