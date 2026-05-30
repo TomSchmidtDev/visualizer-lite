@@ -5,6 +5,7 @@ dist/
 *.db-wal
 *.db-shm
 .superpowers/
+docs/superpowers/
 /data/
 packages/api/prisma/migrations/*/migration_lock.toml
 *.DS_Store
