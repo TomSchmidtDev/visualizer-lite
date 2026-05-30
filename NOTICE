@@ -1,50 +1,5 @@
 Visualizer Lite
-Copyright (c) 2026 TomSchmidtDev
+Copyright 2026 TomSchmidtDev
 
-This product includes software developed by third parties. The following
-open-source components are used under their respective licenses:
-
-──────────────────────────────────────────────────────────────────────────────
-Runtime dependencies
-──────────────────────────────────────────────────────────────────────────────
-
-Fastify                     MIT License     https://fastify.dev
-@fastify/cookie             MIT License     https://github.com/fastify/fastify-cookie
-@fastify/cors               MIT License     https://github.com/fastify/fastify-cors
-@fastify/jwt                MIT License     https://github.com/fastify/fastify-jwt
-@fastify/multipart          MIT License     https://github.com/fastify/fastify-multipart
-@fastify/static             MIT License     https://github.com/fastify/fastify-static
-Prisma Client               Apache 2.0      https://www.prisma.io
-archiver                    MIT License     https://github.com/archiverjs/node-archiver
-bcrypt                      MIT License     https://github.com/kelektiv/node.bcrypt.js
-chokidar                    MIT License     https://github.com/paulmillr/chokidar
-React                       MIT License     https://react.dev
-React DOM                   MIT License     https://react.dev
-React Router                MIT License     https://reactrouter.com
-TanStack Query              MIT License     https://tanstack.com/query
-i18next                     MIT License     https://www.i18next.com
-react-i18next               MIT License     https://react.i18next.com
-uPlot                       MIT License     https://github.com/leeoniya/uPlot
-
-──────────────────────────────────────────────────────────────────────────────
-Build / development tools
-──────────────────────────────────────────────────────────────────────────────
-
-Vite                        MIT License     https://vitejs.dev
-Vitest                      MIT License     https://vitest.dev
-TypeScript                  Apache 2.0      https://www.typescriptlang.org
-Prisma CLI                  Apache 2.0      https://www.prisma.io
-tsx                         MIT License     https://github.com/privatenumber/tsx
-
-──────────────────────────────────────────────────────────────────────────────
-DE1 Tablet Plugin
-──────────────────────────────────────────────────────────────────────────────
-
-The plugin in de1app/de1plus/plugins/visualizer_upload/ is written for the
-Decent Espresso DE1 tablet running the DE1app (DUI framework).
-DE1app is copyright Decent Espresso Ltd.  https://decentespresso.com
-
-──────────────────────────────────────────────────────────────────────────────
-
-Full license texts for all components are available in the respective package
-directories under node_modules/ or at the URLs listed above.
+This project is not affiliated with or endorsed by Decent Espresso.
+"Decent Espresso" and "DE1" are trademarks of Decent Espresso Co. Ltd.
