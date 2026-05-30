@@ -1,5 +1,5 @@
 // packages/web/src/pages/Settings.tsx
-import { useState, useEffect, FormEvent } from 'react'
+import { useState, useEffect, useRef, FormEvent } from 'react'
 import { flushSync } from 'react-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -35,6 +35,7 @@ export default function Settings() {
   const [dateFrom, setDateFrom] = useState('2020-01-01')
   const [dateTo, setDateTo] = useState(todayStr)
   const [updateExisting, setUpdateExisting] = useState(false)
+  const de1DateInitialized = useRef(false)
 
   const { data: settings } = useQuery({
     queryKey: ['settings'],
@@ -48,6 +49,15 @@ export default function Settings() {
       setDe1Url(settings.de1Url)
     }
   }, [settings?.de1Url])
+
+  // Pre-fill "Von" date with last import's "Bis" date (once on first load)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!de1DateInitialized.current && settings?.de1LastImportDate) {
+      de1DateInitialized.current = true
+      setDateFrom(settings.de1LastImportDate)
+    }
+  }, [settings?.de1LastImportDate])
 
   const { data: stats } = useQuery({
     queryKey: ['stats'],
@@ -130,6 +140,9 @@ export default function Settings() {
       setDe1Phase({ name: 'done', ...res })
       qc.invalidateQueries({ queryKey: ['shots'] })
       qc.invalidateQueries({ queryKey: ['stats'] })
+      // Remember "Bis" date so next visit pre-fills "Von" from here
+      await api.updateSettings({ de1LastImportDate: dateTo })
+      qc.invalidateQueries({ queryKey: ['settings'] })
     } catch (err) {
       setDe1Phase({
         name: 'connectionError',

@@ -87,6 +87,7 @@ export interface AppSettings {
   de1Url: string
   tooltipOpacity: number
   showAvgRatio: boolean
+  de1LastImportDate?: string | null
 }
 
 export interface Stats {
