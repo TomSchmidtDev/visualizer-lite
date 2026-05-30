@@ -27,18 +27,20 @@ const DEFAULT_CHANNELS = new Set([
   'espresso_flow_weight',
 ])
 
-/** Align srcData (indexed by srcTime) to dstTime using nearest-neighbour lookup. */
+/** Align srcData to dstTime via nearest-neighbour lookup (true nearest, not ceiling). Returns null beyond the source end. */
 function alignData(srcTime: number[], srcData: number[], dstTime: number[]): (number | null)[] {
   if (!srcTime.length || !srcData.length) return dstTime.map(() => null)
   const maxT = srcTime[srcTime.length - 1]
   return dstTime.map((t) => {
-    if (t > maxT + 0.5) return null
+    if (t > maxT) return null
     let lo = 0, hi = srcTime.length - 1
     while (lo < hi) {
       const mid = (lo + hi) >> 1
       if (srcTime[mid] < t) lo = mid + 1
       else hi = mid
     }
+    // Pick the truly nearest sample (not just ceiling)
+    if (lo > 0 && (srcTime[lo] - t) > (t - srcTime[lo - 1])) lo--
     return srcData[lo] ?? null
   })
 }
@@ -53,7 +55,6 @@ interface Props {
   shotDataB: ShotData
   labelA: string
   labelB: string
-  tooltipOpacity?: number
 }
 
 export default function ShotCompareChart({ shotDataA, shotDataB, labelA, labelB }: Props) {
@@ -137,7 +138,7 @@ export default function ShotCompareChart({ shotDataA, shotDataB, labelA, labelB 
 
   return (
     <div>
-      {/* Legend */}
+      {/* Legend: accent = Shot A identity color, #c87d32 = Shot B identity color (consistent with compare page header) */}
       <div style={{ display: 'flex', gap: 16, marginBottom: 8, fontSize: 12, flexWrap: 'wrap' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <span style={{ display: 'inline-block', width: 20, height: 0, borderTop: '2.5px solid var(--accent)' }} />
