@@ -61,7 +61,16 @@
     "waterDispensed": "Water Dispensed",
     "weightFlow": "Weight Flow",
     "resistance": "Resistance",
-    "stateChange": "State Change"
+    "stateChange": "State Change",
+    "compare": "Compare",
+    "compareBanner": "Select a shot to compare with",
+    "cancelCompare": "Cancel"
+  },
+  "compare": {
+    "title": "Shot Comparison",
+    "overlaid": "Overlaid",
+    "split": "Split",
+    "vs": "vs"
   },
   "edit": {
     "title": "Edit Shot",
