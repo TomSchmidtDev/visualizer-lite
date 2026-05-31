@@ -107,7 +107,7 @@ export interface StatsWindow {
 }
 
 export interface Stats {
-  period: '180d' | '365d' | '730d' | '1095d' | 'all'
+  period: '24h' | '7d' | '14d' | '30d' | '180d' | '365d' | '730d' | '1095d' | 'all'
   beverage: 'espresso' | 'filter' | 'all'
   current: StatsWindow
   previous: StatsWindow

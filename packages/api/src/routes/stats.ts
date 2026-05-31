@@ -2,10 +2,14 @@ import type { FastifyPluginAsync } from 'fastify'
 import { Prisma } from '@prisma/client'
 import { prisma } from '../db.js'
 
-type Period = '180d' | '365d' | '730d' | '1095d' | 'all'
+type Period = '24h' | '7d' | '14d' | '30d' | '180d' | '365d' | '730d' | '1095d' | 'all'
 type Beverage = 'espresso' | 'filter' | 'all'
 
 const PERIOD_MS: Record<Exclude<Period, 'all'>, number> = {
+  '24h':    1 * 24 * 60 * 60 * 1000,
+  '7d':     7 * 24 * 60 * 60 * 1000,
+  '14d':   14 * 24 * 60 * 60 * 1000,
+  '30d':   30 * 24 * 60 * 60 * 1000,
   '180d':  180 * 24 * 60 * 60 * 1000,
   '365d':  365 * 24 * 60 * 60 * 1000,
   '730d':  730 * 24 * 60 * 60 * 1000,
@@ -13,10 +17,10 @@ const PERIOD_MS: Record<Exclude<Period, 'all'>, number> = {
 }
 
 const PERIOD_DAYS: Record<Exclude<Period, 'all'>, number> = {
-  '180d': 180, '365d': 365, '730d': 730, '1095d': 1095,
+  '24h': 1, '7d': 7, '14d': 14, '30d': 30, '180d': 180, '365d': 365, '730d': 730, '1095d': 1095,
 }
 
-const VALID_PERIODS = new Set<string>(['180d', '365d', '730d', '1095d', 'all'])
+const VALID_PERIODS = new Set<string>(['24h', '7d', '14d', '30d', '180d', '365d', '730d', '1095d', 'all'])
 
 function isValidPeriod(v: unknown): v is Period {
   return typeof v === 'string' && VALID_PERIODS.has(v)

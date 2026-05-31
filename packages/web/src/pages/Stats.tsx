@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client.js'
 import type { Stats, StatsWindow } from '../types.js'
 
-type Period = '180d' | '365d' | '730d' | '1095d' | 'all'
+type Period = '24h' | '7d' | '14d' | '30d' | '180d' | '365d' | '730d' | '1095d' | 'all'
 type Beverage = 'espresso' | 'filter' | 'all'
 
 function delta(current: number | null, previous: number | null): { symbol: string; color: string } | null {
@@ -104,7 +104,7 @@ function TopList({ title, items, noData }: TopListProps) {
   )
 }
 
-const PERIODS: Period[] = ['180d', '365d', '730d', '1095d', 'all']
+const PERIODS: Period[] = ['24h', '7d', '14d', '30d', '180d', '365d', '730d', '1095d', 'all']
 const BEVERAGES: Beverage[] = ['espresso', 'filter', 'all']
 
 export default function StatsPage() {
