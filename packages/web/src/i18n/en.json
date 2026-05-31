@@ -2,7 +2,8 @@
   "nav": {
     "shots": "Shots",
     "upload": "Upload",
-    "settings": "Settings"
+    "settings": "Settings",
+    "stats": "Statistics"
   },
   "auth": {
     "login": "Login",
@@ -138,6 +139,32 @@
     "tooltipTransparent": "Transparent",
     "tooltipOpaque": "Opaque",
     "showAvgRatio": "Show ∅ Ratio in shot list"
+  },
+  "stats": {
+    "title": "Statistics",
+    "tabDashboard": "Dashboard",
+    "tabRoasters": "Roasters & Beans",
+    "tabProfiles": "Profiles",
+    "beverageEspresso": "Espresso",
+    "beverageFilter": "Filter",
+    "beverageAll": "All",
+    "period24h": "24h",
+    "period7d": "7 days",
+    "period30d": "30 days",
+    "period365d": "365 days",
+    "kpiShots": "Shots",
+    "kpiBeans": "Beans",
+    "kpiOutput": "Output",
+    "kpiRatio": "Ratio",
+    "kpiEnjoyment": "Avg Rating",
+    "kpiShotsPerDay": "Shots/Day",
+    "kpiDuration": "Avg Duration",
+    "kpiGrinder": "Top Grind",
+    "topRoasters": "Top Roasters",
+    "topRoasts": "Top Roasts",
+    "topProfiles": "Top Profiles",
+    "noData": "No data for this period",
+    "vsLabel": "vs prev"
   },
   "common": {
     "loading": "Loading…",

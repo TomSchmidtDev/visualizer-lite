@@ -2,7 +2,8 @@
   "nav": {
     "shots": "Shots",
     "upload": "Hochladen",
-    "settings": "Einstellungen"
+    "settings": "Einstellungen",
+    "stats": "Statistiken"
   },
   "auth": {
     "login": "Anmelden",
@@ -138,6 +139,32 @@
     "tooltipTransparent": "Transparent",
     "tooltipOpaque": "Opak",
     "showAvgRatio": "∅ Ratio in der Shot-Liste anzeigen"
+  },
+  "stats": {
+    "title": "Statistiken",
+    "tabDashboard": "Dashboard",
+    "tabRoasters": "Röster & Bohnen",
+    "tabProfiles": "Profile",
+    "beverageEspresso": "Espresso",
+    "beverageFilter": "Filter",
+    "beverageAll": "Alle",
+    "period24h": "24h",
+    "period7d": "7 Tage",
+    "period30d": "30 Tage",
+    "period365d": "365 Tage",
+    "kpiShots": "Shots",
+    "kpiBeans": "Bohnen",
+    "kpiOutput": "Output",
+    "kpiRatio": "Ratio",
+    "kpiEnjoyment": "Ø Bewertung",
+    "kpiShotsPerDay": "Shots/Tag",
+    "kpiDuration": "Ø Dauer",
+    "kpiGrinder": "Mahlgrad",
+    "topRoasters": "Top Röster",
+    "topRoasts": "Top Röstungen",
+    "topProfiles": "Top Profile",
+    "noData": "Keine Daten für diesen Zeitraum",
+    "vsLabel": "vs. Vorperiode"
   },
   "common": {
     "loading": "Wird geladen…",
