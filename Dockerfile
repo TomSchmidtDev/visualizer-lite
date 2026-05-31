@@ -16,8 +16,12 @@ RUN cd packages/api && npx prisma generate
 RUN cd packages/api && npm run build
 RUN cd packages/web && npm run build
 
+# Remove devDependencies (build tools incl. esbuild Go binaries) before copying to runtime
+RUN npm prune --omit=dev
+
 # ── Runtime ──────────────────────────────────────────────
 FROM node:22-alpine AS runtime
+RUN apk upgrade --no-cache
 WORKDIR /app
 
 COPY --from=builder /app/packages/api/dist         ./packages/api/dist
