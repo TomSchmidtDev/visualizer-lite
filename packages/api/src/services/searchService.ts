@@ -20,7 +20,7 @@ export async function searchShots(opts: ListOptions & { q?: string }): Promise<S
   if (opts.beverageType === 'unknown') ftsWhere.OR = [{ beverageType: null }, { beverageType: '' }]
   else if (opts.beverageType) ftsWhere.beverageType = opts.beverageType
 
-  const [shots, avgRatio] = await Promise.all([
+  const [shots, total, avgRatio] = await Promise.all([
     prisma.shot.findMany({
       where: ftsWhere,
       orderBy: { startTime: 'desc' },
@@ -28,6 +28,7 @@ export async function searchShots(opts: ListOptions & { q?: string }): Promise<S
       take: limit,
       include: { tags: true },
     }),
+    prisma.shot.count({ where: ftsWhere }),
     computeAvgRatio(ftsWhere),
   ])
 
@@ -73,7 +74,7 @@ export async function searchShots(opts: ListOptions & { q?: string }): Promise<S
         } catch { return undefined }
       })(),
     })),
-    total: ids.length,
+    total,
     page,
     limit,
     avgRatio,
