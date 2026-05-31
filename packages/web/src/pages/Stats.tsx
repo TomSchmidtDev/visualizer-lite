@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client.js'
-import type { Stats, StatsWindow } from '../types.js'
+import type { Stats, StatsWindow, RoasterRow, ProfileRow, BeanRow } from '../types.js'
 
 type Period = '24h' | '7d' | '14d' | '30d' | '180d' | '365d' | '730d' | '1095d' | 'all'
 type Beverage = 'espresso' | 'filter' | 'all'
@@ -107,8 +107,101 @@ function TopList({ title, items, noData }: TopListProps) {
 const PERIODS: Period[] = ['24h', '7d', '14d', '30d', '180d', '365d', '730d', '1095d', 'all']
 const BEVERAGES: Beverage[] = ['espresso', 'filter', 'all']
 
+type SortDir = 'asc' | 'desc'
+
+interface ColDef {
+  key: string
+  label: string
+  align?: 'left' | 'right'
+  render: (value: unknown) => string
+}
+
+function SortableTable({
+  columns,
+  rows,
+  initialSortKey,
+  getRowKey,
+  renderExpandToggle,
+  renderSubRows,
+}: {
+  columns: ColDef[]
+  rows: Record<string, unknown>[]
+  initialSortKey: string
+  getRowKey: (row: Record<string, unknown>) => string
+  renderExpandToggle?: (row: Record<string, unknown>) => React.ReactNode
+  renderSubRows?: (row: Record<string, unknown>) => React.ReactNode
+}) {
+  const [sortKey, setSortKey] = useState(initialSortKey)
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
+
+  function toggleSort(key: string) {
+    if (key === sortKey) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortKey(key); setSortDir('desc') }
+  }
+
+  const sorted = [...rows].sort((a, b) => {
+    const av = a[sortKey], bv = b[sortKey]
+    if (av == null && bv == null) return 0
+    if (av == null) return 1
+    if (bv == null) return -1
+    if (typeof av === 'number' && typeof bv === 'number') return sortDir === 'asc' ? av - bv : bv - av
+    return sortDir === 'asc' ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av))
+  })
+
+  const thStyle = (col: ColDef): React.CSSProperties => ({
+    textAlign: col.align ?? 'right',
+    padding: '6px 8px',
+    cursor: 'pointer',
+    color: sortKey === col.key ? 'var(--accent)' : 'var(--text-muted)',
+    fontSize: 11,
+    letterSpacing: '0.05em',
+    borderBottom: '1px solid var(--border)',
+    userSelect: 'none',
+    whiteSpace: 'nowrap',
+  })
+
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+        <thead>
+          <tr>
+            {renderExpandToggle && <th style={{ width: 24, borderBottom: '1px solid var(--border)' }} />}
+            {columns.map(col => (
+              <th key={col.key} onClick={() => toggleSort(col.key)} style={thStyle(col)}>
+                {col.label.toUpperCase()}
+                {sortKey === col.key && <span style={{ marginLeft: 4 }}>{sortDir === 'asc' ? '▲' : '▼'}</span>}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map(row => (
+            <Fragment key={getRowKey(row)}>
+              <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                {renderExpandToggle && (
+                  <td style={{ padding: '6px 4px', textAlign: 'center' }}>
+                    {renderExpandToggle(row)}
+                  </td>
+                )}
+                {columns.map(col => (
+                  <td key={col.key} style={{ textAlign: col.align ?? 'right', padding: '6px 8px', color: 'var(--text)' }}>
+                    {col.render(row[col.key])}
+                  </td>
+                ))}
+              </tr>
+              {renderSubRows?.(row)}
+            </Fragment>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 export default function StatsPage() {
   const { t } = useTranslation()
+  type ActiveTab = 'dashboard' | 'roasters' | 'profiles'
+  const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard')
   const [period, setPeriod] = useState<Period>('365d')
   const [beverage, setBeverage] = useState<Beverage>('espresso')
   const [stats, setStats] = useState<Stats | null>(null)
@@ -146,11 +239,11 @@ export default function StatsPage() {
     fontWeight: active ? 600 : 400,
   })
 
-  const tabStyle = (active: boolean, disabled = false): React.CSSProperties => ({
+  const tabStyle = (active: boolean): React.CSSProperties => ({
     padding: '8px 16px',
     fontSize: 13,
-    color: active ? 'var(--accent)' : disabled ? 'var(--border)' : 'var(--text-muted)',
-    cursor: disabled ? 'default' : 'pointer',
+    color: active ? 'var(--accent)' : 'var(--text-muted)',
+    cursor: 'pointer',
     fontWeight: active ? 600 : 400,
     background: 'none',
     border: 'none',
@@ -163,9 +256,9 @@ export default function StatsPage() {
 
       {/* Tab bar */}
       <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: 24 }}>
-        <button style={tabStyle(true)}>{t('stats.tabDashboard')}</button>
-        <button style={tabStyle(false, true)}>{t('stats.tabRoasters')}</button>
-        <button style={tabStyle(false, true)}>{t('stats.tabProfiles')}</button>
+        <button style={tabStyle(activeTab === 'dashboard')} onClick={() => setActiveTab('dashboard')}>{t('stats.tabDashboard')}</button>
+        <button style={tabStyle(activeTab === 'roasters')} onClick={() => setActiveTab('roasters')}>{t('stats.tabRoasters')}</button>
+        <button style={tabStyle(activeTab === 'profiles')} onClick={() => setActiveTab('profiles')}>{t('stats.tabProfiles')}</button>
       </div>
 
       {/* Beverage toggle */}
@@ -186,17 +279,17 @@ export default function StatsPage() {
         ))}
       </div>
 
-      {loading && (
+      {activeTab === 'dashboard' && loading && (
         <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 40 }}>
           {t('common.loading')}
         </div>
       )}
 
-      {error && (
+      {activeTab === 'dashboard' && error && (
         <div style={{ color: '#ff8866', textAlign: 'center', padding: 40 }}>{error}</div>
       )}
 
-      {!loading && !error && cur && (
+      {activeTab === 'dashboard' && !loading && !error && cur && (
         <>
           {/* KPI Row 1: Consumption */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 12 }}>
