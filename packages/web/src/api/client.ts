@@ -1,5 +1,5 @@
 // packages/web/src/api/client.ts
-import type { Shot, ShotListResponse, Suggestions, AppSettings, Stats, SearchParams } from '../types.js'
+import type { Shot, ShotListResponse, Suggestions, AppSettings, Stats, StatsWindow, SearchParams } from '../types.js'
 
 const BASE = ''  // Same origin; Vite proxies /api → localhost:3000 in dev
 
@@ -95,8 +95,8 @@ export const api = {
     }),
 
   // Stats
-  getStats: () =>
-    request<Stats>('/api/stats'),
+  getStats: (period: '24h' | '7d' | '30d' | '365d' = '365d', beverage: 'espresso' | 'filter' | 'all' = 'espresso') =>
+    request<Stats>(`/api/stats?period=${period}&beverage=${beverage}`),
 
   // Export
   exportAll: () => {

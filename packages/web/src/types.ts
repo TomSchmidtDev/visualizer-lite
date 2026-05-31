@@ -90,10 +90,25 @@ export interface AppSettings {
   de1LastImportDate?: string | null
 }
 
-export interface Stats {
-  total: number
-  avgEnjoyment: number | null
+export interface StatsWindow {
+  shotCount: number
+  beanWeightG: number
+  drinkWeightG: number
   avgRatio: number | null
+  avgEnjoyment: number | null
+  avgDurationS: number | null
+  shotsPerDay: number | null
+  topGrinderSetting: string | null
+  topRoasters: { name: string; count: number }[]
+  topRoasts:   { name: string; count: number }[]
+  topProfiles: { name: string; count: number }[]
+}
+
+export interface Stats {
+  period: '24h' | '7d' | '30d' | '365d'
+  beverage: 'espresso' | 'filter' | 'all'
+  current: StatsWindow
+  previous: StatsWindow
 }
 
 export interface SearchParams {
