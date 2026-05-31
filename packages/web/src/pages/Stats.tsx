@@ -22,6 +22,7 @@ function fmt(value: number | null, unit: string): string {
   if (unit === 's') return `${Math.round(value)}s`
   if (unit === '★') return `${value.toFixed(1)}★`
   if (unit === '1:x') return `1:${value.toFixed(2)}`
+  if (unit === 'n') return Number.isInteger(value) ? String(value) : value.toFixed(1)
   return String(value)
 }
 
@@ -179,21 +180,21 @@ export default function StatsPage() {
         <div style={{ color: '#ff8866', textAlign: 'center', padding: 40 }}>{error}</div>
       )}
 
-      {!loading && !error && cur && prev && (
+      {!loading && !error && cur && (
         <>
           {/* KPI Row 1: Consumption */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 12 }}>
-            <KpiTile label={t('stats.kpiShots')}   value={cur.shotCount}    prevValue={prev.shotCount}    unit="n"   vsLabel={vsLabel} />
-            <KpiTile label={t('stats.kpiBeans')}   value={cur.beanWeightG}  prevValue={prev.beanWeightG}  unit="g"   vsLabel={vsLabel} />
-            <KpiTile label={t('stats.kpiOutput')}  value={cur.drinkWeightG} prevValue={prev.drinkWeightG} unit="g"   vsLabel={vsLabel} />
-            <KpiTile label={t('stats.kpiRatio')}   value={cur.avgRatio}     prevValue={prev.avgRatio}     unit="1:x" vsLabel={vsLabel} />
+            <KpiTile label={t('stats.kpiShots')}   value={cur.shotCount}    prevValue={prev?.shotCount ?? null}    unit="n"   vsLabel={vsLabel} />
+            <KpiTile label={t('stats.kpiBeans')}   value={cur.beanWeightG}  prevValue={prev?.beanWeightG ?? null}  unit="g"   vsLabel={vsLabel} />
+            <KpiTile label={t('stats.kpiOutput')}  value={cur.drinkWeightG} prevValue={prev?.drinkWeightG ?? null} unit="g"   vsLabel={vsLabel} />
+            <KpiTile label={t('stats.kpiRatio')}   value={cur.avgRatio}     prevValue={prev?.avgRatio ?? null}     unit="1:x" vsLabel={vsLabel} />
           </div>
 
           {/* KPI Row 2: Quality & Habit */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
-            <KpiTile label={t('stats.kpiEnjoyment')}   value={cur.avgEnjoyment}  prevValue={prev.avgEnjoyment}  unit="★"  vsLabel={vsLabel} />
-            <KpiTile label={t('stats.kpiShotsPerDay')} value={cur.shotsPerDay}   prevValue={prev.shotsPerDay}   unit="n"  vsLabel={vsLabel} />
-            <KpiTile label={t('stats.kpiDuration')}    value={cur.avgDurationS}  prevValue={prev.avgDurationS}  unit="s"  vsLabel={vsLabel} />
+            <KpiTile label={t('stats.kpiEnjoyment')}   value={cur.avgEnjoyment}  prevValue={prev?.avgEnjoyment ?? null}  unit="★"  vsLabel={vsLabel} />
+            <KpiTile label={t('stats.kpiShotsPerDay')} value={cur.shotsPerDay}   prevValue={prev?.shotsPerDay ?? null}   unit="n"  vsLabel={vsLabel} />
+            <KpiTile label={t('stats.kpiDuration')}    value={cur.avgDurationS}  prevValue={prev?.avgDurationS ?? null}  unit="s"  vsLabel={vsLabel} />
             <div style={{
               background: 'var(--bg-card)',
               border: '1px solid var(--border)',
