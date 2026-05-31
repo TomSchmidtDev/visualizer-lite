@@ -222,3 +222,59 @@ describe('GET /api/stats/roasters', () => {
     expect(body).toHaveLength(0)
   })
 })
+
+describe('GET /api/stats/profiles', () => {
+  it('returns 401 without auth', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/stats/profiles' })
+    expect(res.statusCode).toBe(401)
+  })
+
+  it('returns profiles sorted by shotCount desc', async () => {
+    await createShot({ profileTitle: 'Blooming Espresso', startTime: daysAgo(1), beverageType: 'espresso', beanWeight: 18, drinkWeight: 36, duration: 28, espressoEnjoyment: 80 })
+    await createShot({ profileTitle: 'Blooming Espresso', startTime: daysAgo(1), beverageType: 'espresso', beanWeight: 18, drinkWeight: 36, duration: 30, espressoEnjoyment: 90 })
+    await createShot({ profileTitle: 'Filter v2',         startTime: daysAgo(1), beverageType: 'espresso', beanWeight: 18, drinkWeight: 36, duration: 25, espressoEnjoyment: 70 })
+
+    const res = await app.inject({ method: 'GET', url: '/api/stats/profiles?period=7d&beverage=espresso', headers: { cookie } })
+    expect(res.statusCode).toBe(200)
+    const body = JSON.parse(res.body) as Array<{
+      profile: string; shotCount: number; avgEnjoyment: number | null;
+      avgDurationS: number | null; avgRatio: number | null; avgBeanWeightG: number | null
+    }>
+    expect(body).toHaveLength(2)
+    expect(body[0].profile).toBe('Blooming Espresso')
+    expect(body[0].shotCount).toBe(2)
+    expect(body[0].avgEnjoyment).toBeCloseTo(85, 0)
+  })
+
+  it('respects period filter', async () => {
+    await createShot({ profileTitle: 'Blooming Espresso', startTime: daysAgo(5),   beverageType: 'espresso' })
+    await createShot({ profileTitle: 'Blooming Espresso', startTime: daysAgo(400), beverageType: 'espresso' })
+    const res = await app.inject({ method: 'GET', url: '/api/stats/profiles?period=30d&beverage=espresso', headers: { cookie } })
+    const body = JSON.parse(res.body) as Array<{ shotCount: number }>
+    expect(body).toHaveLength(1)
+    expect(body[0].shotCount).toBe(1)
+  })
+
+  it('respects beverage filter', async () => {
+    await createShot({ profileTitle: 'Blooming Espresso', startTime: daysAgo(1), beverageType: 'espresso' })
+    await createShot({ profileTitle: 'Blooming Espresso', startTime: daysAgo(1), beverageType: 'filter' })
+    const res = await app.inject({ method: 'GET', url: '/api/stats/profiles?period=7d&beverage=espresso', headers: { cookie } })
+    const body = JSON.parse(res.body) as Array<{ shotCount: number }>
+    expect(body[0].shotCount).toBe(1)
+  })
+
+  it('computes avgBeanWeightG', async () => {
+    await createShot({ profileTitle: 'Blooming Espresso', beanWeight: 18, startTime: daysAgo(1), beverageType: 'espresso' })
+    await createShot({ profileTitle: 'Blooming Espresso', beanWeight: 20, startTime: daysAgo(1), beverageType: 'espresso' })
+    const res = await app.inject({ method: 'GET', url: '/api/stats/profiles?period=7d&beverage=espresso', headers: { cookie } })
+    const body = JSON.parse(res.body) as Array<{ avgBeanWeightG: number | null }>
+    expect(body[0].avgBeanWeightG).toBeCloseTo(19, 0)
+  })
+
+  it('excludes shots with null profileTitle', async () => {
+    await createShot({ profileTitle: null, startTime: daysAgo(1), beverageType: 'espresso' })
+    const res = await app.inject({ method: 'GET', url: '/api/stats/profiles?period=7d&beverage=espresso', headers: { cookie } })
+    const body = JSON.parse(res.body)
+    expect(body).toHaveLength(0)
+  })
+})

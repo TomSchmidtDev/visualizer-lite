@@ -244,6 +244,42 @@ const statsRoutes: FastifyPluginAsync = async (fastify) => {
 
     return reply.send(result)
   })
+
+  fastify.get('/profiles', { preHandler: [(fastify as any).requireAuth] }, async (request, reply) => {
+    const q = request.query as Record<string, string>
+    const period: Period     = isValidPeriod(q.period)     ? q.period   : '365d'
+    const beverage: Beverage = isValidBeverage(q.beverage) ? q.beverage : 'espresso'
+
+    const now = Date.now()
+    const bevWhere = beverageFilter(beverage)
+    const where: Prisma.ShotWhereInput = period === 'all'
+      ? { ...bevWhere }
+      : { startTime: { gte: new Date(now - PERIOD_MS[period]), lt: new Date(now) }, ...bevWhere }
+
+    const rows = await prisma.shot.groupBy({
+      by: ['profileTitle'],
+      where: { ...where, profileTitle: { not: null } },
+      _count: { id: true },
+      _sum:   { beanWeight: true, drinkWeight: true },
+      _avg:   { espressoEnjoyment: true, duration: true, beanWeight: true },
+      orderBy: { _count: { id: 'desc' } },
+    })
+
+    const result: ProfileRow[] = rows.map(r => {
+      const bw = r._sum.beanWeight ?? 0
+      const dw = r._sum.drinkWeight ?? 0
+      return {
+        profile: r.profileTitle as string,
+        shotCount: r._count.id,
+        avgEnjoyment: r._avg.espressoEnjoyment != null ? Math.round(r._avg.espressoEnjoyment * 10) / 10 : null,
+        avgDurationS: r._avg.duration != null ? Math.round(r._avg.duration * 10) / 10 : null,
+        avgRatio: bw > 0 ? Math.round((dw / bw) * 1000) / 1000 : null,
+        avgBeanWeightG: r._avg.beanWeight != null ? Math.round(r._avg.beanWeight * 10) / 10 : null,
+      }
+    })
+
+    return reply.send(result)
+  })
 }
 
 export default statsRoutes
