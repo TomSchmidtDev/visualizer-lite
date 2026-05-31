@@ -77,9 +77,9 @@ describe('GET /api/stats', () => {
   })
 
   it('counts shots in current period only', async () => {
-    await createShot({ startTime: daysAgo(5) })    // within 7d
-    await createShot({ startTime: daysAgo(10) })   // outside 7d current, inside previous
-    const res = await getStats('period=7d&beverage=all')
+    await createShot({ startTime: daysAgo(5) })    // within 180d current window
+    await createShot({ startTime: daysAgo(190) })  // outside 180d current, inside previous 180d window
+    const res = await getStats('period=180d&beverage=all')
     const body = JSON.parse(res.body)
     expect(res.statusCode).toBe(200)
     expect(body.current.shotCount).toBe(1)

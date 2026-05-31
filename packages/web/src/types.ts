@@ -88,6 +88,8 @@ export interface AppSettings {
   tooltipOpacity: number
   showAvgRatio: boolean
   de1LastImportDate?: string | null
+  statsTopN: number
+  statsShowPrevValue: boolean
 }
 
 export interface StatsWindow {
@@ -105,7 +107,7 @@ export interface StatsWindow {
 }
 
 export interface Stats {
-  period: '24h' | '7d' | '30d' | '365d'
+  period: '180d' | '365d' | '730d' | '1095d' | 'all'
   beverage: 'espresso' | 'filter' | 'all'
   current: StatsWindow
   previous: StatsWindow

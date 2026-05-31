@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client.js'
 import type { Stats, StatsWindow } from '../types.js'
 
-type Period = '24h' | '7d' | '30d' | '365d'
+type Period = '180d' | '365d' | '730d' | '1095d' | 'all'
 type Beverage = 'espresso' | 'filter' | 'all'
 
 function delta(current: number | null, previous: number | null): { symbol: string; color: string } | null {
@@ -32,10 +33,16 @@ interface KpiTileProps {
   prevValue: number | null
   unit: string
   vsLabel: string
+  prevLabel: string
+  showPrevValue: boolean
 }
 
-function KpiTile({ label, value, prevValue, unit, vsLabel }: KpiTileProps) {
+function KpiTile({ label, value, prevValue, unit, vsLabel, prevLabel, showPrevValue }: KpiTileProps) {
   const d = delta(value, prevValue)
+  const diffStr = d && value != null && prevValue != null && Math.abs(d.symbol === '—' ? 0 : value - prevValue) > 0
+    ? (value - prevValue > 0 ? '+' : '') + fmt(value - prevValue, unit)
+    : null
+
   return (
     <div style={{
       background: 'var(--bg-card)',
@@ -51,7 +58,11 @@ function KpiTile({ label, value, prevValue, unit, vsLabel }: KpiTileProps) {
       </div>
       {d && (
         <div style={{ fontSize: 11, color: d.color, marginTop: 4 }}>
-          {d.symbol} {vsLabel}
+          {d.symbol}{diffStr ? ` ${diffStr}` : ''}
+          {showPrevValue && prevValue != null
+            ? <span style={{ color: 'var(--text-muted)', marginLeft: 6 }}>| {prevLabel}: {fmt(prevValue, unit)}</span>
+            : <span style={{ color: 'var(--text-muted)', marginLeft: 4 }}>{vsLabel}</span>
+          }
         </div>
       )}
       {!d && <div style={{ height: 19 }} />}
@@ -93,7 +104,7 @@ function TopList({ title, items, noData }: TopListProps) {
   )
 }
 
-const PERIODS: Period[] = ['24h', '7d', '30d', '365d']
+const PERIODS: Period[] = ['180d', '365d', '730d', '1095d', 'all']
 const BEVERAGES: Beverage[] = ['espresso', 'filter', 'all']
 
 export default function StatsPage() {
@@ -104,18 +115,23 @@ export default function StatsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: () => api.getSettings() })
+  const topN = settings?.statsTopN ?? 10
+  const showPrevValue = settings?.statsShowPrevValue ?? true
+
   useEffect(() => {
     setLoading(true)
     setError(null)
-    api.getStats(period, beverage)
+    api.getStats(period, beverage, topN)
       .then(setStats)
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [period, beverage])
+  }, [period, beverage, topN])
 
   const cur: StatsWindow | null = stats?.current ?? null
   const prev: StatsWindow | null = stats?.previous ?? null
   const vsLabel = t('stats.vsLabel')
+  const prevLabel = t('stats.prevLabel')
   const noData = t('stats.noData')
 
   const toggleStyle = (active: boolean): React.CSSProperties => ({
@@ -162,7 +178,7 @@ export default function StatsPage() {
       </div>
 
       {/* Period toggle */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 24, alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 24, alignItems: 'center', flexWrap: 'wrap' }}>
         {PERIODS.map(p => (
           <button key={p} style={toggleStyle(period === p)} onClick={() => setPeriod(p)}>
             {t(`stats.period${p}`)}
@@ -184,17 +200,17 @@ export default function StatsPage() {
         <>
           {/* KPI Row 1: Consumption */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 12 }}>
-            <KpiTile label={t('stats.kpiShots')}   value={cur.shotCount}    prevValue={prev?.shotCount ?? null}    unit="n"   vsLabel={vsLabel} />
-            <KpiTile label={t('stats.kpiBeans')}   value={cur.beanWeightG}  prevValue={prev?.beanWeightG ?? null}  unit="g"   vsLabel={vsLabel} />
-            <KpiTile label={t('stats.kpiOutput')}  value={cur.drinkWeightG} prevValue={prev?.drinkWeightG ?? null} unit="g"   vsLabel={vsLabel} />
-            <KpiTile label={t('stats.kpiRatio')}   value={cur.avgRatio}     prevValue={prev?.avgRatio ?? null}     unit="1:x" vsLabel={vsLabel} />
+            <KpiTile label={t('stats.kpiShots')}   value={cur.shotCount}    prevValue={prev?.shotCount ?? null}    unit="n"   vsLabel={vsLabel} prevLabel={prevLabel} showPrevValue={showPrevValue} />
+            <KpiTile label={t('stats.kpiBeans')}   value={cur.beanWeightG}  prevValue={prev?.beanWeightG ?? null}  unit="g"   vsLabel={vsLabel} prevLabel={prevLabel} showPrevValue={showPrevValue} />
+            <KpiTile label={t('stats.kpiOutput')}  value={cur.drinkWeightG} prevValue={prev?.drinkWeightG ?? null} unit="g"   vsLabel={vsLabel} prevLabel={prevLabel} showPrevValue={showPrevValue} />
+            <KpiTile label={t('stats.kpiRatio')}   value={cur.avgRatio}     prevValue={prev?.avgRatio ?? null}     unit="1:x" vsLabel={vsLabel} prevLabel={prevLabel} showPrevValue={showPrevValue} />
           </div>
 
           {/* KPI Row 2: Quality & Habit */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
-            <KpiTile label={t('stats.kpiEnjoyment')}   value={cur.avgEnjoyment}  prevValue={prev?.avgEnjoyment ?? null}  unit="★"  vsLabel={vsLabel} />
-            <KpiTile label={t('stats.kpiShotsPerDay')} value={cur.shotsPerDay}   prevValue={prev?.shotsPerDay ?? null}   unit="n"  vsLabel={vsLabel} />
-            <KpiTile label={t('stats.kpiDuration')}    value={cur.avgDurationS}  prevValue={prev?.avgDurationS ?? null}  unit="s"  vsLabel={vsLabel} />
+            <KpiTile label={t('stats.kpiEnjoyment')}   value={cur.avgEnjoyment}  prevValue={prev?.avgEnjoyment ?? null}  unit="★"  vsLabel={vsLabel} prevLabel={prevLabel} showPrevValue={showPrevValue} />
+            <KpiTile label={t('stats.kpiShotsPerDay')} value={cur.shotsPerDay}   prevValue={prev?.shotsPerDay ?? null}   unit="n"  vsLabel={vsLabel} prevLabel={prevLabel} showPrevValue={showPrevValue} />
+            <KpiTile label={t('stats.kpiDuration')}    value={cur.avgDurationS}  prevValue={prev?.avgDurationS ?? null}  unit="s"  vsLabel={vsLabel} prevLabel={prevLabel} showPrevValue={showPrevValue} />
             <div style={{
               background: 'var(--bg-card)',
               border: '1px solid var(--border)',

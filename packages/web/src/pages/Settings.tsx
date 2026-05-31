@@ -217,6 +217,47 @@ export default function Settings() {
         </label>
       </div>
 
+      {/* Statistics */}
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="card-title">{t('settings.statsSection')}</div>
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-dim)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+            <span>{t('settings.statsTopN')}</span>
+            <span style={{ color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+              {settings?.statsTopN ?? 10}
+            </span>
+          </label>
+          <input
+            type="range"
+            min="1"
+            max="20"
+            step="1"
+            value={settings?.statsTopN ?? 10}
+            onChange={async (e) => {
+              await api.updateSettings({ statsTopN: parseInt(e.target.value, 10) })
+              qc.invalidateQueries({ queryKey: ['settings'] })
+            }}
+            style={{ width: '100%', accentColor: 'var(--accent)' }}
+          />
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-dim)', marginTop: 2 }}>
+            <span>1</span>
+            <span>20</span>
+          </div>
+        </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>
+          <input
+            type="checkbox"
+            checked={settings?.statsShowPrevValue ?? true}
+            onChange={async (e) => {
+              await api.updateSettings({ statsShowPrevValue: e.target.checked })
+              qc.invalidateQueries({ queryKey: ['settings'] })
+            }}
+            style={{ accentColor: 'var(--accent)', width: 14, height: 14 }}
+          />
+          {t('settings.statsShowPrevValue')}
+        </label>
+      </div>
+
       {/* Language */}
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="card-title">{t('settings.language')}</div>

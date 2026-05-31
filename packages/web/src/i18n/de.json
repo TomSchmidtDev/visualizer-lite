@@ -138,7 +138,10 @@
     "tooltipOpacity": "Tooltip-Transparenz",
     "tooltipTransparent": "Transparent",
     "tooltipOpaque": "Opak",
-    "showAvgRatio": "∅ Ratio in der Shot-Liste anzeigen"
+    "showAvgRatio": "∅ Ratio in der Shot-Liste anzeigen",
+    "statsSection": "Statistiken",
+    "statsTopN": "Top-N Einträge (Listen)",
+    "statsShowPrevValue": "Vorperiodenwert bei KPIs anzeigen"
   },
   "stats": {
     "title": "Statistiken",
@@ -148,10 +151,11 @@
     "beverageEspresso": "Espresso",
     "beverageFilter": "Filter",
     "beverageAll": "Alle",
-    "period24h": "24h",
-    "period7d": "7 Tage",
-    "period30d": "30 Tage",
-    "period365d": "365 Tage",
+    "period180d": "6 Monate",
+    "period365d": "1 Jahr",
+    "period730d": "2 Jahre",
+    "period1095d": "3 Jahre",
+    "periodall": "Alles",
     "kpiShots": "Shots",
     "kpiBeans": "Bohnen",
     "kpiOutput": "Output",
@@ -164,7 +168,8 @@
     "topRoasts": "Top Röstungen",
     "topProfiles": "Top Profile",
     "noData": "Keine Daten für diesen Zeitraum",
-    "vsLabel": "vs. Vorperiode"
+    "vsLabel": "vs. Vorperiode",
+    "prevLabel": "Vorperiode"
   },
   "common": {
     "loading": "Wird geladen…",

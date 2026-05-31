@@ -95,8 +95,8 @@ export const api = {
     }),
 
   // Stats
-  getStats: (period: '24h' | '7d' | '30d' | '365d' = '365d', beverage: 'espresso' | 'filter' | 'all' = 'espresso') =>
-    request<Stats>(`/api/stats?period=${period}&beverage=${beverage}`),
+  getStats: (period: '180d' | '365d' | '730d' | '1095d' | 'all' = '365d', beverage: 'espresso' | 'filter' | 'all' = 'espresso', topN = 10) =>
+    request<Stats>(`/api/stats?period=${period}&beverage=${beverage}&topN=${topN}`),
 
   // Export
   exportAll: () => {
