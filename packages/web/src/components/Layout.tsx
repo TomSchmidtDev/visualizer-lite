@@ -51,18 +51,18 @@ export default function Layout({ theme, onToggleTheme }: Props) {
           })}>
             {t('nav.shots')}
           </NavLink>
-          <NavLink to="/upload" style={({ isActive }: NavLinkRenderProps) => ({
-            fontSize: 13, color: isActive ? 'var(--accent)' : 'var(--text-muted)',
-            fontWeight: isActive ? 600 : 400,
-          })}>
-            {t('nav.upload')}
-          </NavLink>
           <NavLink to="/stats" style={({ isActive }: NavLinkRenderProps) => ({
             fontSize: 13, color: isActive ? 'var(--accent)' : 'var(--text-muted)',
             fontWeight: isActive ? 600 : 400,
             textDecoration: 'none',
           })}>
             {t('nav.stats')}
+          </NavLink>
+          <NavLink to="/upload" style={({ isActive }: NavLinkRenderProps) => ({
+            fontSize: 13, color: isActive ? 'var(--accent)' : 'var(--text-muted)',
+            fontWeight: isActive ? 600 : 400,
+          })}>
+            {t('nav.upload')}
           </NavLink>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
