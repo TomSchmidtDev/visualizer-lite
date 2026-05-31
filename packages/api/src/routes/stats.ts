@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify'
+import { Prisma } from '@prisma/client'
 import { prisma } from '../db.js'
 
 type Period = '24h' | '7d' | '30d' | '365d'
@@ -25,10 +26,11 @@ function isValidBeverage(v: unknown): v is Beverage {
 
 function beverageFilter(beverage: Beverage) {
   if (beverage === 'all') return {}
+  // shots with null beverageType are excluded when a specific type is selected
   return { beverageType: beverage }
 }
 
-async function computeWindow(where: object) {
+async function computeWindow(where: Prisma.ShotWhereInput) {
   const [agg, topRoasters, topRoasts, topProfiles, topGrinderRows] = await Promise.all([
     prisma.shot.aggregate({
       where,
