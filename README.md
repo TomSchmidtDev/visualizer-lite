@@ -8,7 +8,7 @@ Track every shot, analyse extraction curves, rate taste, and discover patterns a
 - **Direct import (pull)** — fetch shots directly from the DE1 machine using the [Advanced REST API](https://github.com/randomcoffeesnob/decent-advanced-rest-api) extension; no cable or manual file transfer needed
 - **Auto-upload (push)** — shots are pushed automatically after each extraction via the updated *Upload to visualizer* DE1 plugin
 - **Filterable shot list** — search and filter by roaster, bean, profile, grinder, beverage type, date range, and more
-- **Statistics dashboard** — KPI tiles with period comparison (24h to all-time), top roasters/roasts/profiles, configurable beverage filter (espresso vs. filter)
+- **Statistics dashboard** — KPI tiles with period comparison (24h to all-time), top roasters/roasts/profiles, configurable beverage filter (espresso vs. filter); includes **Roasters & Beans** and **Profiles** tabs with sortable metrics tables
 - **Shot comparison** — overlay or split two shots' extraction curves side by side with key metrics diff
 - **Self-hosted, single container** — runs on a local machine or NAS (Synology etc.) as a single Docker container with SQLite; no cloud, no account, full data ownership
   - ⚠️ No multi-tenant support — one instance, one user
