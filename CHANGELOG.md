@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-05-31
+
+### Added
+- Statistics page (`/stats`) with dashboard tab: KPI tiles (shots, bean weight, output, ratio, avg rating, shots/day, duration, top grind setting), top-N ranked lists (roasters, roasts, profiles), and beverage type toggle (Espresso / Filter / All)
+- Nine selectable rolling time windows: 24h · 7 days · 2 weeks · 1 month · 6 months · 1 year · 2 years · 3 years · All time — each with comparison to the preceding window
+- KPI delta indicators show arrow + delta value + optional previous-period value (configurable in Settings)
+- New `beverageType` field on Shot, extracted from `profile.beverage_type` in both JSON and Tcl shot file parsers; populated on import and re-import via both the upload endpoint and DE1 direct import
+- Settings → Statistics: configurable Top-N (1–20, default 10) and toggle for showing previous-period values in KPI tiles
+
 ## [1.4.0] - 2026-05-31
 
 ### Added

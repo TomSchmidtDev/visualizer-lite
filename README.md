@@ -1,15 +1,19 @@
 # Visualizer Lite
 
 Self-hosted espresso shot manager for the [Decent Espresso DE1](https://decentespresso.com/).  
-Track every shot — upload manually, via the DE1 plugin, or import directly from the machine.
-Analyse extraction curves, rate taste, and find patterns across your history.
+Track every shot, analyse extraction curves, rate taste, and discover patterns across your entire history.
 
-| | | |
-|---|---|---|
-| ✦ Shot list with search & filter | ✦ Extraction curves (pressure, flow, weight) | ✦ Tasting notes & enjoyment score |
-| ✦ Manual .shot file upload | ✦ Auto-upload via DE1 plugin | ✦ DE1 direct import via HTTP |
-| ✦ Single Docker container, SQLite | ✦ Dark / light theme · DE + EN | ✦ ZIP data export |
-| ✦ **Shot comparison** — overlay or split two shots' extraction curves | | |
+## Key Features
+
+- **Direct import (pull)** — fetch shots directly from the DE1 machine using the [Advanced REST API](https://github.com/randomcoffeesnob/decent-advanced-rest-api) extension; no cable or manual file transfer needed
+- **Auto-upload (push)** — shots are pushed automatically after each extraction via the updated *Upload to visualizer* DE1 plugin
+- **Filterable shot list** — search and filter by roaster, bean, profile, grinder, date range, and more
+- **Statistics dashboard** — KPI tiles with period comparison (24h to all-time), top roasters/roasts/profiles, configurable beverage filter (espresso vs. filter)
+- **Shot comparison** — overlay or split two shots' extraction curves side by side with key metrics diff
+- **Self-hosted, single container** — runs on a local machine or NAS (Synology etc.) as a single Docker container with SQLite; no cloud, no account, full data ownership
+  - ⚠️ No multi-tenant support — one instance, one user
+  - ⚠️ By design not connected to the broader Decent/coffee community (no sharing, no leaderboards)
+- **Free up your DE1 tablet** — once shots are imported into Visualizer Lite, you can safely delete them from the DE1 machine, keeping the Decent app fast and responsive
 
 <table>
   <tr>
@@ -34,6 +38,12 @@ Analyse extraction curves, rate taste, and find patterns across your history.
     <td align="center" width="50%">
       <img src="docs/screenshots/shot-comparison-split.png" alt="Shot Comparison — Split View" />
       <br/><sub><b>Shot Comparison — Split View</b></sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="100%" colspan="3">
+      <img src="docs/screenshots/shot-statistics-6-months-dashboard.png" alt="Statistics Dashboard" />
+      <br/><sub><b>Statistics Dashboard — 6 Months View</b></sub>
     </td>
   </tr>
 </table>
@@ -170,7 +180,7 @@ docker run -d \
 ```
 
 Place your certificate files at:
-```
+```raw
 /volume1/docker/visualizer-lite/certs/
 ├── fullchain.pem
 └── privkey.pem
