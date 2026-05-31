@@ -162,3 +162,63 @@ describe('GET /api/stats', () => {
     expect(body.beverage).toBe('espresso')
   })
 })
+
+describe('GET /api/stats/roasters', () => {
+  it('returns 401 without auth', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/stats/roasters' })
+    expect(res.statusCode).toBe(401)
+  })
+
+  it('returns roasters with nested beans sorted by shotCount desc', async () => {
+    await createShot({ beanBrand: 'Gardelli', beanType: 'Ethiopia', startTime: daysAgo(1), beverageType: 'espresso', beanWeight: 18, drinkWeight: 36, duration: 28, espressoEnjoyment: 80 })
+    await createShot({ beanBrand: 'Gardelli', beanType: 'Colombia', startTime: daysAgo(1), beverageType: 'espresso', beanWeight: 18, drinkWeight: 36, duration: 30, espressoEnjoyment: 90 })
+    await createShot({ beanBrand: 'Nomad',    beanType: 'Blend',    startTime: daysAgo(1), beverageType: 'espresso', beanWeight: 18, drinkWeight: 36, duration: 25, espressoEnjoyment: 70 })
+
+    const res = await app.inject({ method: 'GET', url: '/api/stats/roasters?period=7d&beverage=espresso', headers: { cookie } })
+    expect(res.statusCode).toBe(200)
+    const body = JSON.parse(res.body) as Array<{
+      roaster: string; shotCount: number; avgEnjoyment: number | null;
+      avgRatio: number | null; avgDurationS: number | null; totalBeanWeightG: number;
+      beans: Array<{ bean: string; shotCount: number }>
+    }>
+    expect(body).toHaveLength(2)
+    expect(body[0].roaster).toBe('Gardelli')
+    expect(body[0].shotCount).toBe(2)
+    expect(body[0].totalBeanWeightG).toBe(36)
+    expect(body[0].beans).toHaveLength(2)
+    expect(body[0].beans.map(b => b.bean)).toContain('Ethiopia')
+    expect(body[0].beans.map(b => b.bean)).toContain('Colombia')
+    expect(body[1].roaster).toBe('Nomad')
+  })
+
+  it('respects period filter', async () => {
+    await createShot({ beanBrand: 'Gardelli', startTime: daysAgo(5),   beverageType: 'espresso' })
+    await createShot({ beanBrand: 'Gardelli', startTime: daysAgo(400), beverageType: 'espresso' })
+    const res = await app.inject({ method: 'GET', url: '/api/stats/roasters?period=30d&beverage=espresso', headers: { cookie } })
+    const body = JSON.parse(res.body) as Array<{ roaster: string; shotCount: number }>
+    expect(body).toHaveLength(1)
+    expect(body[0].shotCount).toBe(1)
+  })
+
+  it('respects beverage filter', async () => {
+    await createShot({ beanBrand: 'Gardelli', startTime: daysAgo(1), beverageType: 'espresso' })
+    await createShot({ beanBrand: 'Gardelli', startTime: daysAgo(1), beverageType: 'filter' })
+    const res = await app.inject({ method: 'GET', url: '/api/stats/roasters?period=7d&beverage=espresso', headers: { cookie } })
+    const body = JSON.parse(res.body) as Array<{ shotCount: number }>
+    expect(body[0].shotCount).toBe(1)
+  })
+
+  it('computes avgRatio from beanWeight and drinkWeight', async () => {
+    await createShot({ beanBrand: 'Gardelli', beanWeight: 18, drinkWeight: 36, startTime: daysAgo(1), beverageType: 'espresso' })
+    const res = await app.inject({ method: 'GET', url: '/api/stats/roasters?period=7d&beverage=espresso', headers: { cookie } })
+    const body = JSON.parse(res.body) as Array<{ avgRatio: number | null }>
+    expect(body[0].avgRatio).toBeCloseTo(2.0, 2)
+  })
+
+  it('excludes shots with null beanBrand', async () => {
+    await createShot({ beanBrand: null, startTime: daysAgo(1), beverageType: 'espresso' })
+    const res = await app.inject({ method: 'GET', url: '/api/stats/roasters?period=7d&beverage=espresso', headers: { cookie } })
+    const body = JSON.parse(res.body)
+    expect(body).toHaveLength(0)
+  })
+})

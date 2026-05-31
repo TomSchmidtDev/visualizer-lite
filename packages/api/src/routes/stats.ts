@@ -22,6 +22,34 @@ const PERIOD_DAYS: Record<Exclude<Period, 'all'>, number> = {
 
 const VALID_PERIODS = new Set<string>(['24h', '7d', '14d', '30d', '180d', '365d', '730d', '1095d', 'all'])
 
+interface BeanRow {
+  bean: string
+  shotCount: number
+  avgEnjoyment: number | null
+  avgRatio: number | null
+  avgDurationS: number | null
+  totalBeanWeightG: number
+}
+
+interface RoasterRow {
+  roaster: string
+  shotCount: number
+  avgEnjoyment: number | null
+  avgRatio: number | null
+  avgDurationS: number | null
+  totalBeanWeightG: number
+  beans: BeanRow[]
+}
+
+interface ProfileRow {
+  profile: string
+  shotCount: number
+  avgEnjoyment: number | null
+  avgDurationS: number | null
+  avgRatio: number | null
+  avgBeanWeightG: number | null
+}
+
 function isValidPeriod(v: unknown): v is Period {
   return typeof v === 'string' && VALID_PERIODS.has(v)
 }
@@ -151,6 +179,70 @@ const statsRoutes: FastifyPluginAsync = async (fastify) => {
           : null,
       },
     })
+  })
+
+  fastify.get('/roasters', { preHandler: [(fastify as any).requireAuth] }, async (request, reply) => {
+    const q = request.query as Record<string, string>
+    const period: Period     = isValidPeriod(q.period)     ? q.period   : '365d'
+    const beverage: Beverage = isValidBeverage(q.beverage) ? q.beverage : 'espresso'
+
+    const now = Date.now()
+    const bevWhere = beverageFilter(beverage)
+    const where: Prisma.ShotWhereInput = period === 'all'
+      ? { ...bevWhere }
+      : { startTime: { gte: new Date(now - PERIOD_MS[period]), lt: new Date(now) }, ...bevWhere }
+
+    const [roasterGroups, beanGroups] = await Promise.all([
+      prisma.shot.groupBy({
+        by: ['beanBrand'],
+        where: { ...where, beanBrand: { not: null } },
+        _count: { id: true },
+        _sum:   { beanWeight: true, drinkWeight: true },
+        _avg:   { espressoEnjoyment: true, duration: true },
+        orderBy: { _count: { id: 'desc' } },
+      }),
+      prisma.shot.groupBy({
+        by: ['beanBrand', 'beanType'],
+        where: { ...where, beanBrand: { not: null }, beanType: { not: null } },
+        _count: { id: true },
+        _sum:   { beanWeight: true, drinkWeight: true },
+        _avg:   { espressoEnjoyment: true, duration: true },
+        orderBy: { _count: { id: 'desc' } },
+      }),
+    ])
+
+    const beansByRoaster = new Map<string, BeanRow[]>()
+    for (const b of beanGroups) {
+      const roaster = b.beanBrand as string
+      const bw = b._sum.beanWeight ?? 0
+      const dw = b._sum.drinkWeight ?? 0
+      const bean: BeanRow = {
+        bean: b.beanType as string,
+        shotCount: b._count.id,
+        avgEnjoyment: b._avg.espressoEnjoyment != null ? Math.round(b._avg.espressoEnjoyment * 10) / 10 : null,
+        avgRatio: bw > 0 ? Math.round((dw / bw) * 1000) / 1000 : null,
+        avgDurationS: b._avg.duration != null ? Math.round(b._avg.duration * 10) / 10 : null,
+        totalBeanWeightG: Math.round(bw),
+      }
+      if (!beansByRoaster.has(roaster)) beansByRoaster.set(roaster, [])
+      beansByRoaster.get(roaster)!.push(bean)
+    }
+
+    const result: RoasterRow[] = roasterGroups.map(r => {
+      const bw = r._sum.beanWeight ?? 0
+      const dw = r._sum.drinkWeight ?? 0
+      return {
+        roaster: r.beanBrand as string,
+        shotCount: r._count.id,
+        avgEnjoyment: r._avg.espressoEnjoyment != null ? Math.round(r._avg.espressoEnjoyment * 10) / 10 : null,
+        avgRatio: bw > 0 ? Math.round((dw / bw) * 1000) / 1000 : null,
+        avgDurationS: r._avg.duration != null ? Math.round(r._avg.duration * 10) / 10 : null,
+        totalBeanWeightG: Math.round(bw),
+        beans: beansByRoaster.get(r.beanBrand as string) ?? [],
+      }
+    })
+
+    return reply.send(result)
   })
 }
 
