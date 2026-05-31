@@ -59,9 +59,9 @@ export default function Settings() {
     }
   }, [settings?.de1LastImportDate])
 
-  const { data: stats } = useQuery({
-    queryKey: ['stats'],
-    queryFn: () => api.getStats(),
+  const { data: allShotsData } = useQuery({
+    queryKey: ['shots-total'],
+    queryFn: () => api.listShots({ page: 1, limit: 1 }),
   })
 
   async function handleTheme(theme: string) {
@@ -430,7 +430,7 @@ export default function Settings() {
         <div className="card-title">{t('settings.dbInfo')}</div>
         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
           <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>{t('settings.totalShots')}</span>
-          <span style={{ fontSize: 12, fontWeight: 600 }}>{stats?.current.shotCount ?? '—'}</span>
+          <span style={{ fontSize: 12, fontWeight: 600 }}>{allShotsData?.total ?? '—'}</span>
         </div>
       </div>
     </div>
