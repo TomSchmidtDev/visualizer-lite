@@ -50,11 +50,11 @@ export default function ShotList() {
   })
 
   useEffect(() => {
-    if (didPageChange.current && !isLoading) {
+    if (didPageChange.current) {
       didPageChange.current = false
       paginationRef.current?.scrollIntoView({ behavior: 'instant', block: 'end' })
     }
-  }, [isLoading])
+  }, [data])
 
   const isFiltered = !!(
     params.beanBrand || params.beanType || params.profileTitle ||
