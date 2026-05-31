@@ -223,6 +223,144 @@ Copy `de1app/de1plus/plugins/visualizer_upload/` to `/de1plus/plugins/visualizer
 
 ---
 
+## Architecture
+
+### System Overview
+
+Visualizer Lite runs as a single Docker container. The DE1 machine communicates with it in both directions; the browser accesses the same container on port 3000.
+
+```mermaid
+graph LR
+    DE1["🖥️ DE1 Espresso Machine\n(Decent app + plugin)"]
+    VL["📦 Visualizer Lite\n(Docker Container :3000)"]
+    Browser["🌐 Browser"]
+
+    DE1 -- "Push: POST /api/shots/upload\n(after each extraction)" --> VL
+    VL -- "Pull: Advanced REST API\n(on demand from Settings)" --> DE1
+    Browser -- "HTTP / HTTPS" --> VL
+```
+
+### Container Internals
+
+The container runs a single Node.js process. Fastify serves both the REST API and the pre-built React SPA from the same port. Data is stored entirely on the mounted `/data` volume — no external services required.
+
+```mermaid
+graph TB
+    subgraph Container["Docker Container (Node.js 22)"]
+        direction TB
+        subgraph Fastify["Fastify"]
+            Auth["Auth\n/api/auth"]
+            ShotAPI["Shots\n/api/shots"]
+            Upload["Upload\n/api/shots/upload"]
+            DE1API["DE1 Import\n/api/de1"]
+            Stats["Stats & Export\n/api/stats /api/export"]
+            Static["Static\n(React SPA)"]
+        end
+        Prisma["Prisma ORM"]
+        FTS["SQLite FTS5\n(full-text search)"]
+    end
+
+    subgraph Volume["/data (volume mount)"]
+        DB[("visualizer.db\n(SQLite)")]
+        Files[("files/\n*.shot (raw)")]
+    end
+
+    ShotAPI & Upload & DE1API & Stats --> Prisma
+    Prisma --> DB
+    DB --> FTS
+    Upload & DE1API --> Files
+    Auth --> Prisma
+```
+
+### Data Ingestion
+
+Two independent import paths exist — push from the machine and pull on demand:
+
+```mermaid
+sequenceDiagram
+    participant DE1 as DE1 Machine
+    participant Plugin as DE1 Plugin
+    participant API as Visualizer API
+    participant DB as SQLite
+
+    rect rgb(30, 50, 40)
+        note over Plugin,DB: Push (automatic after each shot)
+        Plugin->>API: POST /api/shots/upload\n(multipart .shot file)
+        API->>API: Parse + SHA-256 dedup
+        API->>DB: INSERT or UPDATE shot
+        API-->>Plugin: 200 OK / 409 duplicate
+    end
+
+    rect rgb(30, 40, 55)
+        note over DE1,DB: Pull (manual, via Settings page)
+        API->>DE1: GET /api/v2/shots (Advanced REST API)
+        DE1-->>API: Shot filename list
+        API->>API: Filter by date range
+        loop Each shot file
+            API->>DE1: GET /api/v2/shots/{filename}
+            DE1-->>API: .shot file content
+            API->>API: Parse + SHA-256 dedup
+            API->>DB: INSERT or UPDATE
+            API-->>API: Stream NDJSON progress
+        end
+    end
+```
+
+### Monorepo Structure
+
+```
+visualizer-lite/
+├── packages/
+│   ├── api/                  # Fastify backend (Node.js)
+│   │   ├── src/
+│   │   │   ├── routes/       # auth, shots, upload, de1, stats, export, search
+│   │   │   ├── services/     # shotService, searchService, de1Service, …
+│   │   │   ├── parsers/      # decent.ts — .shot file parser
+│   │   │   └── plugins/      # auth (JWT + cookie)
+│   │   └── prisma/
+│   │       └── schema.prisma # SQLite schema (Shot, Tag, Settings)
+│   └── web/                  # React 19 + Vite 6 frontend
+│       └── src/
+│           ├── pages/        # ShotList, ShotDetail, ShotEdit, Stats, …
+│           ├── components/   # ShotCard, Pagination, SearchBar, …
+│           └── api/client.ts # Typed fetch wrapper
+├── de1app/                   # DE1 Tcl plugin (push upload)
+└── Dockerfile                # Multi-stage: builder → runtime
+```
+
+### Data Model
+
+```mermaid
+erDiagram
+    Shot {
+        string  id           PK
+        string  sha256       UK
+        string  filePath
+        datetime startTime
+        float   duration
+        float   beanWeight
+        float   drinkWeight
+        string  beverageType
+        string  profileTitle
+        string  beanBrand
+        string  beanType
+        string  grinderModel
+        int     espressoEnjoyment
+        string  shotData     "JSON (time-series)"
+    }
+    Tag {
+        string id   PK
+        string name UK
+    }
+    Settings {
+        string key   PK
+        string value
+    }
+    Shot }o--o{ Tag : "tags"
+```
+
+---
+
 ## Development
 
 ```bash

@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-05-31
+
+### Added
+- Beverage type shown on each shot card in the list view (above the ratio)
+- Architecture documentation in both READMEs with Mermaid diagrams (system overview, container internals, data ingestion flows, monorepo structure, data model)
+
+### Changed
+- Pagination `‹` / `›` buttons now jump 10 pages at a time instead of 1; `«` / `»` still jump to first/last page
+- Pagination now preserves scroll position after page change — page loads at the pagination bar, not the top of the list
+
+### Removed
+- Redundant upload button in the stats bar below the filters (upload button in the top navigation bar remains)
+
 ## [1.6.1] - 2026-05-31
 
 ### Fixed

@@ -125,6 +125,11 @@ export default function ShotCard({ shot, onSelect }: Props) {
 
       {/* Stats */}
       <div style={{ textAlign: 'right', minWidth: 80 }}>
+        {shot.beverageType && (
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'capitalize' }}>
+            {shot.beverageType}
+          </div>
+        )}
         {ratio && (
           <>
             <div style={{ fontSize: 10, color: 'var(--text-dim)', marginBottom: 2 }}>{t('shots.ratio')}</div>

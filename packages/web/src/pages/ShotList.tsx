@@ -1,5 +1,5 @@
 // packages/web/src/pages/ShotList.tsx
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -13,6 +13,8 @@ export default function ShotList() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [params, setParams] = useState<SearchParams>({ page: 1, limit: 20 })
+  const paginationRef = useRef<HTMLDivElement>(null)
+  const didPageChange = useRef(false)
 
   const { data, isLoading } = useQuery({
     queryKey: ['shots', params],
@@ -46,6 +48,13 @@ export default function ShotList() {
     enabled: !!compareWith,
     staleTime: 60_000,
   })
+
+  useEffect(() => {
+    if (didPageChange.current && !isLoading) {
+      didPageChange.current = false
+      paginationRef.current?.scrollIntoView({ behavior: 'instant', block: 'end' })
+    }
+  }, [isLoading])
 
   const isFiltered = !!(
     params.beanBrand || params.beanType || params.profileTitle ||
@@ -105,11 +114,6 @@ export default function ShotList() {
             {t('shots.avgRatio')}: <strong>1 : {data.avgRatio}</strong>
           </span>
         )}
-        <div style={{ marginLeft: 'auto' }}>
-          <button className="btn btn-primary" onClick={() => navigate('/upload')} style={{ fontSize: 12 }}>
-            ↑ {t('nav.upload')}
-          </button>
-        </div>
       </div>
 
       {/* Shot list */}
@@ -136,7 +140,11 @@ export default function ShotList() {
           page={data.page}
           total={data.total}
           limit={data.limit}
-          onChange={(p) => setParams((prev) => ({ ...prev, page: p }))}
+          scrollRef={paginationRef}
+          onChange={(p) => {
+            didPageChange.current = true
+            setParams((prev) => ({ ...prev, page: p }))
+          }}
         />
       )}
     </div>
