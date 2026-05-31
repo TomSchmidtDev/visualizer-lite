@@ -198,6 +198,123 @@ function SortableTable({
   )
 }
 
+function RoastersTab({ period, beverage }: { period: Period; beverage: Beverage }) {
+  const { t } = useTranslation()
+  const [data, setData] = useState<RoasterRow[] | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    setLoading(true)
+    setError(null)
+    setData(null)
+    api.getStatsRoasters(period, beverage)
+      .then(setData)
+      .catch((e: Error) => setError(e.message))
+      .finally(() => setLoading(false))
+  }, [period, beverage])
+
+  function toggle(roaster: string) {
+    setExpanded(prev => {
+      const next = new Set(prev)
+      if (next.has(roaster)) next.delete(roaster)
+      else next.add(roaster)
+      return next
+    })
+  }
+
+  const columns: ColDef[] = [
+    { key: 'roaster',          label: t('stats.colRoaster'),     align: 'left',  render: v => String(v ?? '—') },
+    { key: 'shotCount',        label: t('stats.colShots'),                        render: v => v != null ? String(v) : '—' },
+    { key: 'avgEnjoyment',     label: t('stats.colEnjoyment'),                    render: v => v != null ? `${v}★` : '—' },
+    { key: 'avgRatio',         label: t('stats.colRatio'),                        render: v => v != null ? `1:${(v as number).toFixed(2)}` : '—' },
+    { key: 'avgDurationS',     label: t('stats.colDuration'),                     render: v => v != null ? `${v}s` : '—' },
+    { key: 'totalBeanWeightG', label: t('stats.colBeanWeight'),                   render: v => v != null ? fmt(v as number, 'g') : '—' },
+  ]
+
+  if (loading) return <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 40 }}>{t('common.loading')}</div>
+  if (error)   return <div style={{ color: '#ff8866', textAlign: 'center', padding: 40 }}>{error}</div>
+  if (!data || data.length === 0) return <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 40 }}>{t('stats.noData')}</div>
+
+  return (
+    <SortableTable
+      columns={columns}
+      rows={data as unknown as Record<string, unknown>[]}
+      initialSortKey="shotCount"
+      getRowKey={row => row.roaster as string}
+      renderExpandToggle={row => {
+        const hasBeans = (row.beans as BeanRow[]).length > 0
+        if (!hasBeans) return <span style={{ display: 'inline-block', width: 16 }} />
+        return (
+          <button
+            onClick={() => toggle(row.roaster as string)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 10, padding: 0, lineHeight: 1 }}
+            aria-label={expanded.has(row.roaster as string) ? t('stats.collapseRow') : t('stats.expandRow')}
+          >
+            {expanded.has(row.roaster as string) ? '▼' : '▶'}
+          </button>
+        )
+      }}
+      renderSubRows={row => {
+        if (!expanded.has(row.roaster as string)) return null
+        const beans = row.beans as BeanRow[]
+        if (beans.length === 0) return null
+        return beans.map(bean => (
+          <tr key={bean.bean} style={{ background: 'var(--bg-card)' }}>
+            <td />
+            <td style={{ textAlign: 'left',  padding: '4px 8px 4px 24px', color: 'var(--text-muted)', fontSize: 12, borderBottom: '1px solid var(--border)' }}>{bean.bean}</td>
+            <td style={{ textAlign: 'right', padding: '4px 8px', color: 'var(--text-muted)', fontSize: 12, borderBottom: '1px solid var(--border)' }}>{bean.shotCount}</td>
+            <td style={{ textAlign: 'right', padding: '4px 8px', color: 'var(--text-muted)', fontSize: 12, borderBottom: '1px solid var(--border)' }}>{bean.avgEnjoyment != null ? `${bean.avgEnjoyment}★` : '—'}</td>
+            <td style={{ textAlign: 'right', padding: '4px 8px', color: 'var(--text-muted)', fontSize: 12, borderBottom: '1px solid var(--border)' }}>{bean.avgRatio != null ? `1:${bean.avgRatio.toFixed(2)}` : '—'}</td>
+            <td style={{ textAlign: 'right', padding: '4px 8px', color: 'var(--text-muted)', fontSize: 12, borderBottom: '1px solid var(--border)' }}>{bean.avgDurationS != null ? `${bean.avgDurationS}s` : '—'}</td>
+            <td style={{ textAlign: 'right', padding: '4px 8px', color: 'var(--text-muted)', fontSize: 12, borderBottom: '1px solid var(--border)' }}>{fmt(bean.totalBeanWeightG, 'g')}</td>
+          </tr>
+        ))
+      }}
+    />
+  )
+}
+
+function ProfilesTab({ period, beverage }: { period: Period; beverage: Beverage }) {
+  const { t } = useTranslation()
+  const [data, setData] = useState<ProfileRow[] | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setLoading(true)
+    setError(null)
+    setData(null)
+    api.getStatsProfiles(period, beverage)
+      .then(setData)
+      .catch((e: Error) => setError(e.message))
+      .finally(() => setLoading(false))
+  }, [period, beverage])
+
+  const columns: ColDef[] = [
+    { key: 'profile',        label: t('stats.colProfile'),      align: 'left', render: v => String(v ?? '—') },
+    { key: 'shotCount',      label: t('stats.colShots'),                        render: v => v != null ? String(v) : '—' },
+    { key: 'avgEnjoyment',   label: t('stats.colEnjoyment'),                    render: v => v != null ? `${v}★` : '—' },
+    { key: 'avgDurationS',   label: t('stats.colDuration'),                     render: v => v != null ? `${v}s` : '—' },
+    { key: 'avgRatio',       label: t('stats.colRatio'),                        render: v => v != null ? `1:${(v as number).toFixed(2)}` : '—' },
+    { key: 'avgBeanWeightG', label: t('stats.colAvgBeanWeight'),                render: v => v != null ? `${v}g` : '—' },
+  ]
+
+  if (loading) return <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 40 }}>{t('common.loading')}</div>
+  if (error)   return <div style={{ color: '#ff8866', textAlign: 'center', padding: 40 }}>{error}</div>
+  if (!data || data.length === 0) return <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 40 }}>{t('stats.noData')}</div>
+
+  return (
+    <SortableTable
+      columns={columns}
+      rows={data as unknown as Record<string, unknown>[]}
+      initialSortKey="shotCount"
+      getRowKey={row => row.profile as string}
+    />
+  )
+}
+
 export default function StatsPage() {
   const { t } = useTranslation()
   type ActiveTab = 'dashboard' | 'roasters' | 'profiles'
@@ -326,6 +443,14 @@ export default function StatsPage() {
             <TopList title={t('stats.topProfiles')} items={cur.topProfiles} noData={noData} />
           </div>
         </>
+      )}
+
+      {activeTab === 'roasters' && (
+        <RoastersTab period={period} beverage={beverage} />
+      )}
+
+      {activeTab === 'profiles' && (
+        <ProfilesTab period={period} beverage={beverage} />
       )}
     </div>
   )
