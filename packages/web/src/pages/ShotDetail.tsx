@@ -62,6 +62,9 @@ export default function ShotDetail() {
             </h1>
             <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>{date}</p>
             <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+              {shot.beverageType && <span style={{ background: 'var(--bg-input)', border: '1px solid var(--border-focus)', borderRadius: 20, padding: '3px 12px', fontSize: 12, color: 'var(--text-muted)' }}>
+                {shot.beverageType === 'espresso' ? t('shots.beverageEspresso') : shot.beverageType === 'filter' ? t('shots.beverageFilter') : shot.beverageType}
+              </span>}
               {shot.profileTitle && <span style={{ background: 'var(--bg-input)', border: '1px solid var(--accent-dim)', borderRadius: 20, padding: '3px 12px', fontSize: 12, color: 'var(--accent)' }}>{shot.profileTitle}</span>}
               {shot.grinderModel && <span style={{ background: 'var(--bg-input)', border: '1px solid var(--border-focus)', borderRadius: 20, padding: '3px 12px', fontSize: 12, color: 'var(--text-muted)' }}>{shot.grinderModel} · {shot.grinderSetting}</span>}
               {shot.tags.map((tag) => <span key={tag} style={{ background: 'var(--bg-input)', border: '1px solid var(--border-focus)', borderRadius: 20, padding: '3px 10px', fontSize: 11, color: 'var(--text-muted)' }}>#{tag}</span>)}

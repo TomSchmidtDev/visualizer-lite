@@ -17,8 +17,9 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
       tooltipOpacity:     map.tooltipOpacity ? parseFloat(map.tooltipOpacity) : 0.72,
       showAvgRatio:       map.showAvgRatio !== undefined ? map.showAvgRatio === 'true' : true,
       de1LastImportDate:  map.de1LastImportDate ?? null,
-      statsTopN:          map.statsTopN ? parseInt(map.statsTopN, 10) : 10,
-      statsShowPrevValue: map.statsShowPrevValue !== undefined ? map.statsShowPrevValue === 'true' : true,
+      statsTopN:           map.statsTopN ? parseInt(map.statsTopN, 10) : 10,
+      statsShowPrevValue:  map.statsShowPrevValue !== undefined ? map.statsShowPrevValue === 'true' : true,
+      de1DefaultBeverage:  map.de1DefaultBeverage ?? '',
     })
   })
 
@@ -32,11 +33,12 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
       de1LastImportDate?: string | null
       statsTopN?: number
       statsShowPrevValue?: boolean
+      de1DefaultBeverage?: string
       currentPassword?: string
       newPassword?: string
     }
   }>('/', auth, async (request, reply) => {
-    const { language, theme, de1Url, tooltipOpacity, showAvgRatio, de1LastImportDate, statsTopN, statsShowPrevValue, currentPassword, newPassword } = request.body
+    const { language, theme, de1Url, tooltipOpacity, showAvgRatio, de1LastImportDate, statsTopN, statsShowPrevValue, de1DefaultBeverage, currentPassword, newPassword } = request.body
 
     if (language)
       await prisma.settings.upsert({
@@ -85,6 +87,12 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
         where: { key: 'statsShowPrevValue' },
         create: { key: 'statsShowPrevValue', value: String(statsShowPrevValue) },
         update: { value: String(statsShowPrevValue) },
+      })
+    if (de1DefaultBeverage !== undefined)
+      await prisma.settings.upsert({
+        where: { key: 'de1DefaultBeverage' },
+        create: { key: 'de1DefaultBeverage', value: de1DefaultBeverage },
+        update: { value: de1DefaultBeverage },
       })
     if (currentPassword && newPassword) {
       const row = await prisma.settings.findUnique({ where: { key: 'passwordHash' } })

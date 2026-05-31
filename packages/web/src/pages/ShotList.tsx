@@ -49,7 +49,8 @@ export default function ShotList() {
 
   const isFiltered = !!(
     params.beanBrand || params.beanType || params.profileTitle ||
-    params.grinderModel || params.dateFrom || params.dateTo || params.q
+    params.grinderModel || params.dateFrom || params.dateTo || params.q ||
+    params.beverageType
   )
   const totalAll = allShotsData?.total ?? 0
   const totalFiltered = data?.total ?? 0

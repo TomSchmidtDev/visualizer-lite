@@ -59,6 +59,7 @@ export interface ShotResponse {
   drinkTds: number | null
   drinkEy: number | null
   profileTitle: string | null
+  beverageType: string | null
   grinderModel: string | null
   grinderSetting: string | null
   barista: string | null

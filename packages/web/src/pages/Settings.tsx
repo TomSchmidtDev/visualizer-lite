@@ -30,6 +30,7 @@ export default function Settings() {
   const [pwError, setPwError] = useState('')
 
   const [de1Url, setDe1Url] = useState('')
+  const [de1DefaultBeverage, setDe1DefaultBeverage] = useState('')
   const [de1Phase, setDe1Phase] = useState<De1Phase>({ name: 'idle' })
   const [de1Total, setDe1Total] = useState(0)
   const [dateFrom, setDateFrom] = useState('2020-01-01')
@@ -42,13 +43,14 @@ export default function Settings() {
     queryFn: () => api.getSettings(),
   })
 
-  // Initialize de1Url from settings once on first load (when field is still empty)
+  // Initialize de1Url and de1DefaultBeverage from settings once on first load
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (settings?.de1Url && !de1Url) {
-      setDe1Url(settings.de1Url)
+    if (settings?.de1Url && !de1Url) setDe1Url(settings.de1Url)
+    if (settings?.de1DefaultBeverage !== undefined && !de1DefaultBeverage) {
+      setDe1DefaultBeverage(settings.de1DefaultBeverage)
     }
-  }, [settings?.de1Url])
+  }, [settings?.de1Url, settings?.de1DefaultBeverage])
 
   // Pre-fill "Von" date with last import's "Bis" date (once on first load)
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -337,6 +339,27 @@ export default function Settings() {
               {de1Phase.name === 'testing' ? '…' : t('settings.de1Connect')}
             </button>
           </div>
+        </div>
+
+        {/* Default beverage for shots without beverageType */}
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ display: 'block', fontSize: 11, color: 'var(--text-dim)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+            {t('settings.de1DefaultBeverage')}
+          </label>
+          <select
+            value={de1DefaultBeverage}
+            onChange={async (e) => {
+              setDe1DefaultBeverage(e.target.value)
+              await api.updateSettings({ de1DefaultBeverage: e.target.value as 'espresso' | 'filter' | '' })
+              qc.invalidateQueries({ queryKey: ['settings'] })
+            }}
+            style={{ minWidth: 160 }}
+          >
+            <option value="">{t('edit.beverageTypeNone')}</option>
+            <option value="espresso">{t('shots.beverageEspresso')}</option>
+            <option value="filter">{t('shots.beverageFilter')}</option>
+          </select>
+          <p style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>{t('settings.de1DefaultBeverageHint')}</p>
         </div>
 
         {/* Connection status */}

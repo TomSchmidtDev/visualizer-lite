@@ -40,6 +40,7 @@ export interface Shot {
   drinkTds: number | null
   drinkEy: number | null
   profileTitle: string | null
+  beverageType: string | null
   grinderModel: string | null
   grinderSetting: string | null
   barista: string | null
@@ -78,6 +79,7 @@ export interface Suggestions {
   profileTitles: string[]
   grinderModels: string[]
   grinderSettings: string[]
+  beverageTypes: string[]
 }
 
 export interface AppSettings {
@@ -90,6 +92,7 @@ export interface AppSettings {
   de1LastImportDate?: string | null
   statsTopN: number
   statsShowPrevValue: boolean
+  de1DefaultBeverage: 'espresso' | 'filter' | ''
 }
 
 export interface StatsWindow {
@@ -123,4 +126,5 @@ export interface SearchParams {
   grinderModel?: string
   dateFrom?: string
   dateTo?: string
+  beverageType?: string
 }

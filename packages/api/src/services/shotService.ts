@@ -11,6 +11,7 @@ export interface ListOptions {
   grinderModel?: string
   dateFrom?: string
   dateTo?: string
+  beverageType?: string
 }
 
 type ShotWithTags = Awaited<ReturnType<typeof prisma.shot.findUniqueOrThrow>>
@@ -32,6 +33,7 @@ function toResponse(row: ShotWithTags, includeShotData = false, includeSparkline
     drinkTds: row.drinkTds,
     drinkEy: row.drinkEy,
     profileTitle: row.profileTitle,
+    beverageType: row.beverageType,
     grinderModel: row.grinderModel,
     grinderSetting: row.grinderSetting,
     barista: row.barista,
@@ -138,6 +140,8 @@ export async function listShots(opts: ListOptions): Promise<ShotListResponse> {
       ...(opts.dateTo ? { lte: new Date(opts.dateTo) } : {}),
     }
   }
+  if (opts.beverageType === 'unknown') where.OR = [{ beverageType: null }, { beverageType: '' }]
+  else if (opts.beverageType) where.beverageType = opts.beverageType
 
   const [rows, total, avgRatio] = await Promise.all([
     prisma.shot.findMany({
@@ -164,6 +168,7 @@ export async function updateShot(
   id: string,
   data: Partial<{
     drinkTds: number; drinkEy: number; profileTitle: string
+    beverageType: string | null
     grinderModel: string; grinderSetting: string; barista: string
     beanBrand: string; beanType: string; roastLevel: string; roastDate: string
     espressoEnjoyment: number; fragrance: number; aroma: number
@@ -173,11 +178,12 @@ export async function updateShot(
     tags: string[]
   }>
 ): Promise<ShotResponse> {
-  const { tags, roastDate, ...rest } = data
+  const { tags, roastDate, beverageType, ...rest } = data
   const row = await prisma.shot.update({
     where: { id },
     data: {
       ...rest,
+      ...(beverageType !== undefined ? { beverageType: beverageType?.toLowerCase() ?? null } : {}),
       ...(roastDate !== undefined
         ? { roastDate: roastDate ? new Date(roastDate) : null }
         : {}),

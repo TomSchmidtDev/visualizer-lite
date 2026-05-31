@@ -23,6 +23,12 @@ export async function getDe1Url(): Promise<string | null> {
   return row?.value?.trim() || null
 }
 
+/** Read the default beverage type from Settings. Returns null if not set. */
+async function getDefaultBeverage(): Promise<string | null> {
+  const row = await prisma.settings.findUnique({ where: { key: 'de1DefaultBeverage' } })
+  return row?.value?.trim() || null
+}
+
 /**
  * Fetch the list of shot filenames from the DE1 machine.
  * Times out after 5 seconds. Throws on network error or non-200 response.
@@ -134,6 +140,8 @@ export async function fetchAndImportShot(
   const date = new Date(parsed.clock * 1000)
   const filePath = saveFile(buffer, hash, date)
 
+  const defaultBeverage = !parsed.beverageType ? await getDefaultBeverage() : null
+
   const shotFields = {
     startTime:         date,
     filePath,
@@ -151,7 +159,7 @@ export async function fetchAndImportShot(
     roastDate:         parseOptionalDate(parsed.roastDate),
     espressoEnjoyment: parsed.espressoEnjoyment,
     espressoNotes:     parsed.espressoNotes,
-    beverageType:      parsed.beverageType,
+    beverageType:      parsed.beverageType || defaultBeverage,
     shotData:          JSON.stringify(parsed.shotData),
   }
 

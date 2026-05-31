@@ -16,15 +16,19 @@ export async function searchShots(opts: ListOptions & { q?: string }): Promise<S
   const page = Math.max(1, opts.page ?? 1)
   const limit = Math.min(100, opts.limit ?? 20)
 
+  const ftsWhere: Record<string, unknown> = { id: { in: ids } }
+  if (opts.beverageType === 'unknown') ftsWhere.OR = [{ beverageType: null }, { beverageType: '' }]
+  else if (opts.beverageType) ftsWhere.beverageType = opts.beverageType
+
   const [shots, avgRatio] = await Promise.all([
     prisma.shot.findMany({
-      where: { id: { in: ids } },
+      where: ftsWhere,
       orderBy: { startTime: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
       include: { tags: true },
     }),
-    computeAvgRatio({ id: { in: ids } }),
+    computeAvgRatio(ftsWhere),
   ])
 
   return {
@@ -37,6 +41,7 @@ export async function searchShots(opts: ListOptions & { q?: string }): Promise<S
       drinkTds: s.drinkTds,
       drinkEy: s.drinkEy,
       profileTitle: s.profileTitle,
+      beverageType: s.beverageType,
       grinderModel: s.grinderModel,
       grinderSetting: s.grinderSetting,
       barista: s.barista,
@@ -76,12 +81,13 @@ export async function searchShots(opts: ListOptions & { q?: string }): Promise<S
 }
 
 export async function getSuggestions() {
-  const [brands, types, profiles, grinders, settings] = await Promise.all([
+  const [brands, types, profiles, grinders, settings, beverages] = await Promise.all([
     prisma.shot.findMany({ select: { beanBrand: true }, distinct: ['beanBrand'], where: { beanBrand: { not: null } }, orderBy: { beanBrand: 'asc' } }),
     prisma.shot.findMany({ select: { beanType: true }, distinct: ['beanType'], where: { beanType: { not: null } }, orderBy: { beanType: 'asc' } }),
     prisma.shot.findMany({ select: { profileTitle: true }, distinct: ['profileTitle'], where: { profileTitle: { not: null } }, orderBy: { profileTitle: 'asc' } }),
     prisma.shot.findMany({ select: { grinderModel: true }, distinct: ['grinderModel'], where: { grinderModel: { not: null } }, orderBy: { grinderModel: 'asc' } }),
     prisma.shot.findMany({ select: { grinderSetting: true }, distinct: ['grinderSetting'], where: { grinderSetting: { not: null } }, orderBy: { grinderSetting: 'asc' } }),
+    prisma.shot.findMany({ select: { beverageType: true }, distinct: ['beverageType'], orderBy: { beverageType: 'asc' } }),
   ])
   return {
     beanBrands:      brands.map((r) => r.beanBrand!),
@@ -89,5 +95,7 @@ export async function getSuggestions() {
     profileTitles:   profiles.map((r) => r.profileTitle!),
     grinderModels:   grinders.map((r) => r.grinderModel!),
     grinderSettings: settings.map((r) => r.grinderSetting!),
+    // null and '' are both mapped to 'unknown' so the filter can catch all "not set" shots
+    beverageTypes:   [...new Set(beverages.map((r) => r.beverageType || 'unknown'))].sort(),
   }
 }

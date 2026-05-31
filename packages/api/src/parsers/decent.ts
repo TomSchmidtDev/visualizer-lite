@@ -94,7 +94,7 @@ function parseJsonShot(content: string): ParsedShot {
     roastDate:         rawRoastDate ? normalizeDateStr(rawRoastDate) : null,
     espressoEnjoyment: null,
     espressoNotes:     null,
-    beverageType:      str(profile.beverage_type) ?? str(data.beverage_type),
+    beverageType:      (str(profile.beverage_type) ?? str(data.beverage_type))?.toLowerCase() ?? null,
     shotData,
   }
 }
@@ -308,7 +308,7 @@ function parseTclShot(content: string): ParsedShot {
     roastDate,
     espressoEnjoyment,
     espressoNotes:    strFb('espresso_notes'),
-    beverageType:     strFb('beverage_type'),
+    beverageType:     strFb('beverage_type')?.toLowerCase() ?? null,
     shotData,
   }
 }
