@@ -5,9 +5,10 @@ interface Props {
   total: number
   limit: number
   onChange: (page: number) => void
+  scrollRef?: React.RefObject<HTMLDivElement | null>
 }
 
-export default function Pagination({ page, total, limit, onChange }: Props) {
+export default function Pagination({ page, total, limit, onChange, scrollRef }: Props) {
   const pages = Math.ceil(total / limit)
   if (pages <= 1) return null
 
@@ -31,13 +32,13 @@ export default function Pagination({ page, total, limit, onChange }: Props) {
   )
 
   return (
-    <div style={{ display: 'flex', gap: 6, justifyContent: 'center', padding: '20px 24px', flexWrap: 'wrap' }}>
+    <div ref={scrollRef} style={{ display: 'flex', gap: 6, justifyContent: 'center', padding: '20px 24px', flexWrap: 'wrap' }}>
       {btn('«', 1,     page <= 1)}
-      {btn('‹', page - 1, page <= 1)}
+      {btn('‹', Math.max(1, page - 10), page <= 1)}
       {start > 1 && <span style={{ color: 'var(--text-dim)', alignSelf: 'center', fontSize: 13 }}>…</span>}
       {pageNums.map((p) => btn(String(p), p, false, p === page))}
       {end < pages && <span style={{ color: 'var(--text-dim)', alignSelf: 'center', fontSize: 13 }}>…</span>}
-      {btn('›', page + 1, page >= pages)}
+      {btn('›', Math.min(pages, page + 10), page >= pages)}
       {btn('»', pages,  page >= pages)}
     </div>
   )
