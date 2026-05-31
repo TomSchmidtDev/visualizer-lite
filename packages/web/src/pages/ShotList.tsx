@@ -50,7 +50,7 @@ export default function ShotList() {
   })
 
   useEffect(() => {
-    if (didPageChange.current) {
+    if (didPageChange.current && data) {
       didPageChange.current = false
       paginationRef.current?.scrollIntoView({ behavior: 'instant', block: 'end' })
     }
