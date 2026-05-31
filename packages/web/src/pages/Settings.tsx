@@ -430,7 +430,7 @@ export default function Settings() {
         <div className="card-title">{t('settings.dbInfo')}</div>
         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
           <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>{t('settings.totalShots')}</span>
-          <span style={{ fontSize: 12, fontWeight: 600 }}>{stats?.total ?? '—'}</span>
+          <span style={{ fontSize: 12, fontWeight: 600 }}>{stats?.current.shotCount ?? '—'}</span>
         </div>
       </div>
     </div>

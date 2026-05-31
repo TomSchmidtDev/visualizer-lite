@@ -51,7 +51,7 @@ export default function ShotList() {
     params.beanBrand || params.beanType || params.profileTitle ||
     params.grinderModel || params.dateFrom || params.dateTo || params.q
   )
-  const totalAll = stats?.total ?? 0
+  const totalAll = stats?.current.shotCount ?? 0
   const totalFiltered = data?.total ?? 0
 
   return (
@@ -99,9 +99,9 @@ export default function ShotList() {
             ? t('shots.foundOf', { total: totalAll })
             : t('shots.found')}
         </span>
-        {stats?.avgEnjoyment != null && !isFiltered && (
+        {stats?.current.avgEnjoyment != null && !isFiltered && (
           <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-            {t('shots.avgEnjoyment')}: <strong style={{ color: 'var(--accent)' }}>{stats.avgEnjoyment}</strong>
+            {t('shots.avgEnjoyment')}: <strong style={{ color: 'var(--accent)' }}>{stats.current.avgEnjoyment}</strong>
           </span>
         )}
         {settings?.showAvgRatio && data?.avgRatio != null && (
