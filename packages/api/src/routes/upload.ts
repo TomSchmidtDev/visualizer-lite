@@ -30,7 +30,10 @@ const uploadRoutes: FastifyPluginAsync = async (fastify) => {
       if (existing) {
         await prisma.shot.update({
           where: { id: existing.id },
-          data: { shotData: JSON.stringify(parsed.shotData), beverageType: parsed.beverageType },
+          data: {
+            shotData: JSON.stringify(parsed.shotData),
+            ...(parsed.beverageType ? { beverageType: parsed.beverageType } : {}),
+          },
         })
         return reply.send({ id: existing.id })
       }
