@@ -151,6 +151,7 @@ export async function fetchAndImportShot(
     roastDate:         parseOptionalDate(parsed.roastDate),
     espressoEnjoyment: parsed.espressoEnjoyment,
     espressoNotes:     parsed.espressoNotes,
+    beverageType:      parsed.beverageType,
     shotData:          JSON.stringify(parsed.shotData),
   }
 
