@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-05-31
+
+### Added
+- Beverage type filter in the shot list — dynamically populated from the database (shows all stored values incl. "Unknown" for shots without a beverage type)
+- Beverage type chip shown in shot detail view (before the profile chip)
+- Beverage type field in the shot edit form (Espresso / Filter / Not set); value is normalised to lowercase on save
+- DE1 direct import: configurable default beverage type in Settings used as fallback when the machine does not transmit a `beverage_type`
+- `beverageType` exposed in all API responses and list/filter endpoints
+
+### Fixed
+- Incoming `beverageType` values from the DE1 parser are now normalised to lowercase, preventing case-sensitive mismatches (e.g. `Espresso` vs. `espresso`)
+- "Unknown" beverage filter now matches both `NULL` and empty-string values in the database
+
 ## [1.5.0] - 2026-05-31
 
 ### Added
