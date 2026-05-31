@@ -31,17 +31,15 @@ Track every shot, analyse extraction curves, rate taste, and discover patterns a
     </td>
   </tr>
   <tr>
-    <td align="center" width="50%" colspan="2">
+    <td align="center" width="33%">
       <img src="docs/screenshots/shot-comparison-overlaid.png" alt="Shot Comparison — Overlaid" />
       <br/><sub><b>Shot Comparison — Overlaid Curves</b></sub>
     </td>
-    <td align="center" width="50%">
+    <td align="center" width="33%">
       <img src="docs/screenshots/shot-comparison-split.png" alt="Shot Comparison — Split View" />
       <br/><sub><b>Shot Comparison — Split View</b></sub>
     </td>
-  </tr>
-  <tr>
-    <td align="center" width="100%" colspan="3">
+    <td align="center" width="33%">
       <img src="docs/screenshots/shot-statistics-6-months-dashboard.png" alt="Statistics Dashboard" />
       <br/><sub><b>Statistics Dashboard — 6 Months View</b></sub>
     </td>

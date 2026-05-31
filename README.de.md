@@ -31,17 +31,15 @@ Jeden Shot erfassen, Extraktionskurven analysieren, Geschmack bewerten und Muste
     </td>
   </tr>
   <tr>
-    <td align="center" width="50%" colspan="2">
+    <td align="center" width="33%">
       <img src="docs/screenshots/shot-comparison-overlaid.png" alt="Shot-Vergleich — Überlagert" />
       <br/><sub><b>Shot-Vergleich — Überlagerte Kurven</b></sub>
     </td>
-    <td align="center" width="50%">
+    <td align="center" width="33%">
       <img src="docs/screenshots/shot-comparison-split.png" alt="Shot-Vergleich — Getrennt" />
       <br/><sub><b>Shot-Vergleich — Getrennte Ansicht</b></sub>
     </td>
-  </tr>
-  <tr>
-    <td align="center" width="100%" colspan="3">
+    <td align="center" width="33%">
       <img src="docs/screenshots/shot-statistics-6-months-dashboard.png" alt="Statistik-Dashboard" />
       <br/><sub><b>Statistik-Dashboard — 6-Monats-Ansicht</b></sub>
     </td>
