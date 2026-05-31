@@ -90,6 +90,7 @@ export async function createShot(
       grinderModel: parsed.grinderModel,
       grinderSetting: parsed.grinderSetting,
       barista: parsed.barista,
+      beverageType: parsed.beverageType,
       beanBrand: parsed.beanBrand,
       beanType: parsed.beanType,
       roastLevel: parsed.roastLevel,

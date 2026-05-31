@@ -46,6 +46,7 @@ export interface ParsedShot {
   roastDate: string | null
   espressoEnjoyment: number | null
   espressoNotes: string | null
+  beverageType: string | null
   shotData: ShotData
 }
 
