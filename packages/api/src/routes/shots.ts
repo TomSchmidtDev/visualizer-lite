@@ -27,6 +27,7 @@ const shotRoutes: FastifyPluginAsync = async (fastify) => {
         grinderModel: q.grinderModel,
         dateFrom:     q.dateFrom,
         dateTo:       q.dateTo,
+        beverageType: q.beverageType,
       })
     )
   })

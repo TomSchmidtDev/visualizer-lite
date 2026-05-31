@@ -1,15 +1,19 @@
 # Visualizer Lite
 
 Selbst gehostete Espresso-Shot-Verwaltung für die [Decent Espresso DE1](https://decentespresso.com/).  
-Jeden Shot erfassen — manuell hochladen, per DE1-Plugin oder direkt von der Maschine importieren.
-Extraktionskurven analysieren, Geschmack bewerten und Muster in der Shot-Historie erkennen.
+Jeden Shot erfassen, Extraktionskurven analysieren, Geschmack bewerten und Muster in der gesamten Shot-Historie entdecken.
 
-| | | |
-|---|---|---|
-| ✦ Shot-Liste mit Suche & Filter | ✦ Extraktionskurven (Druck, Flow, Gewicht) | ✦ Tasting Notes & Genussbewertung |
-| ✦ Manueller .shot-Datei-Upload | ✦ Automatischer Upload per DE1-Plugin | ✦ DE1-Direktimport via HTTP |
-| ✦ Einzelner Docker-Container, SQLite | ✦ Dark / Light Theme · DE + EN | ✦ ZIP-Datenexport |
-| ✦ **Shot-Vergleich** — zwei Shots überlagert oder nebeneinander vergleichen | | |
+## Key Features
+
+- **Direktimport (Pull)** — Shots direkt von der DE1-Maschine holen mit der [Advanced REST API](https://github.com/randomcoffeesnob/decent-advanced-rest-api)-Extension; kein Kabel, keine manuelle Dateiübertragung nötig
+- **Automatischer Upload (Push)** — Shots werden nach jeder Extraktion automatisch hochgeladen über das aktualisierte *Upload to visualizer*-DE1-Plugin
+- **Filterbare Shot-Liste** — Suche und Filter nach Röster, Bohne, Profil, Mahlwerk, Datumsbereich und mehr
+- **Statistik-Dashboard** — KPI-Kacheln mit Periodenvergleich (24h bis Gesamt), Top-Röster/Röstungen/Profile, konfigurierbarer Getränkefilter (Espresso vs. Filter)
+- **Shot-Vergleich** — Zwei Shots überlagert oder nebeneinander mit Extraktionskurven und Kennzahlen-Diff
+- **Self-Hosted, einzelner Container** — Läuft lokal oder auf einem NAS (Synology etc.) als einzelner Docker-Container mit SQLite; keine Cloud, kein Account, volle Datenkontrolle
+  - ⚠️ Kein Multi-Tenant-Support — eine Instanz, ein Benutzer
+  - ⚠️ Bewusst nicht mit der Decent/Kaffee-Community verbunden (kein Teilen, kein Leaderboard)
+- **DE1-Tablet entlasten** — Nach dem Import in Visualizer Lite können die Shots von der DE1-Maschine gelöscht werden, damit die Decent App auf dem Tablet schneller startet
 
 <table>
   <tr>
@@ -34,6 +38,12 @@ Extraktionskurven analysieren, Geschmack bewerten und Muster in der Shot-Histori
     <td align="center" width="50%">
       <img src="docs/screenshots/shot-comparison-split.png" alt="Shot-Vergleich — Getrennt" />
       <br/><sub><b>Shot-Vergleich — Getrennte Ansicht</b></sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="100%" colspan="3">
+      <img src="docs/screenshots/shot-statistics-6-months-dashboard.png" alt="Statistik-Dashboard" />
+      <br/><sub><b>Statistik-Dashboard — 6-Monats-Ansicht</b></sub>
     </td>
   </tr>
 </table>
@@ -170,7 +180,7 @@ docker run -d \
 ```
 
 Zertifikatsdateien ablegen unter:
-```
+```raw
 /volume1/docker/visualizer-lite/certs/
 ├── fullchain.pem
 └── privkey.pem

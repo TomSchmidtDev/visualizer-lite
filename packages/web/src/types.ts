@@ -40,6 +40,7 @@ export interface Shot {
   drinkTds: number | null
   drinkEy: number | null
   profileTitle: string | null
+  beverageType: string | null
   grinderModel: string | null
   grinderSetting: string | null
   barista: string | null
@@ -78,6 +79,7 @@ export interface Suggestions {
   profileTitles: string[]
   grinderModels: string[]
   grinderSettings: string[]
+  beverageTypes: string[]
 }
 
 export interface AppSettings {
@@ -88,12 +90,30 @@ export interface AppSettings {
   tooltipOpacity: number
   showAvgRatio: boolean
   de1LastImportDate?: string | null
+  statsTopN: number
+  statsShowPrevValue: boolean
+  de1DefaultBeverage: 'espresso' | 'filter' | ''
+}
+
+export interface StatsWindow {
+  shotCount: number
+  beanWeightG: number
+  drinkWeightG: number
+  avgRatio: number | null
+  avgEnjoyment: number | null
+  avgDurationS: number | null
+  shotsPerDay: number | null
+  topGrinderSetting: string | null
+  topRoasters: { name: string; count: number }[]
+  topRoasts:   { name: string; count: number }[]
+  topProfiles: { name: string; count: number }[]
 }
 
 export interface Stats {
-  total: number
-  avgEnjoyment: number | null
-  avgRatio: number | null
+  period: '24h' | '7d' | '14d' | '30d' | '180d' | '365d' | '730d' | '1095d' | 'all'
+  beverage: 'espresso' | 'filter' | 'all'
+  current: StatsWindow
+  previous: StatsWindow
 }
 
 export interface SearchParams {
@@ -106,4 +126,5 @@ export interface SearchParams {
   grinderModel?: string
   dateFrom?: string
   dateTo?: string
+  beverageType?: string
 }

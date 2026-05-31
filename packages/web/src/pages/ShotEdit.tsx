@@ -53,6 +53,10 @@ export default function ShotEdit() {
 
   if (!shot) return <div style={{ padding: 24 }}>{t('common.loading')}</div>
 
+  const beverageVal = form['beverageType'] !== undefined
+    ? form['beverageType']
+    : (shot?.beverageType ?? '')
+
   const fields = [
     { key: 'beanBrand',      label: t('edit.beanBrand'),      type: 'text' },
     { key: 'beanType',       label: t('edit.beanType'),        type: 'text' },
@@ -79,6 +83,14 @@ export default function ShotEdit() {
         <div className="card" style={{ marginBottom: 16 }}>
           <div className="card-title">{t('detail.equipment')} & {t('detail.beanInfo')}</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 11, color: 'var(--text-dim)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.8 }}>{t('edit.beverageType')}</label>
+              <select value={beverageVal} onChange={(e) => set('beverageType', e.target.value)}>
+                <option value="">{t('edit.beverageTypeNone')}</option>
+                <option value="espresso">{t('shots.beverageEspresso')}</option>
+                <option value="filter">{t('shots.beverageFilter')}</option>
+              </select>
+            </div>
             {fields.map(({ key, label, type }) => (
               <div key={key}>
                 <label style={{ display: 'block', fontSize: 11, color: 'var(--text-dim)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.8 }}>{label}</label>

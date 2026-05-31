@@ -25,9 +25,9 @@ export default function ShotList() {
     staleTime: 60_000,
   })
 
-  const { data: stats } = useQuery({
-    queryKey: ['stats'],
-    queryFn: () => api.getStats(),
+  const { data: allShotsData } = useQuery({
+    queryKey: ['shots-total'],
+    queryFn: () => api.listShots({ page: 1, limit: 1 }),
     staleTime: 60_000,
   })
 
@@ -49,9 +49,10 @@ export default function ShotList() {
 
   const isFiltered = !!(
     params.beanBrand || params.beanType || params.profileTitle ||
-    params.grinderModel || params.dateFrom || params.dateTo || params.q
+    params.grinderModel || params.dateFrom || params.dateTo || params.q ||
+    params.beverageType
   )
-  const totalAll = stats?.total ?? 0
+  const totalAll = allShotsData?.total ?? 0
   const totalFiltered = data?.total ?? 0
 
   return (
@@ -99,12 +100,7 @@ export default function ShotList() {
             ? t('shots.foundOf', { total: totalAll })
             : t('shots.found')}
         </span>
-        {stats?.avgEnjoyment != null && !isFiltered && (
-          <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-            {t('shots.avgEnjoyment')}: <strong style={{ color: 'var(--accent)' }}>{stats.avgEnjoyment}</strong>
-          </span>
-        )}
-        {settings?.showAvgRatio && data?.avgRatio != null && (
+{settings?.showAvgRatio && data?.avgRatio != null && (
           <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
             {t('shots.avgRatio')}: <strong>1 : {data.avgRatio}</strong>
           </span>

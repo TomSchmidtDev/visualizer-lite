@@ -26,6 +26,7 @@ model Shot {
   grinderModel      String?
   grinderSetting    String?
   barista           String?
+  beverageType      String?   // "espresso" | "filter" | null
 
   beanBrand         String?
   beanType          String?
@@ -56,6 +57,7 @@ model Shot {
   @@index([profileTitle])
   @@index([grinderModel])
   @@index([beanWeight, drinkWeight])
+  @@index([beverageType])
 }
 
 model Tag {

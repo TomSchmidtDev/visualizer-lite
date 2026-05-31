@@ -9,6 +9,7 @@ import ShotEdit from './pages/ShotEdit.js'
 import Upload from './pages/Upload.js'
 import Settings from './pages/Settings.js'
 import ShotCompare from './pages/ShotCompare.js'
+import Stats from './pages/Stats.js'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const loggedIn = document.cookie.includes('vl_loggedin=')
@@ -36,6 +37,7 @@ export default function App() {
           <Route path="compare" element={<ShotCompare />} />
           <Route path="upload" element={<Upload />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="stats" element={<Stats />} />
         </Route>
       </Routes>
     </BrowserRouter>

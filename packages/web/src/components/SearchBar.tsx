@@ -15,10 +15,18 @@ export default function SearchBar({ params, suggestions, onChange }: Props) {
     onChange({ ...params, [key]: value || undefined, page: 1 })
   }
 
+  const beverageLabel = (v: string) => {
+    if (v === 'espresso') return t('shots.beverageEspresso')
+    if (v === 'filter') return t('shots.beverageFilter')
+    if (v === 'unknown') return t('shots.beverageUnknown')
+    return v
+  }
+
   const activeFilters = [
     params.beanBrand && { key: 'beanBrand' as keyof SearchParams, label: `Röster: ${params.beanBrand}` },
     params.profileTitle && { key: 'profileTitle' as keyof SearchParams, label: `Profil: ${params.profileTitle}` },
     params.grinderModel && { key: 'grinderModel' as keyof SearchParams, label: `Mühle: ${params.grinderModel}` },
+    params.beverageType && { key: 'beverageType' as keyof SearchParams, label: beverageLabel(params.beverageType) },
   ].filter(Boolean) as { key: keyof SearchParams; label: string }[]
 
   return (
@@ -52,6 +60,16 @@ export default function SearchBar({ params, suggestions, onChange }: Props) {
           <option value="">{t('shots.allGrinders')}</option>
           {suggestions?.grinderModels.map((g) => <option key={g} value={g}>{g}</option>)}
         </select>
+
+        {/* Beverage filter */}
+        {suggestions?.beverageTypes && suggestions.beverageTypes.length > 0 && (
+          <select value={params.beverageType ?? ''} onChange={(e) => update('beverageType', e.target.value)} style={{ minWidth: 120 }}>
+            <option value="">{t('shots.allBeverages')}</option>
+            {suggestions.beverageTypes.map((v) => (
+              <option key={v} value={v}>{beverageLabel(v)}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {/* Active filter chips */}
