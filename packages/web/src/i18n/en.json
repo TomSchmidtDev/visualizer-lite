@@ -181,7 +181,18 @@
     "topProfiles": "Top Profiles",
     "noData": "No data for this period",
     "vsLabel": "vs prev",
-    "prevLabel": "Prev"
+    "prevLabel": "Prev",
+    "colRoaster": "Roaster",
+    "colBean": "Bean",
+    "colProfile": "Profile",
+    "colShots": "Shots",
+    "colEnjoyment": "Avg Enjoy",
+    "colRatio": "Avg Ratio",
+    "colDuration": "Avg Duration",
+    "colBeanWeight": "Total Beans",
+    "colAvgBeanWeight": "Avg Dose",
+    "expandRow": "Expand",
+    "collapseRow": "Collapse"
   },
   "common": {
     "loading": "Loading…",

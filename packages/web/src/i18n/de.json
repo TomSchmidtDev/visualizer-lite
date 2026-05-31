@@ -181,7 +181,18 @@
     "topProfiles": "Top Profile",
     "noData": "Keine Daten für diesen Zeitraum",
     "vsLabel": "vs. Vorperiode",
-    "prevLabel": "Vorperiode"
+    "prevLabel": "Vorperiode",
+    "colRoaster": "Röster",
+    "colBean": "Bohne",
+    "colProfile": "Profil",
+    "colShots": "Shots",
+    "colEnjoyment": "Ø Genuss",
+    "colRatio": "Ø Ratio",
+    "colDuration": "Ø Dauer",
+    "colBeanWeight": "Bohnen ges.",
+    "colAvgBeanWeight": "Ø Einwaage",
+    "expandRow": "Aufklappen",
+    "collapseRow": "Zuklappen"
   },
   "common": {
     "loading": "Wird geladen…",
