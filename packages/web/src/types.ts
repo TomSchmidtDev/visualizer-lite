@@ -116,6 +116,34 @@ export interface Stats {
   previous: StatsWindow
 }
 
+export interface BeanRow {
+  bean: string
+  shotCount: number
+  avgEnjoyment: number | null
+  avgRatio: number | null
+  avgDurationS: number | null
+  totalBeanWeightG: number
+}
+
+export interface RoasterRow {
+  roaster: string
+  shotCount: number
+  avgEnjoyment: number | null
+  avgRatio: number | null
+  avgDurationS: number | null
+  totalBeanWeightG: number
+  beans: BeanRow[]
+}
+
+export interface ProfileRow {
+  profile: string
+  shotCount: number
+  avgEnjoyment: number | null
+  avgDurationS: number | null
+  avgRatio: number | null
+  avgBeanWeightG: number | null
+}
+
 export interface SearchParams {
   page?: number
   limit?: number
