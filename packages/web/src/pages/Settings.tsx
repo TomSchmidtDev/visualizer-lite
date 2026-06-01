@@ -29,6 +29,10 @@ export default function Settings() {
   const [pwMsg, setPwMsg] = useState('')
   const [pwError, setPwError] = useState('')
 
+  const [apiKeyClaudeKey, setApiKeyClaudeKey] = useState('')
+  const [apiKeyOpenaiKey, setApiKeyOpenaiKey] = useState('')
+  const [aiAnalysisDefaultModel, setAiAnalysisDefaultModel] = useState<'claude' | 'openai'>('claude')
+
   const [de1Url, setDe1Url] = useState('')
   const [de1DefaultBeverage, setDe1DefaultBeverage] = useState('')
   const [de1Phase, setDe1Phase] = useState<De1Phase>({ name: 'idle' })
@@ -487,6 +491,61 @@ export default function Settings() {
             )}
           </>
         )}
+      </div>
+
+      {/* AI Analysis Settings */}
+      <div className="card">
+        <div className="card-title">🤖 AI Analysis</div>
+
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ fontSize: 12, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: 0.8, display: 'block', marginBottom: 4 }}>
+            Claude API Key
+          </label>
+          <input
+            type="password"
+            placeholder="sk-ant-..."
+            value={apiKeyClaudeKey}
+            onChange={(e) => setApiKeyClaudeKey(e.target.value)}
+            style={{ width: '100%', padding: '8px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 13 }}
+          />
+          <small style={{ color: 'var(--text-dim)' }}>Get from https://console.anthropic.com</small>
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ fontSize: 12, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: 0.8, display: 'block', marginBottom: 4 }}>
+            OpenAI API Key
+          </label>
+          <input
+            type="password"
+            placeholder="sk-..."
+            value={apiKeyOpenaiKey}
+            onChange={(e) => setApiKeyOpenaiKey(e.target.value)}
+            style={{ width: '100%', padding: '8px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 13 }}
+          />
+          <small style={{ color: 'var(--text-dim)' }}>Get from https://platform.openai.com/api-keys</small>
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ fontSize: 12, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: 0.8, display: 'block', marginBottom: 4 }}>
+            Default AI Model
+          </label>
+          <select
+            value={aiAnalysisDefaultModel}
+            onChange={(e) => setAiAnalysisDefaultModel(e.target.value as 'claude' | 'openai')}
+            style={{ width: '100%', padding: '8px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 13 }}
+          >
+            <option value="claude">Claude (Anthropic)</option>
+            <option value="openai">OpenAI (GPT-4)</option>
+          </select>
+        </div>
+
+        <button
+          onClick={() => api.updateSettings({ apiKeyClaudeKey, apiKeyOpenaiKey, aiAnalysisDefaultModel })}
+          className="btn btn-primary"
+          style={{ width: '100%' }}
+        >
+          Save AI Settings
+        </button>
       </div>
 
       {/* DB info */}

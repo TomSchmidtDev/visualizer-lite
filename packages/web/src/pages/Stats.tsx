@@ -2,7 +2,8 @@ import { useState, useEffect, Fragment } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client.js'
-import type { Stats, StatsWindow, RoasterRow, ProfileRow, BeanRow } from '../types.js'
+import { AnalysisPanel } from '../components/AnalysisPanel.js'
+import type { Stats, StatsWindow, RoasterRow, ProfileRow, BeanRow, Analysis } from '../types.js'
 
 type Period = '24h' | '7d' | '14d' | '30d' | '180d' | '365d' | '730d' | '1095d' | 'all'
 type Beverage = 'espresso' | 'filter' | 'all'
@@ -324,6 +325,10 @@ export default function StatsPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [analysisData, setAnalysisData] = useState<Analysis | null>(null)
+  const [analysisLoading, setAnalysisLoading] = useState(false)
+  const [analysisError, setAnalysisError] = useState<string | null>(null)
+  const [analysisWindow, setAnalysisWindow] = useState<'7d' | '30d' | '90d' | 'all'>('30d')
 
   const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: () => api.getSettings() })
   const topN = settings?.statsTopN ?? 10
@@ -337,6 +342,19 @@ export default function StatsPage() {
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
   }, [period, beverage, topN])
+
+  async function handleAnalyzeTrends(regenerate = false) {
+    setAnalysisLoading(true)
+    setAnalysisError(null)
+    try {
+      const response = await api.analyzeShot('', { type: 'stats', window: analysisWindow, regenerate })
+      setAnalysisData({ barista: response.barista, roaster: response.roaster, analyst: response.analyst })
+    } catch (err) {
+      setAnalysisError(err instanceof Error ? err.message : 'Unknown error')
+    } finally {
+      setAnalysisLoading(false)
+    }
+  }
 
   const cur: StatsWindow | null = stats?.current ?? null
   const prev: StatsWindow | null = stats?.previous ?? null
@@ -452,6 +470,32 @@ export default function StatsPage() {
       {activeTab === 'profiles' && (
         <ProfilesTab period={period} beverage={beverage} />
       )}
+
+      {/* AI Analysis */}
+      <div style={{ marginTop: 24 }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Timeframe:</span>
+            {(['7d', '30d', '90d', 'all'] as const).map(w => (
+              <button key={w} style={toggleStyle(analysisWindow === w)} onClick={() => setAnalysisWindow(w)}>
+                {w}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => handleAnalyzeTrends(false)} style={{ padding: '8px 16px', background: '#6366f1', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
+            🤖 Analyze Trends
+          </button>
+        </div>
+
+        {analysisData && (
+          <AnalysisPanel
+            analysis={analysisData}
+            loading={analysisLoading}
+            error={analysisError}
+            onRegenerate={() => handleAnalyzeTrends(true)}
+          />
+        )}
+      </div>
     </div>
   )
 }

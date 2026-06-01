@@ -6,7 +6,8 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api/client.js'
 import ShotChart from '../components/ShotChart.js'
 import TastingScores from '../components/TastingScores.js'
-import type { AppSettings } from '../types.js'
+import { AnalysisPanel } from '../components/AnalysisPanel.js'
+import type { AppSettings, Analysis } from '../types.js'
 
 export default function ShotDetail() {
   const { id } = useParams<{ id: string }>()
@@ -15,6 +16,9 @@ export default function ShotDetail() {
   const qc = useQueryClient()
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [analysisData, setAnalysisData] = useState<Analysis | null>(null)
+  const [analysisLoading, setAnalysisLoading] = useState(false)
+  const [analysisError, setAnalysisError] = useState<string | null>(null)
 
   const { data: shot, isLoading } = useQuery({
     queryKey: ['shot', id],
@@ -37,6 +41,20 @@ export default function ShotDetail() {
     } catch (err) {
       setConfirmDelete(false)
       setDeleteError(err instanceof Error ? err.message : t('common.error'))
+    }
+  }
+
+  async function handleAnalyze(regenerate = false) {
+    if (!id) return
+    setAnalysisLoading(true)
+    setAnalysisError(null)
+    try {
+      const response = await api.analyzeShot(id, { type: 'detail', regenerate })
+      setAnalysisData({ barista: response.barista, roaster: response.roaster, analyst: response.analyst })
+    } catch (err) {
+      setAnalysisError(err instanceof Error ? err.message : 'Unknown error')
+    } finally {
+      setAnalysisLoading(false)
     }
   }
 
@@ -134,6 +152,20 @@ export default function ShotDetail() {
               </div>
             ))}
           </div>
+
+          {/* AI Analysis */}
+          <button onClick={() => handleAnalyze(false)} style={{ marginTop: 16, padding: '8px 16px', background: '#6366f1', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', width: '100%' }}>
+            🤖 Analyze with AI
+          </button>
+
+          {analysisData && (
+            <AnalysisPanel
+              analysis={analysisData}
+              loading={analysisLoading}
+              error={analysisError}
+              onRegenerate={() => handleAnalyze(true)}
+            />
+          )}
         </div>
 
         {/* Right column */}
