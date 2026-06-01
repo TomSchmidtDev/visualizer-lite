@@ -53,10 +53,10 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
 
       // Get user API keys from settings
       const claudeKeyRow = await prisma.settings.findUnique({
-        where: { key: 'claudeApiKey' },
+        where: { key: 'apiKeyClaudeKey' },
       })
       const openaiKeyRow = await prisma.settings.findUnique({
-        where: { key: 'openaiApiKey' },
+        where: { key: 'apiKeyOpenaiKey' },
       })
 
       const claudeKey = claudeKeyRow?.value

@@ -20,6 +20,9 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
       statsTopN:           map.statsTopN ? parseInt(map.statsTopN, 10) : 10,
       statsShowPrevValue:  map.statsShowPrevValue !== undefined ? map.statsShowPrevValue === 'true' : true,
       de1DefaultBeverage:  map.de1DefaultBeverage ?? '',
+      apiKeyClaudeKey:    map.apiKeyClaudeKey ?? '',
+      apiKeyOpenaiKey:    map.apiKeyOpenaiKey ?? '',
+      aiAnalysisDefaultModel: map.aiAnalysisDefaultModel ?? 'claude',
     })
   })
 
@@ -34,11 +37,14 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
       statsTopN?: number
       statsShowPrevValue?: boolean
       de1DefaultBeverage?: string
+      apiKeyClaudeKey?: string
+      apiKeyOpenaiKey?: string
+      aiAnalysisDefaultModel?: string
       currentPassword?: string
       newPassword?: string
     }
   }>('/', auth, async (request, reply) => {
-    const { language, theme, de1Url, tooltipOpacity, showAvgRatio, de1LastImportDate, statsTopN, statsShowPrevValue, de1DefaultBeverage, currentPassword, newPassword } = request.body
+    const { language, theme, de1Url, tooltipOpacity, showAvgRatio, de1LastImportDate, statsTopN, statsShowPrevValue, de1DefaultBeverage, apiKeyClaudeKey, apiKeyOpenaiKey, aiAnalysisDefaultModel, currentPassword, newPassword } = request.body
 
     if (language)
       await prisma.settings.upsert({
@@ -93,6 +99,24 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
         where: { key: 'de1DefaultBeverage' },
         create: { key: 'de1DefaultBeverage', value: de1DefaultBeverage },
         update: { value: de1DefaultBeverage },
+      })
+    if (apiKeyClaudeKey !== undefined)
+      await prisma.settings.upsert({
+        where: { key: 'apiKeyClaudeKey' },
+        create: { key: 'apiKeyClaudeKey', value: apiKeyClaudeKey },
+        update: { value: apiKeyClaudeKey },
+      })
+    if (apiKeyOpenaiKey !== undefined)
+      await prisma.settings.upsert({
+        where: { key: 'apiKeyOpenaiKey' },
+        create: { key: 'apiKeyOpenaiKey', value: apiKeyOpenaiKey },
+        update: { value: apiKeyOpenaiKey },
+      })
+    if (aiAnalysisDefaultModel !== undefined)
+      await prisma.settings.upsert({
+        where: { key: 'aiAnalysisDefaultModel' },
+        create: { key: 'aiAnalysisDefaultModel', value: aiAnalysisDefaultModel },
+        update: { value: aiAnalysisDefaultModel },
       })
     if (currentPassword && newPassword) {
       const row = await prisma.settings.findUnique({ where: { key: 'passwordHash' } })
