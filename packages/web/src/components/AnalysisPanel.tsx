@@ -21,6 +21,15 @@ const TABS: { type: TabType; label: string; emoji: string }[] = [
   { type: 'analyst', label: 'Analyst', emoji: '📊' },
 ];
 
+const card: React.CSSProperties = {
+  marginTop: 16,
+  padding: 20,
+  background: 'var(--bg-card)',
+  border: '1px solid var(--border)',
+  borderRadius: 8,
+  color: 'var(--text)',
+};
+
 export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   analysis,
   loading,
@@ -31,49 +40,47 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
 
   if (loading) {
     return (
-      <div style={{ marginTop: 20, padding: 20, background: 'white', border: '1px solid #e5e7eb', borderRadius: 8 }}>
-        <p>Loading...</p>
+      <div style={card}>
+        <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Analysiere…</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div style={{ marginTop: 20, padding: 20, background: 'white', border: '1px solid #e5e7eb', borderRadius: 8 }}>
-        <div style={{ color: '#dc2626', padding: 10, background: '#fee2e2', borderRadius: 4 }}>
-          <p>Analysis failed: {error}</p>
-          {onRegenerate && (
-            <button onClick={onRegenerate} style={{ marginTop: 10, padding: '6px 12px', background: '#dc2626', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
-              Retry
-            </button>
-          )}
+      <div style={card}>
+        <div style={{ color: 'var(--error, #e05252)', fontSize: 13, marginBottom: onRegenerate ? 8 : 0 }}>
+          Fehler: {error}
         </div>
+        {onRegenerate && (
+          <button onClick={onRegenerate} className="btn btn-secondary" style={{ fontSize: 12 }}>
+            Erneut versuchen
+          </button>
+        )}
       </div>
     );
   }
 
-  if (!analysis) {
-    return null;
-  }
+  if (!analysis) return null;
 
   const currentTab = analysis[activeTab];
 
   return (
-    <div style={{ marginTop: 20, padding: 20, background: 'white', border: '1px solid #e5e7eb', borderRadius: 8 }}>
-      <div style={{ display: 'flex', gap: 10, borderBottom: '1px solid #e5e7eb', marginBottom: 15 }}>
+    <div style={card}>
+      <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border)', marginBottom: 14 }}>
         {TABS.map(({ type, label, emoji }) => (
           <button
             key={type}
             onClick={() => setActiveTab(type)}
             style={{
-              padding: '10px 15px',
+              padding: '8px 14px',
               border: 'none',
               background: 'none',
               cursor: 'pointer',
-              borderBottom: activeTab === type ? '3px solid #6366f1' : '3px solid transparent',
-              color: activeTab === type ? '#333' : '#999',
-              fontWeight: activeTab === type ? 'bold' : 'normal',
-              transition: 'all 0.2s',
+              borderBottom: activeTab === type ? '2px solid var(--accent)' : '2px solid transparent',
+              color: activeTab === type ? 'var(--accent)' : 'var(--text-muted)',
+              fontWeight: activeTab === type ? 600 : 400,
+              fontSize: 13,
             }}
           >
             {emoji} {label}
@@ -81,38 +88,26 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
         ))}
       </div>
 
-      <div style={{ minHeight: 100 }}>
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-          {currentTab.map((item, idx) => (
-            <li
-              key={idx}
-              style={{
-                padding: '8px 0',
-                lineHeight: 1.5,
-                borderBottom: idx < currentTab.length - 1 ? '1px solid #f0f0f0' : 'none',
-              }}
-            >
-              {item}
-            </li>
-          ))}
-        </ul>
-      </div>
+      <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+        {currentTab.map((item, idx) => (
+          <li
+            key={idx}
+            style={{
+              padding: '7px 0',
+              fontSize: 13,
+              lineHeight: 1.6,
+              color: 'var(--text)',
+              borderBottom: idx < currentTab.length - 1 ? '1px solid var(--border)' : 'none',
+            }}
+          >
+            {item}
+          </li>
+        ))}
+      </ul>
 
       {onRegenerate && (
-        <button
-          onClick={onRegenerate}
-          style={{
-            marginTop: 10,
-            padding: '6px 12px',
-            background: '#6366f1',
-            color: 'white',
-            border: 'none',
-            borderRadius: 4,
-            cursor: 'pointer',
-            fontSize: '0.9em',
-          }}
-        >
-          Regenerate
+        <button onClick={onRegenerate} className="btn btn-secondary" style={{ marginTop: 12, fontSize: 12 }}>
+          Regenerieren
         </button>
       )}
     </div>

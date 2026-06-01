@@ -339,7 +339,7 @@ Each array should contain 3-5 insights. Be specific and reference actual values 
  * Build a user prompt for analyzing a single shot.
  * Includes bean info, roast data, shot parameters, and curve descriptions.
  */
-export function buildDetailPrompt(shot: ShotResponse, aggregatedStats: CurveStats): string {
+export function buildDetailPrompt(shot: ShotResponse, aggregatedStats: CurveStats, customContext = ''): string {
   const lines: string[] = []
 
   lines.push(`## Shot Analysis Request`)
@@ -411,6 +411,12 @@ export function buildDetailPrompt(shot: ShotResponse, aggregatedStats: CurveStat
     if (aggregatedStats.temperature) {
       lines.push(`- Avg temperature: ${aggregatedStats.temperature.avg.toFixed(1)} °C`)
     }
+    lines.push('')
+  }
+
+  if (customContext.trim()) {
+    lines.push(`### Machine & Setup Context`)
+    lines.push(customContext.trim())
     lines.push('')
   }
 
@@ -572,14 +578,15 @@ export async function analyzeShot(
   analysisType: 'detail' | 'stats' = 'detail',
   window: '7d' | '30d' | '90d' | 'all' = '30d',
   modelName?: string,
-  language = 'en'
+  language = 'en',
+  customContext = ''
 ): Promise<AnalyzeResult> {
   const preprocessed = await preprocessShots(shotId, window)
   const systemPrompt = buildSystemPrompt(language)
 
   let prompt: string
   if (analysisType === 'detail') {
-    prompt = buildDetailPrompt(preprocessed.targetShot, preprocessed.aggregatedStats)
+    prompt = buildDetailPrompt(preprocessed.targetShot, preprocessed.aggregatedStats, customContext)
   } else {
     prompt = buildStatsPrompt(preprocessed.contextShots, preprocessed.aggregatedStats, window)
   }

@@ -23,6 +23,7 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
       apiKeyClaudeKey:    map.apiKeyClaudeKey ?? '',
       apiKeyOpenaiKey:    map.apiKeyOpenaiKey ?? '',
       aiModel:            map.aiModel ?? 'claude-haiku-4-5-20251001',
+      aiCustomContext:    map.aiCustomContext ?? '',
     })
   })
 
@@ -40,11 +41,12 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
       apiKeyClaudeKey?: string
       apiKeyOpenaiKey?: string
       aiModel?: string
+      aiCustomContext?: string
       currentPassword?: string
       newPassword?: string
     }
   }>('/', auth, async (request, reply) => {
-    const { language, theme, de1Url, tooltipOpacity, showAvgRatio, de1LastImportDate, statsTopN, statsShowPrevValue, de1DefaultBeverage, apiKeyClaudeKey, apiKeyOpenaiKey, aiModel, currentPassword, newPassword } = request.body
+    const { language, theme, de1Url, tooltipOpacity, showAvgRatio, de1LastImportDate, statsTopN, statsShowPrevValue, de1DefaultBeverage, apiKeyClaudeKey, apiKeyOpenaiKey, aiModel, aiCustomContext, currentPassword, newPassword } = request.body
 
     if (language)
       await prisma.settings.upsert({
@@ -117,6 +119,12 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
         where: { key: 'aiModel' },
         create: { key: 'aiModel', value: aiModel },
         update: { value: aiModel },
+      })
+    if (aiCustomContext !== undefined)
+      await prisma.settings.upsert({
+        where: { key: 'aiCustomContext' },
+        create: { key: 'aiCustomContext', value: aiCustomContext },
+        update: { value: aiCustomContext },
       })
     if (currentPassword && newPassword) {
       const row = await prisma.settings.findUnique({ where: { key: 'passwordHash' } })

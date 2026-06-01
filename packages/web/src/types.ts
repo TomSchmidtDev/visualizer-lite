@@ -96,6 +96,7 @@ export interface AppSettings {
   apiKeyClaudeKey?: string
   apiKeyOpenaiKey?: string
   aiModel?: string
+  aiCustomContext?: string
 }
 
 export interface Analysis {

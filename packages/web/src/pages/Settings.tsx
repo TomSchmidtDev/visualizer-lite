@@ -32,6 +32,7 @@ export default function Settings() {
   const [apiKeyClaudeKey, setApiKeyClaudeKey] = useState('')
   const [apiKeyOpenaiKey, setApiKeyOpenaiKey] = useState('')
   const [aiModel, setAiModel] = useState('claude-haiku-4-5-20251001')
+  const [aiCustomContext, setAiCustomContext] = useState('')
   const [aiKeysMsg, setAiKeysMsg] = useState('')
   const [aiKeysError, setAiKeysError] = useState('')
 
@@ -59,7 +60,8 @@ export default function Settings() {
     if (settings?.apiKeyClaudeKey) setApiKeyClaudeKey(settings.apiKeyClaudeKey)
     if (settings?.apiKeyOpenaiKey) setApiKeyOpenaiKey(settings.apiKeyOpenaiKey)
     if (settings?.aiModel) setAiModel(settings.aiModel)
-  }, [settings?.de1Url, settings?.de1DefaultBeverage, settings?.apiKeyClaudeKey, settings?.apiKeyOpenaiKey, settings?.aiModel])
+    if (settings?.aiCustomContext !== undefined) setAiCustomContext(settings.aiCustomContext)
+  }, [settings?.de1Url, settings?.de1DefaultBeverage, settings?.apiKeyClaudeKey, settings?.apiKeyOpenaiKey, settings?.aiModel, settings?.aiCustomContext])
 
   // Pre-fill "Von" date with last import's "Bis" date (once on first load)
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -554,12 +556,26 @@ export default function Settings() {
           </small>
         </div>
 
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ fontSize: 12, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: 0.8, display: 'block', marginBottom: 4 }}>
+            Maschinenkontext (optional)
+          </label>
+          <textarea
+            rows={5}
+            placeholder={'Erkläre der KI dein Setup, z.B.:\n- Der initiale Flow-Anstieg ist das Befüllen der Brühgruppe\n- Profil verwendet Flow-Goal ab Sekunde 5\n- Maschine: Decent DE1Pro, Mühle: Timemore Sculptor 078S'}
+            value={aiCustomContext}
+            onChange={(e) => setAiCustomContext(e.target.value)}
+            style={{ width: '100%', padding: '8px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 13, resize: 'vertical', background: 'var(--bg-input)', color: 'var(--text)', boxSizing: 'border-box' }}
+          />
+          <small style={{ color: 'var(--text-dim)' }}>Wird jeder Analyse als Kontext mitgegeben</small>
+        </div>
+
         <button
           onClick={async () => {
             setAiKeysMsg('')
             setAiKeysError('')
             try {
-              await api.updateSettings({ apiKeyClaudeKey, apiKeyOpenaiKey, aiModel })
+              await api.updateSettings({ apiKeyClaudeKey, apiKeyOpenaiKey, aiModel, aiCustomContext })
               setAiKeysMsg('✅ AI Settings saved successfully')
               setTimeout(() => setAiKeysMsg(''), 3000)
             } catch (err) {
