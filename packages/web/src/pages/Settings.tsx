@@ -32,6 +32,8 @@ export default function Settings() {
   const [apiKeyClaudeKey, setApiKeyClaudeKey] = useState('')
   const [apiKeyOpenaiKey, setApiKeyOpenaiKey] = useState('')
   const [aiAnalysisDefaultModel, setAiAnalysisDefaultModel] = useState<'claude' | 'openai'>('claude')
+  const [aiKeysMsg, setAiKeysMsg] = useState('')
+  const [aiKeysError, setAiKeysError] = useState('')
 
   const [de1Url, setDe1Url] = useState('')
   const [de1DefaultBeverage, setDe1DefaultBeverage] = useState('')
@@ -540,12 +542,24 @@ export default function Settings() {
         </div>
 
         <button
-          onClick={() => api.updateSettings({ apiKeyClaudeKey, apiKeyOpenaiKey, aiAnalysisDefaultModel })}
+          onClick={async () => {
+            setAiKeysMsg('')
+            setAiKeysError('')
+            try {
+              await api.updateSettings({ apiKeyClaudeKey, apiKeyOpenaiKey, aiAnalysisDefaultModel })
+              setAiKeysMsg('✅ AI Settings saved successfully')
+              setTimeout(() => setAiKeysMsg(''), 3000)
+            } catch (err) {
+              setAiKeysError(err instanceof Error ? err.message : 'Failed to save AI settings')
+            }
+          }}
           className="btn btn-primary"
           style={{ width: '100%' }}
         >
           Save AI Settings
         </button>
+        {aiKeysMsg && <div style={{ marginTop: 8, fontSize: 12, color: '#22c55e' }}>{aiKeysMsg}</div>}
+        {aiKeysError && <div style={{ marginTop: 8, fontSize: 12, color: '#ef4444' }}>{aiKeysError}</div>}
       </div>
 
       {/* DB info */}
