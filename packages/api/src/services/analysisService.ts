@@ -227,7 +227,7 @@ export async function preprocessShots(
   // Build response with downsampled curves
   const targetShotResponse: ShotResponse = {
     id: targetShot.id,
-    startTime: targetShot.startTime,
+    startTime: targetShot.startTime.toISOString(),
     duration: targetShot.duration,
     beanWeight: targetShot.beanWeight,
     drinkWeight: targetShot.drinkWeight,
@@ -240,7 +240,7 @@ export async function preprocessShots(
     barista: targetShot.barista,
     beanBrand: targetShot.beanBrand,
     beanType: targetShot.beanType,
-    roastDate: targetShot.roastDate,
+    roastDate: targetShot.roastDate?.toISOString() ?? null,
     roastLevel: targetShot.roastLevel,
     espressoEnjoyment: targetShot.espressoEnjoyment,
     fragrance: targetShot.fragrance,
@@ -256,16 +256,16 @@ export async function preprocessShots(
     privateNotes: targetShot.privateNotes,
     tags: targetShot.tags.map((t) => t.name),
     shotData: {
-      timeframe: downsampledCurves.pressure ? shotData.timeframe : undefined,
-      espresso_pressure: downsampledCurves.pressure,
-      espresso_flow: downsampledCurves.flow,
-      espresso_temperature_mix: downsampledCurves.temperature,
+      timeframe: shotData.timeframe || [],
+      ...(downsampledCurves.pressure && { espresso_pressure: downsampledCurves.pressure }),
+      ...(downsampledCurves.flow && { espresso_flow: downsampledCurves.flow }),
+      ...(downsampledCurves.temperature && { espresso_temperature_mix: downsampledCurves.temperature }),
     },
   }
 
   const contextShotResponses: ShotResponse[] = contextShots.map((shot) => ({
     id: shot.id,
-    startTime: shot.startTime,
+    startTime: shot.startTime.toISOString(),
     duration: shot.duration,
     beanWeight: shot.beanWeight,
     drinkWeight: shot.drinkWeight,
@@ -278,7 +278,7 @@ export async function preprocessShots(
     barista: shot.barista,
     beanBrand: shot.beanBrand,
     beanType: shot.beanType,
-    roastDate: shot.roastDate,
+    roastDate: shot.roastDate?.toISOString() ?? null,
     roastLevel: shot.roastLevel,
     espressoEnjoyment: shot.espressoEnjoyment,
     fragrance: shot.fragrance,
@@ -531,8 +531,11 @@ export async function callOpenAI(
   const message = await client.chat.completions.create({
     model: 'gpt-4-turbo',
     max_tokens: 1024,
-    system: SYSTEM_PROMPT,
     messages: [
+      {
+        role: 'system',
+        content: SYSTEM_PROMPT,
+      },
       {
         role: 'user',
         content: prompt,
@@ -592,8 +595,11 @@ export async function analyzeShot(
     const message = await client.chat.completions.create({
       model: 'gpt-4-turbo',
       max_tokens: 1024,
-      system: SYSTEM_PROMPT,
       messages: [
+        {
+          role: 'system',
+          content: SYSTEM_PROMPT,
+        },
         {
           role: 'user',
           content: prompt,

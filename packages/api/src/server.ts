@@ -14,7 +14,8 @@ import searchRoutes from './routes/search.js'
 import settingsRoutes from './routes/settings.js'
 import statsRoutes from './routes/stats.js'
 import exportRoutes from './routes/export.js'
-import de1Routes      from './routes/de1.js'
+import de1Routes from './routes/de1.js'
+import analysisRoutes from './routes/analysis.js'
 
 export async function buildServer(httpsOpts?: { key: Buffer; cert: Buffer }) {
   const fastify = Fastify({
@@ -49,6 +50,7 @@ export async function buildServer(httpsOpts?: { key: Buffer; cert: Buffer }) {
   await fastify.register(searchRoutes,   { prefix: '/api/search' })
   await fastify.register(settingsRoutes, { prefix: '/api/settings' })
   await fastify.register(statsRoutes,    { prefix: '/api/stats' })
+  await fastify.register(analysisRoutes, { prefix: '/api/analysis' })
   await fastify.register(exportRoutes,   { prefix: '/api/export' })
   await fastify.register(de1Routes,      { prefix: '/api/de1' })
 
