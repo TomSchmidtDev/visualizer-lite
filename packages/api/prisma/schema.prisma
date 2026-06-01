@@ -50,6 +50,7 @@ model Shot {
   shotData          String    // JSON as TEXT
 
   tags              Tag[]
+  analysis          ShotAnalysis?
 
   @@index([startTime])
   @@index([beanBrand])
@@ -58,6 +59,24 @@ model Shot {
   @@index([grinderModel])
   @@index([beanWeight, drinkWeight])
   @@index([beverageType])
+}
+
+model ShotAnalysis {
+  id                String    @id @default(cuid())
+  shotId            String    @unique
+  shot              Shot      @relation(fields: [shotId], references: [id], onDelete: Cascade)
+  analysisType      String    // 'detail' or 'stats'
+  aiModel           String    // 'claude-opus-4-8', 'claude-sonnet-4-6', 'gpt-4', 'gpt-4-turbo'
+  barista           String    // JSON array of strings
+  roaster           String    // JSON array of strings
+  analyst           String    // JSON array of strings
+  rawPrompt         String?   // optional, for debugging
+  tokenInputCount   Int
+  tokenOutputCount  Int
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([shotId])
 }
 
 model Tag {
