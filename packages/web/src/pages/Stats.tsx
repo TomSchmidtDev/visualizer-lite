@@ -487,7 +487,7 @@ export default function StatsPage() {
           </button>
         </div>
 
-        {analysisData && (
+        {(analysisData || analysisLoading || analysisError) && (
           <AnalysisPanel
             analysis={analysisData}
             loading={analysisLoading}

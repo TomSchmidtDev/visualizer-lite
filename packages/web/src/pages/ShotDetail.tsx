@@ -158,7 +158,7 @@ export default function ShotDetail() {
             🤖 Analyze with AI
           </button>
 
-          {analysisData && (
+          {(analysisData || analysisLoading || analysisError) && (
             <AnalysisPanel
               analysis={analysisData}
               loading={analysisLoading}
