@@ -14,7 +14,7 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
       type?: 'detail' | 'stats'
       regenerate?: 'true' | 'false'
     }
-  }>('/:id', auth, async (request, reply) => {
+  }>('/shot/:id', auth, async (request, reply) => {
     try {
       const shotId = request.params.id
 
