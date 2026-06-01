@@ -2,6 +2,7 @@
 import { prisma } from '../db.js'
 import type { ShotData, ShotResponse } from '../types.js'
 import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 
 export interface AggregatedStats {
   min: number
@@ -518,27 +519,17 @@ export async function callClaude(
 }
 
 /**
- * Main entry point: Preprocess shot, call Claude, and return analysis with token counts.
+ * Call OpenAI API with the given prompt and parse the JSON response.
+ * Extracts barista, roaster, and analyst arrays from the response.
  */
-export async function analyzeShot(
-  shotId: string,
-  apiKey: string,
-  model: 'detail' | 'stats' = 'detail',
-  window: '7d' | '30d' | '90d' | 'all' = '30d'
-): Promise<AnalyzeResult> {
-  const preprocessed = await preprocessShots(shotId, window)
+export async function callOpenAI(
+  prompt: string,
+  apiKey: string
+): Promise<ClaudeAnalysisResult> {
+  const client = new OpenAI({ apiKey })
 
-  let prompt: string
-  if (model === 'detail') {
-    prompt = buildDetailPrompt(preprocessed.targetShot, preprocessed.aggregatedStats)
-  } else {
-    prompt = buildStatsPrompt(preprocessed.contextShots, preprocessed.aggregatedStats, window)
-  }
-
-  const client = new Anthropic({ apiKey })
-
-  const message = await client.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+  const message = await client.chat.completions.create({
+    model: 'gpt-4-turbo',
     max_tokens: 1024,
     system: SYSTEM_PROMPT,
     messages: [
@@ -549,19 +540,16 @@ export async function analyzeShot(
     ],
   })
 
-  // Extract token counts
-  const tokenInputCount = message.usage.input_tokens
-  const tokenOutputCount = message.usage.output_tokens
-
-  // Extract and parse JSON response
-  const textContent = message.content.find((c) => c.type === 'text')
-  if (!textContent || textContent.type !== 'text') {
-    throw new Error('No text response from Claude')
+  // Extract text content from response
+  const textContent = message.choices[0]?.message?.content
+  if (!textContent) {
+    throw new Error('No text response from OpenAI')
   }
 
-  const jsonMatch = textContent.text.match(/\{[\s\S]*\}/)
+  // Parse JSON from response using regex
+  const jsonMatch = textContent.match(/\{[\s\S]*\}/)
   if (!jsonMatch) {
-    throw new Error('Could not find JSON in Claude response')
+    throw new Error('Could not find JSON in OpenAI response')
   }
 
   const parsed = JSON.parse(jsonMatch[0])
@@ -570,6 +558,111 @@ export async function analyzeShot(
     barista: parsed.barista || [],
     roaster: parsed.roaster || [],
     analyst: parsed.analyst || [],
+  }
+}
+
+/**
+ * Main entry point: Preprocess shot, call AI model, and return analysis with token counts.
+ * Supports both Claude and OpenAI models.
+ */
+export async function analyzeShot(
+  shotId: string,
+  apiKey: string,
+  model: 'claude' | 'openai' = 'claude',
+  analysisType: 'detail' | 'stats' = 'detail',
+  window: '7d' | '30d' | '90d' | 'all' = '30d'
+): Promise<AnalyzeResult> {
+  const preprocessed = await preprocessShots(shotId, window)
+
+  let prompt: string
+  if (analysisType === 'detail') {
+    prompt = buildDetailPrompt(preprocessed.targetShot, preprocessed.aggregatedStats)
+  } else {
+    prompt = buildStatsPrompt(preprocessed.contextShots, preprocessed.aggregatedStats, window)
+  }
+
+  let tokenInputCount = 0
+  let tokenOutputCount = 0
+  let analysisResult: ClaudeAnalysisResult
+
+  if (model === 'openai') {
+    // Call OpenAI
+    const client = new OpenAI({ apiKey })
+
+    const message = await client.chat.completions.create({
+      model: 'gpt-4-turbo',
+      max_tokens: 1024,
+      system: SYSTEM_PROMPT,
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+    })
+
+    // Extract token counts from OpenAI
+    tokenInputCount = message.usage?.prompt_tokens || 0
+    tokenOutputCount = message.usage?.completion_tokens || 0
+
+    // Extract and parse JSON response
+    const textContent = message.choices[0]?.message?.content
+    if (!textContent) {
+      throw new Error('No text response from OpenAI')
+    }
+
+    const jsonMatch = textContent.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) {
+      throw new Error('Could not find JSON in OpenAI response')
+    }
+
+    const parsed = JSON.parse(jsonMatch[0])
+    analysisResult = {
+      barista: parsed.barista || [],
+      roaster: parsed.roaster || [],
+      analyst: parsed.analyst || [],
+    }
+  } else {
+    // Call Claude (default)
+    const client = new Anthropic({ apiKey })
+
+    const message = await client.messages.create({
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 1024,
+      system: SYSTEM_PROMPT,
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+    })
+
+    // Extract token counts
+    tokenInputCount = message.usage.input_tokens
+    tokenOutputCount = message.usage.output_tokens
+
+    // Extract and parse JSON response
+    const textContent = message.content.find((c) => c.type === 'text')
+    if (!textContent || textContent.type !== 'text') {
+      throw new Error('No text response from Claude')
+    }
+
+    const jsonMatch = textContent.text.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) {
+      throw new Error('Could not find JSON in Claude response')
+    }
+
+    const parsed = JSON.parse(jsonMatch[0])
+    analysisResult = {
+      barista: parsed.barista || [],
+      roaster: parsed.roaster || [],
+      analyst: parsed.analyst || [],
+    }
+  }
+
+  return {
+    ...analysisResult,
     tokenInputCount,
     tokenOutputCount,
   }

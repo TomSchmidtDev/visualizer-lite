@@ -92,3 +92,16 @@ export interface ShotListResponse {
   limit: number
   avgRatio: number | null
 }
+
+export interface AnalysisResult {
+  id: string
+  shotId: string
+  analysisType: 'detail' | 'stats'
+  aiModel: string
+  barista: string[]
+  roaster: string[]
+  analyst: string[]
+  tokenInputCount: number
+  tokenOutputCount: number
+  createdAt: string
+}
