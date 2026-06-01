@@ -296,3 +296,66 @@ describe('preprocessShots', () => {
     expect(result.contextShots).toBeDefined()
   })
 })
+
+describe('buildDetailPrompt', () => {
+  it('should include bean brand and roast info', async () => {
+    const target = await createShot(baseShot, 'target', 'target_path')
+    const preprocessed = await preprocessShots(target.id, '30d')
+
+    const { buildDetailPrompt } = await import('../../src/services/analysisService.js')
+    const prompt = buildDetailPrompt(preprocessed.targetShot, preprocessed.aggregatedStats)
+
+    expect(prompt).toContain('Gardelli')
+    expect(prompt).toContain('Ethiopia Guji')
+    expect(prompt).toContain('light')
+  })
+
+  it('should include shot parameters', async () => {
+    const target = await createShot(baseShot, 'target', 'target_path')
+    const preprocessed = await preprocessShots(target.id, '30d')
+
+    const { buildDetailPrompt } = await import('../../src/services/analysisService.js')
+    const prompt = buildDetailPrompt(preprocessed.targetShot, preprocessed.aggregatedStats)
+
+    expect(prompt).toContain('18')
+    expect(prompt).toContain('36.2')
+    expect(prompt).toContain('27.4')
+  })
+
+  it('should include curve descriptions', async () => {
+    const target = await createShot(baseShot, 'target', 'target_path')
+    const preprocessed = await preprocessShots(target.id, '30d')
+
+    const { buildDetailPrompt } = await import('../../src/services/analysisService.js')
+    const prompt = buildDetailPrompt(preprocessed.targetShot, preprocessed.aggregatedStats)
+
+    expect(prompt).toContain('Pressure:')
+    expect(prompt).toContain('Flow:')
+    expect(prompt).toContain('Temperature:')
+  })
+})
+
+describe('buildStatsPrompt', () => {
+  it('should mention the time window', async () => {
+    const target = await createShot(baseShot, 'target', 'target_path')
+    const preprocessed = await preprocessShots(target.id, '7d')
+
+    const { buildStatsPrompt } = await import('../../src/services/analysisService.js')
+    const prompt = buildStatsPrompt(preprocessed.contextShots, preprocessed.aggregatedStats, '7d')
+
+    expect(prompt).toContain('last')
+    expect(prompt).toContain('7')
+  })
+
+  it('should include aggregated stats', async () => {
+    const target = await createShot(baseShot, 'target', 'target_path')
+    const preprocessed = await preprocessShots(target.id, '30d')
+
+    const { buildStatsPrompt } = await import('../../src/services/analysisService.js')
+    const prompt = buildStatsPrompt(preprocessed.contextShots, preprocessed.aggregatedStats, '30d')
+
+    expect(prompt).toContain('Pressure:')
+    expect(prompt).toContain('Flow:')
+    expect(prompt).toContain('Temperature:')
+  })
+})

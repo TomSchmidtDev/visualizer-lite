@@ -1,6 +1,7 @@
 // packages/api/src/services/analysisService.ts
 import { prisma } from '../db.js'
 import type { ShotData, ShotResponse } from '../types.js'
+import Anthropic from '@anthropic-ai/sdk'
 
 export interface AggregatedStats {
   min: number
@@ -297,5 +298,279 @@ export async function preprocessShots(
     targetShot: targetShotResponse,
     contextShots: contextShotResponses,
     aggregatedStats,
+  }
+}
+
+/**
+ * System prompt for Claude AI analysis.
+ * Instructs Claude to analyze shots from 3 perspectives: Barista, Roaster, and Analyst.
+ */
+export const SYSTEM_PROMPT = `You are an expert espresso analyst with three specialized perspectives:
+
+1. **Barista**: Practical brewing advice - technique, timing, grind adjustments, tamping, temperature management
+2. **Röster**: Bean and roast analysis - origin characteristics, roast level implications, flavor development
+3. **Analyst**: Trends and data patterns - consistency metrics, improvement areas, statistical insights
+
+Analyze the provided espresso shot data and respond with a JSON object containing three arrays:
+
+{
+  "barista": ["advice 1", "advice 2", ...],
+  "roaster": ["insight 1", "insight 2", ...],
+  "analyst": ["observation 1", "observation 2", ...]
+}
+
+Each array should contain 3-5 insights from that perspective. Be specific, reference actual values from the shot data, and provide actionable information.`
+
+/**
+ * Build a user prompt for analyzing a single shot.
+ * Includes bean info, roast data, shot parameters, and curve descriptions.
+ */
+export function buildDetailPrompt(shot: ShotResponse, aggregatedStats: CurveStats): string {
+  const lines: string[] = []
+
+  lines.push(`## Shot Analysis Request`)
+  lines.push('')
+
+  // Bean and roast information
+  if (shot.beanBrand || shot.beanType) {
+    lines.push(`### Bean Info`)
+    if (shot.beanBrand) lines.push(`- Brand: ${shot.beanBrand}`)
+    if (shot.beanType) lines.push(`- Type: ${shot.beanType}`)
+    if (shot.roastLevel) lines.push(`- Roast Level: ${shot.roastLevel}`)
+    if (shot.roastDate) lines.push(`- Roast Date: ${shot.roastDate}`)
+    lines.push('')
+  }
+
+  // Shot parameters
+  lines.push(`### Shot Parameters`)
+  if (shot.beanWeight) lines.push(`- Bean Weight: ${shot.beanWeight}g`)
+  if (shot.drinkWeight) lines.push(`- Drink Weight: ${shot.drinkWeight}g`)
+  if (shot.duration) lines.push(`- Duration: ${shot.duration}s`)
+  if (shot.drinkTds) lines.push(`- TDS: ${shot.drinkTds}`)
+  if (shot.drinkEy) lines.push(`- EY: ${shot.drinkEy}`)
+  if (shot.grinderModel) lines.push(`- Grinder: ${shot.grinderModel} @ ${shot.grinderSetting}`)
+  if (shot.profileTitle) lines.push(`- Profile: ${shot.profileTitle}`)
+  lines.push('')
+
+  // Flavor notes
+  if (shot.fragrance || shot.aroma || shot.flavor || shot.aftertaste) {
+    lines.push(`### Flavor Profile`)
+    if (shot.fragrance) lines.push(`- Fragrance: ${shot.fragrance}`)
+    if (shot.aroma) lines.push(`- Aroma: ${shot.aroma}`)
+    if (shot.flavor) lines.push(`- Flavor: ${shot.flavor}`)
+    if (shot.aftertaste) lines.push(`- Aftertaste: ${shot.aftertaste}`)
+    lines.push('')
+  }
+
+  // Tasting attributes
+  if (shot.acidity || shot.bitterness || shot.sweetness || shot.mouthfeel) {
+    lines.push(`### Tasting Attributes`)
+    if (shot.acidity) lines.push(`- Acidity: ${shot.acidity}`)
+    if (shot.bitterness) lines.push(`- Bitterness: ${shot.bitterness}`)
+    if (shot.sweetness) lines.push(`- Sweetness: ${shot.sweetness}`)
+    if (shot.mouthfeel) lines.push(`- Mouthfeel: ${shot.mouthfeel}`)
+    lines.push('')
+  }
+
+  // Curve descriptions
+  lines.push(`### Extraction Curves`)
+  if (shot.shotData?.espresso_pressure) {
+    lines.push(`- Pressure: ${describeCurve(shot.shotData.espresso_pressure, 'bar')}`)
+  }
+  if (shot.shotData?.espresso_flow) {
+    lines.push(`- Flow: ${describeCurve(shot.shotData.espresso_flow, 'ml/s')}`)
+  }
+  if (shot.shotData?.espresso_temperature_mix) {
+    lines.push(`- Temperature: ${describeCurve(shot.shotData.espresso_temperature_mix, 'C')}`)
+  }
+  lines.push('')
+
+  // Context from aggregated stats
+  if (Object.keys(aggregatedStats).length > 0) {
+    lines.push(`### Historical Context (aggregated from similar shots)`)
+    if (aggregatedStats.pressure) {
+      lines.push(`- Pressure: ${describeCurve([aggregatedStats.pressure.avg], 'bar')} (avg from ${aggregatedStats.pressure.count} data points)`)
+    }
+    if (aggregatedStats.flow) {
+      lines.push(`- Flow: ${describeCurve([aggregatedStats.flow.avg], 'ml/s')} (avg from ${aggregatedStats.flow.count} data points)`)
+    }
+    if (aggregatedStats.temperature) {
+      lines.push(`- Temperature: ${describeCurve([aggregatedStats.temperature.avg], 'C')} (avg from ${aggregatedStats.temperature.count} data points)`)
+    }
+    lines.push('')
+  }
+
+  lines.push(`Please provide analysis from all three perspectives: Barista, Röster, and Analyst.`)
+
+  return lines.join('\n')
+}
+
+/**
+ * Build a user prompt for analyzing trends across multiple shots.
+ * Includes shot count, time window, and aggregated statistics.
+ */
+export function buildStatsPrompt(
+  contextShots: ShotResponse[],
+  aggregatedStats: CurveStats,
+  window: '7d' | '30d' | '90d' | 'all'
+): string {
+  const lines: string[] = []
+
+  lines.push(`## Trend Analysis Request`)
+  lines.push('')
+
+  const windowText: Record<string, string> = {
+    '7d': 'last 7 days',
+    '30d': 'last 30 days',
+    '90d': 'last 90 days',
+    'all': 'all time',
+  }
+
+  lines.push(`Analyzing ${contextShots.length} shots from the ${windowText[window]}.`)
+  lines.push('')
+
+  // Aggregated statistics
+  lines.push(`### Statistical Summary`)
+  if (aggregatedStats.pressure) {
+    const p = aggregatedStats.pressure
+    lines.push(`- Pressure: Min ${p.min.toFixed(1)}, Max ${p.max.toFixed(1)}, Avg ${p.avg.toFixed(1)} bar`)
+  }
+  if (aggregatedStats.flow) {
+    const f = aggregatedStats.flow
+    lines.push(`- Flow: Min ${f.min.toFixed(1)}, Max ${f.max.toFixed(1)}, Avg ${f.avg.toFixed(1)} ml/s`)
+  }
+  if (aggregatedStats.temperature) {
+    const t = aggregatedStats.temperature
+    lines.push(`- Temperature: Min ${t.min.toFixed(1)}, Max ${t.max.toFixed(1)}, Avg ${t.avg.toFixed(1)} C`)
+  }
+  lines.push('')
+
+  // Bean variety
+  const beanBrands = new Set(contextShots.map((s) => s.beanBrand).filter(Boolean))
+  const roastLevels = new Set(contextShots.map((s) => s.roastLevel).filter(Boolean))
+
+  if (beanBrands.size > 0) {
+    lines.push(`### Variety`)
+    lines.push(`- Bean Brands: ${Array.from(beanBrands).join(', ')}`)
+    if (roastLevels.size > 0) {
+      lines.push(`- Roast Levels: ${Array.from(roastLevels).join(', ')}`)
+    }
+    lines.push('')
+  }
+
+  lines.push(`Please provide trend insights from Barista, Röster, and Analyst perspectives.`)
+
+  return lines.join('\n')
+}
+
+export interface ClaudeAnalysisResult {
+  barista: string[]
+  roaster: string[]
+  analyst: string[]
+}
+
+export interface AnalyzeResult extends ClaudeAnalysisResult {
+  tokenInputCount: number
+  tokenOutputCount: number
+}
+
+/**
+ * Call Claude API with the given prompt and parse the JSON response.
+ * Extracts barista, roaster, and analyst arrays from the response.
+ */
+export async function callClaude(
+  prompt: string,
+  apiKey: string
+): Promise<ClaudeAnalysisResult> {
+  const client = new Anthropic({ apiKey })
+
+  const message = await client.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 1024,
+    system: SYSTEM_PROMPT,
+    messages: [
+      {
+        role: 'user',
+        content: prompt,
+      },
+    ],
+  })
+
+  // Extract text content from response
+  const textContent = message.content.find((c) => c.type === 'text')
+  if (!textContent || textContent.type !== 'text') {
+    throw new Error('No text response from Claude')
+  }
+
+  // Parse JSON from response using regex
+  const jsonMatch = textContent.text.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) {
+    throw new Error('Could not find JSON in Claude response')
+  }
+
+  const parsed = JSON.parse(jsonMatch[0])
+
+  return {
+    barista: parsed.barista || [],
+    roaster: parsed.roaster || [],
+    analyst: parsed.analyst || [],
+  }
+}
+
+/**
+ * Main entry point: Preprocess shot, call Claude, and return analysis with token counts.
+ */
+export async function analyzeShot(
+  shotId: string,
+  apiKey: string,
+  model: 'detail' | 'stats' = 'detail',
+  window: '7d' | '30d' | '90d' | 'all' = '30d'
+): Promise<AnalyzeResult> {
+  const preprocessed = await preprocessShots(shotId, window)
+
+  let prompt: string
+  if (model === 'detail') {
+    prompt = buildDetailPrompt(preprocessed.targetShot, preprocessed.aggregatedStats)
+  } else {
+    prompt = buildStatsPrompt(preprocessed.contextShots, preprocessed.aggregatedStats, window)
+  }
+
+  const client = new Anthropic({ apiKey })
+
+  const message = await client.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 1024,
+    system: SYSTEM_PROMPT,
+    messages: [
+      {
+        role: 'user',
+        content: prompt,
+      },
+    ],
+  })
+
+  // Extract token counts
+  const tokenInputCount = message.usage.input_tokens
+  const tokenOutputCount = message.usage.output_tokens
+
+  // Extract and parse JSON response
+  const textContent = message.content.find((c) => c.type === 'text')
+  if (!textContent || textContent.type !== 'text') {
+    throw new Error('No text response from Claude')
+  }
+
+  const jsonMatch = textContent.text.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) {
+    throw new Error('Could not find JSON in Claude response')
+  }
+
+  const parsed = JSON.parse(jsonMatch[0])
+
+  return {
+    barista: parsed.barista || [],
+    roaster: parsed.roaster || [],
+    analyst: parsed.analyst || [],
+    tokenInputCount,
+    tokenOutputCount,
   }
 }
