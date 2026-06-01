@@ -6,6 +6,38 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api/client.js'
 import { setLanguage } from '../i18n/index.js'
 
+const DEFAULT_AI_CONTEXT = `Machine: Decent Espresso DE1 (DE1Pro / DE1+ / DE1XXL)
+
+Shot start behavior:
+- The first 3–6 seconds show high flow but near-zero pressure — this is the headspace fill phase where the machine fills the empty space above the puck with water. This is normal and not a brewing anomaly.
+- After the headspace fills, back pressure builds as water contacts and saturates the puck (preinfusion). Pressure rises gradually during this phase.
+- Full puck saturation is typically reached around 15–20 s. The espresso_state_change channel marks substate transitions: 4=preinfusion, 5=pouring, 6=ending.
+
+Profile system:
+- Profiles can be pressure-controlled (pump adjusts to hit a pressure goal) or flow-controlled (pump adjusts to hit a flow rate goal). Both types are common.
+- In flow-controlled steps, espresso_pressure is determined by puck resistance — it is an output, not a target. The pressure_goal in these steps reflects a soft ceiling or is irrelevant.
+- In pressure-controlled steps, espresso_flow is determined by puck resistance — it rises if the puck becomes more permeable (e.g. a channel).
+- Many profiles combine both: a flow-controlled preinfusion step followed by a pressure-controlled extraction step, or vice versa.
+- Exit conditions advance the shot between steps: time, pressure threshold, flow threshold, or dispensed volume.
+
+Common profile strategies:
+- Blooming: preinfusion at low pressure/flow, then a pause (full stop) to let the puck bloom, then ramp to extraction pressure
+- Declining pressure (lever-style): ramp to ~8–9 bar, then decline to ~4 bar over 20–30 s
+- Turbo / Allongé: high flow (3–4 ml/s), low pressure (~6 bar), short shot 15–20 s, high ratio 1:2.5–1:3
+- Constant flow: fixed 1.7–2.0 ml/s throughout, pressure adapts to puck resistance
+- Adaptive / D-Flow: multi-step ladder of exit conditions that scans for the puck's natural flow rate
+
+Data channels:
+- espresso_pressure: actual hydraulic pressure measured at the group head ("over the puck"), in bar
+- espresso_pressure_goal: profile's target pressure; gap to actual pressure shows tracking accuracy
+- espresso_flow: pump-calculated flow into the group head (ml/s); includes water absorbed by puck
+- espresso_flow_goal: profile's target flow; zero or a ceiling in pressure-controlled steps
+- espresso_flow_weight: scale-measured flow at the cup (ml/s or g/s); delayed ~5–15 s vs espresso_flow
+- espresso_weight: cumulative cup weight in grams
+- espresso_temperature_basket: temperature at dispersion block above shower screen — closest to puck contact temp
+- espresso_temperature_mix: firmware control variable for the hot/cold water blend
+- espresso_water_dispensed: cumulative water volume pumped (ml); headspace volume visible here`
+
 // DE1 import card state machine
 
 type De1Phase =
@@ -32,7 +64,7 @@ export default function Settings() {
   const [apiKeyClaudeKey, setApiKeyClaudeKey] = useState('')
   const [apiKeyOpenaiKey, setApiKeyOpenaiKey] = useState('')
   const [aiModel, setAiModel] = useState('claude-haiku-4-5-20251001')
-  const [aiCustomContext, setAiCustomContext] = useState('')
+  const [aiCustomContext, setAiCustomContext] = useState(DEFAULT_AI_CONTEXT)
   const [aiKeysMsg, setAiKeysMsg] = useState('')
   const [aiKeysError, setAiKeysError] = useState('')
 
@@ -60,7 +92,7 @@ export default function Settings() {
     if (settings?.apiKeyClaudeKey) setApiKeyClaudeKey(settings.apiKeyClaudeKey)
     if (settings?.apiKeyOpenaiKey) setApiKeyOpenaiKey(settings.apiKeyOpenaiKey)
     if (settings?.aiModel) setAiModel(settings.aiModel)
-    if (settings?.aiCustomContext !== undefined) setAiCustomContext(settings.aiCustomContext)
+    if (settings?.aiCustomContext !== undefined) setAiCustomContext(settings.aiCustomContext || DEFAULT_AI_CONTEXT)
   }, [settings?.de1Url, settings?.de1DefaultBeverage, settings?.apiKeyClaudeKey, settings?.apiKeyOpenaiKey, settings?.aiModel, settings?.aiCustomContext])
 
   // Pre-fill "Von" date with last import's "Bis" date (once on first load)
