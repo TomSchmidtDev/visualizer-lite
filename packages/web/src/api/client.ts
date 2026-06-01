@@ -1,5 +1,5 @@
 // packages/web/src/api/client.ts
-import type { Shot, ShotListResponse, Suggestions, AppSettings, Stats, StatsWindow, SearchParams, RoasterRow, ProfileRow } from '../types.js'
+import type { Shot, ShotListResponse, Suggestions, AppSettings, Stats, StatsWindow, SearchParams, RoasterRow, ProfileRow, AnalysisResponse } from '../types.js'
 
 const BASE = ''  // Same origin; Vite proxies /api → localhost:3000 in dev
 
@@ -172,5 +172,14 @@ export const api = {
     }
     if (!finalResult) throw new Error('Import stream ended without result')
     return finalResult as NonNullable<typeof finalResult>
+  },
+
+  // AI Analysis
+  analyzeShot: (shotId: string, options?: { window?: '7d' | '30d' | '90d' | 'all'; type?: 'detail' | 'stats'; regenerate?: boolean }) => {
+    const params = new URLSearchParams()
+    if (options?.window) params.append('window', options.window)
+    if (options?.type) params.append('type', options.type)
+    if (options?.regenerate) params.append('regenerate', 'true')
+    return request<AnalysisResponse>(`/api/analysis/shot/${shotId}?${params}`, { method: 'POST' })
   },
 }

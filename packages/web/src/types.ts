@@ -93,6 +93,29 @@ export interface AppSettings {
   statsTopN: number
   statsShowPrevValue: boolean
   de1DefaultBeverage: 'espresso' | 'filter' | ''
+  apiKeyClaudeKey?: string
+  apiKeyOpenaiKey?: string
+  aiAnalysisDefaultModel?: 'claude' | 'openai'
+}
+
+export interface Analysis {
+  barista: string[]
+  roaster: string[]
+  analyst: string[]
+}
+
+export interface AnalysisResponse {
+  id: string
+  shotId: string
+  analysisType: 'detail' | 'stats'
+  aiModel: string
+  barista: string[]
+  roaster: string[]
+  analyst: string[]
+  tokenInputCount: number
+  tokenOutputCount: number
+  createdAt: string
+  cachedAt?: string
 }
 
 export interface StatsWindow {

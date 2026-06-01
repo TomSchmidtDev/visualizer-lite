@@ -17,6 +17,14 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
   }>('/:id', auth, async (request, reply) => {
     try {
       const shotId = request.params.id
+
+      // Validate shotId
+      if (!shotId || shotId.trim() === '') {
+        return reply.status(400).send({
+          error: 'Shot ID is required',
+        })
+      }
+
       const window = (request.query.window || '30d') as '7d' | '30d' | '90d' | 'all'
       const analysisType = (request.query.type || 'detail') as 'detail' | 'stats'
       const regenerate = request.query.regenerate === 'true'
@@ -108,15 +116,37 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
         createdAt: analysis.createdAt,
       })
     } catch (error) {
-      // Shot not found
-      if (error instanceof Error && error.message === 'Shot not found') {
-        return reply.status(404).send({ error: 'Shot not found' })
+      const getErrorMessage = (err: unknown): string => {
+        if (err instanceof Error) {
+          // Shot not found
+          if (err.message === 'Shot not found') {
+            return 'The requested shot was not found'
+          }
+          // API key issues
+          if (err.message.includes('API key') || err.message.includes('authentication')) {
+            return 'API key error. Please check your settings and try again'
+          }
+          // Rate limit or quota
+          if (err.message.includes('rate limit') || err.message.includes('quota')) {
+            return 'API rate limit reached. Please try again later'
+          }
+          // JSON parsing or validation
+          if (err.message.includes('JSON') || err.message.includes('parsing')) {
+            return 'Failed to parse analysis response. Please regenerate'
+          }
+          return err.message
+        }
+        return 'An unexpected error occurred'
       }
 
-      // API call failed or JSON parsing failed
+      const errorMessage = getErrorMessage(error)
       console.error('[analysis] Error:', error)
-      return reply.status(500).send({
-        error: error instanceof Error ? error.message : 'Internal server error',
+
+      // Determine appropriate status code
+      const statusCode = error instanceof Error && error.message === 'Shot not found' ? 404 : 500
+
+      return reply.status(statusCode).send({
+        error: errorMessage,
       })
     }
   })
