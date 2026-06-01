@@ -51,33 +51,33 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
         }
       }
 
-      // Get user API keys from settings
-      const claudeKeyRow = await prisma.settings.findUnique({
-        where: { key: 'apiKeyClaudeKey' },
-      })
-      const openaiKeyRow = await prisma.settings.findUnique({
-        where: { key: 'apiKeyOpenaiKey' },
-      })
+      // Get user API keys and selected model from settings
+      const [claudeKeyRow, openaiKeyRow, selectedModelRow] = await Promise.all([
+        prisma.settings.findUnique({ where: { key: 'apiKeyClaudeKey' } }),
+        prisma.settings.findUnique({ where: { key: 'apiKeyOpenaiKey' } }),
+        prisma.settings.findUnique({ where: { key: 'aiModel' } }),
+      ])
 
-      const claudeKey = claudeKeyRow?.value
-      const openaiKey = openaiKeyRow?.value
+      const claudeKey = claudeKeyRow?.value || ''
+      const openaiKey = openaiKeyRow?.value || ''
+      const selectedModel = selectedModelRow?.value || 'claude-haiku-4-5-20251001'
 
-      // Check that at least one key exists
-      if (!claudeKey && !openaiKey) {
+      // Determine provider from model name
+      const provider = selectedModel.startsWith('gpt') ? 'openai' : 'claude'
+      const apiKey = provider === 'claude' ? claudeKey : openaiKey
+
+      if (!apiKey) {
         return reply.status(400).send({
-          error: 'No API keys configured. Please set Claude or OpenAI API key in Settings.',
+          error: provider === 'claude'
+            ? 'No Claude API key configured. Please set it in Settings.'
+            : 'No OpenAI API key configured. Please set it in Settings.',
         })
       }
 
-      // Determine which model to use (prefer Claude if both exist)
-      const model = claudeKey ? 'claude' : 'openai'
-      const apiKey = (claudeKey || openaiKey) as string
+      // Call analyzeShot service with the specific model name
+      const result = await analyzeShot(shotId, apiKey, provider, analysisType, window, selectedModel)
 
-      // Call analyzeShot service
-      const result = await analyzeShot(shotId, apiKey, model, analysisType, window)
-
-      // Determine AI model name based on provider
-      const aiModel = model === 'claude' ? 'claude-3-5-sonnet-20241022' : 'gpt-4-turbo'
+      const aiModel = selectedModel
 
       // Upsert into shot_analyses table
       const analysis = await prisma.shotAnalysis.upsert({

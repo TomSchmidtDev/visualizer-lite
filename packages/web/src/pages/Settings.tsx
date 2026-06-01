@@ -31,7 +31,7 @@ export default function Settings() {
 
   const [apiKeyClaudeKey, setApiKeyClaudeKey] = useState('')
   const [apiKeyOpenaiKey, setApiKeyOpenaiKey] = useState('')
-  const [aiAnalysisDefaultModel, setAiAnalysisDefaultModel] = useState<'claude' | 'openai'>('claude')
+  const [aiModel, setAiModel] = useState('claude-haiku-4-5-20251001')
   const [aiKeysMsg, setAiKeysMsg] = useState('')
   const [aiKeysError, setAiKeysError] = useState('')
 
@@ -49,14 +49,17 @@ export default function Settings() {
     queryFn: () => api.getSettings(),
   })
 
-  // Initialize de1Url and de1DefaultBeverage from settings once on first load
+  // Initialize de1Url, de1DefaultBeverage, and AI settings once on first load
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (settings?.de1Url && !de1Url) setDe1Url(settings.de1Url)
     if (settings?.de1DefaultBeverage !== undefined && !de1DefaultBeverage) {
       setDe1DefaultBeverage(settings.de1DefaultBeverage)
     }
-  }, [settings?.de1Url, settings?.de1DefaultBeverage])
+    if (settings?.apiKeyClaudeKey) setApiKeyClaudeKey(settings.apiKeyClaudeKey)
+    if (settings?.apiKeyOpenaiKey) setApiKeyOpenaiKey(settings.apiKeyOpenaiKey)
+    if (settings?.aiModel) setAiModel(settings.aiModel)
+  }, [settings?.de1Url, settings?.de1DefaultBeverage, settings?.apiKeyClaudeKey, settings?.apiKeyOpenaiKey, settings?.aiModel])
 
   // Pre-fill "Von" date with last import's "Bis" date (once on first load)
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -529,16 +532,26 @@ export default function Settings() {
 
         <div style={{ marginBottom: 12 }}>
           <label style={{ fontSize: 12, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: 0.8, display: 'block', marginBottom: 4 }}>
-            Default AI Model
+            AI Model
           </label>
           <select
-            value={aiAnalysisDefaultModel}
-            onChange={(e) => setAiAnalysisDefaultModel(e.target.value as 'claude' | 'openai')}
+            value={aiModel}
+            onChange={(e) => setAiModel(e.target.value)}
             style={{ width: '100%', padding: '8px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 13 }}
           >
-            <option value="claude">Claude (Anthropic)</option>
-            <option value="openai">OpenAI (GPT-4)</option>
+            <optgroup label="Claude (Anthropic)">
+              <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 — schnell &amp; günstig</option>
+              <option value="claude-sonnet-4-6">Claude Sonnet 4.6 — ausgewogen</option>
+              <option value="claude-opus-4-8">Claude Opus 4.8 — leistungsstark</option>
+            </optgroup>
+            <optgroup label="OpenAI">
+              <option value="gpt-4o-mini">GPT-4o mini — schnell &amp; günstig</option>
+              <option value="gpt-4o">GPT-4o — ausgewogen</option>
+            </optgroup>
           </select>
+          <small style={{ color: 'var(--text-dim)' }}>
+            Claude benötigt einen Anthropic Key · OpenAI-Modelle benötigen einen OpenAI Key
+          </small>
         </div>
 
         <button
@@ -546,7 +559,7 @@ export default function Settings() {
             setAiKeysMsg('')
             setAiKeysError('')
             try {
-              await api.updateSettings({ apiKeyClaudeKey, apiKeyOpenaiKey, aiAnalysisDefaultModel })
+              await api.updateSettings({ apiKeyClaudeKey, apiKeyOpenaiKey, aiModel })
               setAiKeysMsg('✅ AI Settings saved successfully')
               setTimeout(() => setAiKeysMsg(''), 3000)
             } catch (err) {

@@ -573,7 +573,8 @@ export async function analyzeShot(
   apiKey: string,
   model: 'claude' | 'openai' = 'claude',
   analysisType: 'detail' | 'stats' = 'detail',
-  window: '7d' | '30d' | '90d' | 'all' = '30d'
+  window: '7d' | '30d' | '90d' | 'all' = '30d',
+  modelName?: string
 ): Promise<AnalyzeResult> {
   const preprocessed = await preprocessShots(shotId, window)
 
@@ -591,9 +592,10 @@ export async function analyzeShot(
   if (model === 'openai') {
     // Call OpenAI
     const client = new OpenAI({ apiKey })
+    const openaiModel = modelName || 'gpt-4o-mini'
 
     const message = await client.chat.completions.create({
-      model: 'gpt-4-turbo',
+      model: openaiModel,
       max_tokens: 1024,
       messages: [
         {
@@ -631,9 +633,10 @@ export async function analyzeShot(
   } else {
     // Call Claude (default)
     const client = new Anthropic({ apiKey })
+    const claudeModel = modelName || 'claude-haiku-4-5-20251001'
 
     const message = await client.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: claudeModel,
       max_tokens: 1024,
       system: SYSTEM_PROMPT,
       messages: [

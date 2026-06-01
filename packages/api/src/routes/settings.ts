@@ -22,7 +22,7 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
       de1DefaultBeverage:  map.de1DefaultBeverage ?? '',
       apiKeyClaudeKey:    map.apiKeyClaudeKey ?? '',
       apiKeyOpenaiKey:    map.apiKeyOpenaiKey ?? '',
-      aiAnalysisDefaultModel: map.aiAnalysisDefaultModel ?? 'claude',
+      aiModel:            map.aiModel ?? 'claude-haiku-4-5-20251001',
     })
   })
 
@@ -39,12 +39,12 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
       de1DefaultBeverage?: string
       apiKeyClaudeKey?: string
       apiKeyOpenaiKey?: string
-      aiAnalysisDefaultModel?: string
+      aiModel?: string
       currentPassword?: string
       newPassword?: string
     }
   }>('/', auth, async (request, reply) => {
-    const { language, theme, de1Url, tooltipOpacity, showAvgRatio, de1LastImportDate, statsTopN, statsShowPrevValue, de1DefaultBeverage, apiKeyClaudeKey, apiKeyOpenaiKey, aiAnalysisDefaultModel, currentPassword, newPassword } = request.body
+    const { language, theme, de1Url, tooltipOpacity, showAvgRatio, de1LastImportDate, statsTopN, statsShowPrevValue, de1DefaultBeverage, apiKeyClaudeKey, apiKeyOpenaiKey, aiModel, currentPassword, newPassword } = request.body
 
     if (language)
       await prisma.settings.upsert({
@@ -112,11 +112,11 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
         create: { key: 'apiKeyOpenaiKey', value: apiKeyOpenaiKey },
         update: { value: apiKeyOpenaiKey },
       })
-    if (aiAnalysisDefaultModel !== undefined)
+    if (aiModel !== undefined)
       await prisma.settings.upsert({
-        where: { key: 'aiAnalysisDefaultModel' },
-        create: { key: 'aiAnalysisDefaultModel', value: aiAnalysisDefaultModel },
-        update: { value: aiAnalysisDefaultModel },
+        where: { key: 'aiModel' },
+        create: { key: 'aiModel', value: aiModel },
+        update: { value: aiModel },
       })
     if (currentPassword && newPassword) {
       const row = await prisma.settings.findUnique({ where: { key: 'passwordHash' } })

@@ -95,7 +95,7 @@ export interface AppSettings {
   de1DefaultBeverage: 'espresso' | 'filter' | ''
   apiKeyClaudeKey?: string
   apiKeyOpenaiKey?: string
-  aiAnalysisDefaultModel?: 'claude' | 'openai'
+  aiModel?: string
 }
 
 export interface Analysis {
