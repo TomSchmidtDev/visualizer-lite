@@ -472,7 +472,7 @@ export default function StatsPage() {
       )}
 
       {/* AI Analysis */}
-      <div style={{ marginTop: 24 }}>
+      <div style={{ marginTop: 24, padding: 16, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8 }}>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Timeframe:</span>
@@ -482,10 +482,11 @@ export default function StatsPage() {
               </button>
             ))}
           </div>
-          <button onClick={() => handleAnalyzeTrends(false)} style={{ padding: '8px 16px', background: '#6366f1', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
+          <button onClick={() => handleAnalyzeTrends(false)} style={{ padding: '8px 16px', background: '#6366f1', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }} disabled title="Coming soon: aggregate trends analysis">
             🤖 Analyze Trends
           </button>
         </div>
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>Trend analysis coming soon. For now, click 🤖 on individual Shot Detail pages to see AI insights.</p>
 
         {(analysisData || analysisLoading || analysisError) && (
           <AnalysisPanel
