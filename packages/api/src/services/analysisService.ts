@@ -15,6 +15,7 @@ export interface CurveStats {
   pressure?: AggregatedStats
   flow?: AggregatedStats
   temperature?: AggregatedStats
+  shotCount?: number
 }
 
 export interface DownsampledCurve {
@@ -203,7 +204,7 @@ export async function preprocessShots(
     }
   }
 
-  const aggregatedStats: CurveStats = {}
+  const aggregatedStats: CurveStats = { shotCount: allShots.length }
   if (pressureData.length > 0) {
     aggregatedStats.pressure = aggregateStats(pressureData)
   }
@@ -306,21 +307,33 @@ export async function preprocessShots(
  * System prompt for Claude AI analysis.
  * Instructs Claude to analyze shots from 3 perspectives: Barista, Roaster, and Analyst.
  */
-export const SYSTEM_PROMPT = `You are an expert espresso analyst with three specialized perspectives:
+export function buildSystemPrompt(language: string): string {
+  const isGerman = language === 'de'
+  if (isGerman) {
+    return `Du bist ein Espresso-Experte mit drei spezialisierten Perspektiven:
+
+1. **Barista**: Praktische Brühtipps – Technik, Timing, Mahlgrad, Tamping, Temperaturmanagement
+2. **Röster**: Bohnen- und Röstanalyse – Herkunftseigenschaften, Röstgrad, Geschmacksentwicklung
+3. **Analyst**: Trends und Datenmuster – Konsistenzmetriken, Verbesserungspotenzial, statistische Erkenntnisse
+
+Analysiere die bereitgestellten Espresso-Shot-Daten und antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Markdown, kein Erklärtext):
+
+{"barista":["Tipp 1","Tipp 2"],"roaster":["Erkenntnis 1","Erkenntnis 2"],"analyst":["Beobachtung 1","Beobachtung 2"]}
+
+Jedes Array soll 3–5 konkrete Einträge enthalten. Beziehe dich auf die tatsächlichen Werte aus den Shot-Daten.`
+  }
+  return `You are an expert espresso analyst with three specialized perspectives:
 
 1. **Barista**: Practical brewing advice - technique, timing, grind adjustments, tamping, temperature management
 2. **Röster**: Bean and roast analysis - origin characteristics, roast level implications, flavor development
 3. **Analyst**: Trends and data patterns - consistency metrics, improvement areas, statistical insights
 
-Analyze the provided espresso shot data and respond with a JSON object containing three arrays:
+Analyze the provided espresso shot data and respond ONLY with a JSON object (no markdown, no explanation text):
 
-{
-  "barista": ["advice 1", "advice 2", ...],
-  "roaster": ["insight 1", "insight 2", ...],
-  "analyst": ["observation 1", "observation 2", ...]
+{"barista":["advice 1","advice 2"],"roaster":["insight 1","insight 2"],"analyst":["observation 1","observation 2"]}
+
+Each array should contain 3-5 insights. Be specific and reference actual values from the shot data.`
 }
-
-Each array should contain 3-5 insights from that perspective. Be specific, reference actual values from the shot data, and provide actionable information.`
 
 /**
  * Build a user prompt for analyzing a single shot.
@@ -387,21 +400,21 @@ export function buildDetailPrompt(shot: ShotResponse, aggregatedStats: CurveStat
   lines.push('')
 
   // Context from aggregated stats
-  if (Object.keys(aggregatedStats).length > 0) {
-    lines.push(`### Historical Context (aggregated from similar shots)`)
+  if (Object.keys(aggregatedStats).length > 0 && aggregatedStats.shotCount && aggregatedStats.shotCount > 1) {
+    lines.push(`### Historical Context (${aggregatedStats.shotCount} recent shots)`)
     if (aggregatedStats.pressure) {
-      lines.push(`- Pressure: ${describeCurve([aggregatedStats.pressure.avg], 'bar')} (avg from ${aggregatedStats.pressure.count} data points)`)
+      lines.push(`- Avg pressure: ${aggregatedStats.pressure.avg.toFixed(1)} bar`)
     }
     if (aggregatedStats.flow) {
-      lines.push(`- Flow: ${describeCurve([aggregatedStats.flow.avg], 'ml/s')} (avg from ${aggregatedStats.flow.count} data points)`)
+      lines.push(`- Avg flow: ${aggregatedStats.flow.avg.toFixed(1)} ml/s`)
     }
     if (aggregatedStats.temperature) {
-      lines.push(`- Temperature: ${describeCurve([aggregatedStats.temperature.avg], 'C')} (avg from ${aggregatedStats.temperature.count} data points)`)
+      lines.push(`- Avg temperature: ${aggregatedStats.temperature.avg.toFixed(1)} °C`)
     }
     lines.push('')
   }
 
-  lines.push(`Please provide analysis from all three perspectives: Barista, Röster, and Analyst.`)
+  lines.push(`Provide analysis from all three perspectives: Barista, Röster, and Analyst.`)
 
   return lines.join('\n')
 }
@@ -470,6 +483,20 @@ export interface ClaudeAnalysisResult {
   analyst: string[]
 }
 
+function extractJson(text: string): ClaudeAnalysisResult {
+  // Strip markdown code blocks if present
+  const stripped = text.replace(/```(?:json)?\s*([\s\S]*?)```/g, '$1').trim()
+  // Find outermost JSON object
+  const match = stripped.match(/\{[\s\S]*\}/)
+  if (!match) throw new Error('Could not find JSON in response')
+  const parsed = JSON.parse(match[0])
+  return {
+    barista: Array.isArray(parsed.barista) ? parsed.barista : [],
+    roaster: Array.isArray(parsed.roaster) ? parsed.roaster : [],
+    analyst: Array.isArray(parsed.analyst) ? parsed.analyst : [],
+  }
+}
+
 export interface AnalyzeResult extends ClaudeAnalysisResult {
   tokenInputCount: number
   tokenOutputCount: number
@@ -481,14 +508,15 @@ export interface AnalyzeResult extends ClaudeAnalysisResult {
  */
 export async function callClaude(
   prompt: string,
-  apiKey: string
+  apiKey: string,
+  sysPrompt = buildSystemPrompt('en')
 ): Promise<ClaudeAnalysisResult> {
   const client = new Anthropic({ apiKey })
 
   const message = await client.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-haiku-4-5-20251001',
     max_tokens: 1024,
-    system: SYSTEM_PROMPT,
+    system: sysPrompt,
     messages: [
       {
         role: 'user',
@@ -497,25 +525,9 @@ export async function callClaude(
     ],
   })
 
-  // Extract text content from response
   const textContent = message.content.find((c) => c.type === 'text')
-  if (!textContent || textContent.type !== 'text') {
-    throw new Error('No text response from Claude')
-  }
-
-  // Parse JSON from response using regex
-  const jsonMatch = textContent.text.match(/\{[\s\S]*\}/)
-  if (!jsonMatch) {
-    throw new Error('Could not find JSON in Claude response')
-  }
-
-  const parsed = JSON.parse(jsonMatch[0])
-
-  return {
-    barista: parsed.barista || [],
-    roaster: parsed.roaster || [],
-    analyst: parsed.analyst || [],
-  }
+  if (!textContent || textContent.type !== 'text') throw new Error('No text response from Claude')
+  return extractJson(textContent.text)
 }
 
 /**
@@ -524,17 +536,18 @@ export async function callClaude(
  */
 export async function callOpenAI(
   prompt: string,
-  apiKey: string
+  apiKey: string,
+  sysPrompt = buildSystemPrompt('en')
 ): Promise<ClaudeAnalysisResult> {
   const client = new OpenAI({ apiKey })
 
   const message = await client.chat.completions.create({
-    model: 'gpt-4-turbo',
+    model: 'gpt-4o-mini',
     max_tokens: 1024,
     messages: [
       {
         role: 'system',
-        content: SYSTEM_PROMPT,
+        content: sysPrompt,
       },
       {
         role: 'user',
@@ -543,25 +556,9 @@ export async function callOpenAI(
     ],
   })
 
-  // Extract text content from response
   const textContent = message.choices[0]?.message?.content
-  if (!textContent) {
-    throw new Error('No text response from OpenAI')
-  }
-
-  // Parse JSON from response using regex
-  const jsonMatch = textContent.match(/\{[\s\S]*\}/)
-  if (!jsonMatch) {
-    throw new Error('Could not find JSON in OpenAI response')
-  }
-
-  const parsed = JSON.parse(jsonMatch[0])
-
-  return {
-    barista: parsed.barista || [],
-    roaster: parsed.roaster || [],
-    analyst: parsed.analyst || [],
-  }
+  if (!textContent) throw new Error('No text response from OpenAI')
+  return extractJson(textContent)
 }
 
 /**
@@ -574,9 +571,11 @@ export async function analyzeShot(
   model: 'claude' | 'openai' = 'claude',
   analysisType: 'detail' | 'stats' = 'detail',
   window: '7d' | '30d' | '90d' | 'all' = '30d',
-  modelName?: string
+  modelName?: string,
+  language = 'en'
 ): Promise<AnalyzeResult> {
   const preprocessed = await preprocessShots(shotId, window)
+  const systemPrompt = buildSystemPrompt(language)
 
   let prompt: string
   if (analysisType === 'detail') {
@@ -600,7 +599,7 @@ export async function analyzeShot(
       messages: [
         {
           role: 'system',
-          content: SYSTEM_PROMPT,
+          content: systemPrompt,
         },
         {
           role: 'user',
@@ -619,17 +618,7 @@ export async function analyzeShot(
       throw new Error('No text response from OpenAI')
     }
 
-    const jsonMatch = textContent.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) {
-      throw new Error('Could not find JSON in OpenAI response')
-    }
-
-    const parsed = JSON.parse(jsonMatch[0])
-    analysisResult = {
-      barista: parsed.barista || [],
-      roaster: parsed.roaster || [],
-      analyst: parsed.analyst || [],
-    }
+    analysisResult = extractJson(textContent)
   } else {
     // Call Claude (default)
     const client = new Anthropic({ apiKey })
@@ -638,36 +627,16 @@ export async function analyzeShot(
     const message = await client.messages.create({
       model: claudeModel,
       max_tokens: 1024,
-      system: SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
+      system: systemPrompt,
+      messages: [{ role: 'user', content: prompt }],
     })
 
-    // Extract token counts
     tokenInputCount = message.usage.input_tokens
     tokenOutputCount = message.usage.output_tokens
 
-    // Extract and parse JSON response
     const textContent = message.content.find((c) => c.type === 'text')
-    if (!textContent || textContent.type !== 'text') {
-      throw new Error('No text response from Claude')
-    }
-
-    const jsonMatch = textContent.text.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) {
-      throw new Error('Could not find JSON in Claude response')
-    }
-
-    const parsed = JSON.parse(jsonMatch[0])
-    analysisResult = {
-      barista: parsed.barista || [],
-      roaster: parsed.roaster || [],
-      analyst: parsed.analyst || [],
-    }
+    if (!textContent || textContent.type !== 'text') throw new Error('No text response from Claude')
+    analysisResult = extractJson(textContent.text)
   }
 
   return {

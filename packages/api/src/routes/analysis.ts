@@ -51,11 +51,12 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
         }
       }
 
-      // Get user API keys and selected model from settings
-      const [claudeKeyRow, openaiKeyRow, selectedModelRow] = await Promise.all([
+      // Get user API keys, selected model, and language from settings
+      const [claudeKeyRow, openaiKeyRow, selectedModelRow, languageRow] = await Promise.all([
         prisma.settings.findUnique({ where: { key: 'apiKeyClaudeKey' } }),
         prisma.settings.findUnique({ where: { key: 'apiKeyOpenaiKey' } }),
         prisma.settings.findUnique({ where: { key: 'aiModel' } }),
+        prisma.settings.findUnique({ where: { key: 'language' } }),
       ])
 
       const claudeKey = claudeKeyRow?.value || ''
@@ -74,8 +75,10 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
-      // Call analyzeShot service with the specific model name
-      const result = await analyzeShot(shotId, apiKey, provider, analysisType, window, selectedModel)
+      const language = languageRow?.value === 'de' ? 'de' : 'en'
+
+      // Call analyzeShot service with the specific model name and language
+      const result = await analyzeShot(shotId, apiKey, provider, analysisType, window, selectedModel, language)
 
       const aiModel = selectedModel
 
