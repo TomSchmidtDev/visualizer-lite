@@ -32,8 +32,11 @@ export interface ShotPhase {
 }
 
 export interface DownsampledCurve {
+  timeframe?: number[]
   pressure?: number[]
+  pressureGoal?: number[]
   flow?: number[]
+  flowGoal?: number[]
   temperature?: number[]
   flowWeight?: number[]
 }
@@ -121,12 +124,23 @@ export function aggregateStats(data: number[]): AggregatedStats {
 export function downsampleShotCurves(shotData: ShotData): DownsampledCurve {
   const result: DownsampledCurve = {}
 
+  // Always downsample timeframe so it stays in sync with all other curves
+  if (shotData.timeframe && (shotData.timeframe as number[]).length > 0) {
+    result.timeframe = downsampleCurve(shotData.timeframe as number[], 50)
+  }
+
   if (shotData.espresso_pressure) {
     result.pressure = downsampleCurve(shotData.espresso_pressure, 50)
+  }
+  if (shotData.espresso_pressure_goal) {
+    result.pressureGoal = downsampleCurve(shotData.espresso_pressure_goal, 50)
   }
 
   if (shotData.espresso_flow) {
     result.flow = downsampleCurve(shotData.espresso_flow, 50)
+  }
+  if (shotData.espresso_flow_goal) {
+    result.flowGoal = downsampleCurve(shotData.espresso_flow_goal, 50)
   }
 
   if (shotData.espresso_temperature_mix) {
@@ -450,9 +464,12 @@ export async function preprocessShots(
     privateNotes: targetShot.privateNotes,
     tags: targetShot.tags.map((t) => t.name),
     shotData: {
-      timeframe: shotData.timeframe || [],
+      // Use downsampled timeframe so it stays aligned with all 50-point arrays
+      timeframe: downsampledCurves.timeframe || shotData.timeframe || [],
       ...(downsampledCurves.pressure && { espresso_pressure: downsampledCurves.pressure }),
+      ...(downsampledCurves.pressureGoal && { espresso_pressure_goal: downsampledCurves.pressureGoal }),
       ...(downsampledCurves.flow && { espresso_flow: downsampledCurves.flow }),
+      ...(downsampledCurves.flowGoal && { espresso_flow_goal: downsampledCurves.flowGoal }),
       ...(downsampledCurves.temperature && { espresso_temperature_mix: downsampledCurves.temperature }),
       ...(downsampledCurves.flowWeight && { espresso_flow_weight: downsampledCurves.flowWeight }),
     },
@@ -646,12 +663,26 @@ export function buildDetailPrompt(shot: ShotResponse, aggregatedStats: CurveStat
     if (nonZero.length > 5) {
       const firstDrop = nonZero[0].t
       const peakVal = Math.max(...nonZero.map(x => x.v))
-      const steadyVals = nonZero.slice(Math.floor(nonZero.length * 0.3))
-      const steadyAvg = avg(steadyVals.map(x => x.v))
-      const steadySD = stdDev(steadyVals.map(x => x.v))
+
+      // Use RESIDUAL std dev (deviation from local trend) to detect channeling.
+      // Raw std dev would flag normal rising flow as "unstable" — we want to detect
+      // oscillations around the trend, not the trend itself.
+      const vals = nonZero.map(x => x.v)
+      const lastThird = vals.slice(Math.floor(vals.length * 0.67))
+      const lastAvg = avg(lastThird)
+      // Compute residuals: difference from 5-point moving average
+      const residuals: number[] = []
+      for (let i = 2; i < vals.length - 2; i++) {
+        const localAvg = avg(vals.slice(i - 2, i + 3))
+        residuals.push(Math.abs(vals[i] - localAvg))
+      }
+      const residualSD = avg(residuals)  // mean absolute deviation from local trend
+      const flowTrend = trend(vals)
+      const isUnstable = residualSD > 0.12 && flowTrend !== 'rising' && flowTrend !== 'falling'
+
       lines.push(`### Scale Flow (cup output)`)
-      lines.push(`- First drop at: ${firstDrop.toFixed(1)}s (transit time from machine flow start)`)
-      lines.push(`- Peak: ${peakVal.toFixed(2)} ml/s, steady-state avg: ${steadyAvg.toFixed(2)} ml/s${steadySD > 0.12 ? ` σ=${steadySD.toFixed(3)} (UNSTABLE — possible channeling)` : ` σ=${steadySD.toFixed(3)} (stable)`}`)
+      lines.push(`- First drop at: ${firstDrop.toFixed(1)}s`)
+      lines.push(`- Peak: ${peakVal.toFixed(2)} ml/s, late avg: ${lastAvg.toFixed(2)} ml/s, trend: ${flowTrend}${isUnstable ? `, residual σ=${residualSD.toFixed(3)} (UNSTABLE — possible channeling)` : ''}`)
       lines.push('')
     }
   }
