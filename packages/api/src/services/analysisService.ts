@@ -25,10 +25,21 @@ export interface ShotPhase {
   startTime: number
   endTime: number
   durationS: number
+  // Whole-phase stats (includes ramp-up/ramp-down)
   pressure: { avg: number; min: number; max: number; stdDev: number; tracking?: number }
   flow: { avg: number; min: number; max: number; stdDev: number; tracking?: number }
   tempAvg: number | null
   trend: 'stable' | 'rising' | 'falling' | 'peaked'
+  // Stable sub-phase: only when controlled variable is within 10% of goal
+  // Avoids misleading σ from pressure ramp-up or flow transition periods
+  stable?: {
+    startTime: number
+    durationS: number
+    pressure: { avg: number; min: number; max: number; stdDev: number }
+    flow: { avg: number; min: number; max: number; stdDev: number }
+    tempAvg: number | null
+    flowTrend: 'stable' | 'rising' | 'falling' | 'peaked'
+  }
 }
 
 export interface DownsampledCurve {
@@ -290,6 +301,44 @@ export function detectShotPhases(shotData: ShotData): ShotPhase[] {
       name = `${name} 2`
     }
 
+    // Find stable sub-phase: where the controlled variable is within 10% of its goal.
+    // This excludes initial ramp-up (pressure) or slow fill (flow) from σ calculations.
+    let stablePhase: ShotPhase['stable'] | undefined
+    if (goalVal > 0 && end - start >= 6) {
+      const threshold = goalVal * 0.90
+      let stableStartIdx = -1
+      for (let i = start; i < end; i++) {
+        const ctrl_val = control === 'pressure' ? (pres[i] ?? 0) : (flow[i] ?? 0)
+        if (ctrl_val >= threshold) {
+          stableStartIdx = i
+          break
+        }
+      }
+      if (stableStartIdx >= 0 && end - stableStartIdx >= 4) {
+        const sPresSlice = pres.slice(stableStartIdx, end)
+        const sFlowSlice = flow.slice(stableStartIdx, end)
+        const sTempSlice = temp ? temp.slice(stableStartIdx, end) : []
+        stablePhase = {
+          startTime: parseFloat(timeframe[stableStartIdx].toFixed(1)),
+          durationS: parseFloat((timeframe[end - 1] - timeframe[stableStartIdx]).toFixed(1)),
+          pressure: {
+            avg: parseFloat(avg(sPresSlice).toFixed(2)),
+            min: parseFloat(Math.min(...sPresSlice).toFixed(2)),
+            max: parseFloat(Math.max(...sPresSlice).toFixed(2)),
+            stdDev: parseFloat(stdDev(sPresSlice).toFixed(3)),
+          },
+          flow: {
+            avg: parseFloat(avg(sFlowSlice).toFixed(2)),
+            min: parseFloat(Math.min(...sFlowSlice).toFixed(2)),
+            max: parseFloat(Math.max(...sFlowSlice).toFixed(2)),
+            stdDev: parseFloat(stdDev(sFlowSlice).toFixed(3)),
+          },
+          tempAvg: sTempSlice.length > 0 ? parseFloat(avg(sTempSlice).toFixed(1)) : null,
+          flowTrend: trend(sFlowSlice),
+        }
+      }
+    }
+
     phases.push({
       name,
       control,
@@ -313,6 +362,7 @@ export function detectShotPhases(shotData: ShotData): ShotPhase[] {
       },
       tempAvg: tempSlice.length > 0 ? parseFloat(avg(tempSlice).toFixed(1)) : null,
       trend: trend(control === 'pressure' ? presSlice : flowSlice),
+      stable: stablePhase,
     })
   }
 
@@ -630,16 +680,29 @@ export function buildDetailPrompt(shot: ShotResponse, aggregatedStats: CurveStat
           : ''
         lines.push(`**${phase.name}** (${phase.startTime}–${phase.endTime}s, ${phase.durationS}s, ${ctrl}${goalStr ? ', ' + goalStr : ''})`)
 
-        // Pressure line: include stdDev as channeling signal in pressure-controlled phases
-        const presSD = phase.pressure.stdDev > 0.05 ? ` σ=${phase.pressure.stdDev} bar` : ''
-        const presTrack = phase.pressure.tracking != null ? ` tracking_err=±${phase.pressure.tracking}` : ''
-        lines.push(`  Pressure: avg=${phase.pressure.avg} bar, min=${phase.pressure.min}, max=${phase.pressure.max}${presSD}${presTrack}, trend=${phase.trend}`)
-
-        // Flow line: stdDev in flow-controlled phases shows resistance stability; in extraction shows channeling
-        const flowSD = phase.flow.stdDev > 0.1 ? ` σ=${phase.flow.stdDev} ml/s` : ''
-        const flowTrack = phase.flow.tracking != null ? ` tracking_err=±${phase.flow.tracking}` : ''
-        lines.push(`  Flow: avg=${phase.flow.avg} ml/s, min=${phase.flow.min}, max=${phase.flow.max}${flowSD}${flowTrack}`)
-        if (phase.tempAvg != null) lines.push(`  Basket temp: ${phase.tempAvg}°C`)
+        if (phase.stable && phase.stable.durationS >= 3) {
+          // Use stable sub-phase stats (after ramp-up) for accurate σ.
+          // σ = standard deviation = average deviation from mean (indicates consistency).
+          // Low σ = consistent; high σ = oscillating flow (possible channeling).
+          const s = phase.stable
+          const presSD = s.pressure.stdDev > 0.05 ? ` σ=${s.pressure.stdDev}` : ''
+          const flowSD = s.flow.stdDev > 0.15 ? ` σ=${s.flow.stdDev} [HIGH — channeling?]` : s.flow.stdDev > 0.08 ? ` σ=${s.flow.stdDev}` : ''
+          const presTrack = phase.pressure.tracking != null ? ` tracking_err=±${phase.pressure.tracking}` : ''
+          lines.push(`  Ramp: ${phase.startTime}–${s.startTime}s (pressure rising to goal)`)
+          lines.push(`  Stable extraction (${s.startTime}–${phase.endTime}s, ${s.durationS}s):`)
+          lines.push(`    Pressure: avg=${s.pressure.avg} bar, min=${s.pressure.min}, max=${s.pressure.max}${presSD}${presTrack}`)
+          lines.push(`    Flow: avg=${s.flow.avg} ml/s, min=${s.flow.min}, max=${s.flow.max}${flowSD}, trend=${s.flowTrend}`)
+          if (s.tempAvg != null) lines.push(`    Basket temp: ${s.tempAvg}°C`)
+        } else {
+          // No clear stable period (e.g. preinfusion) — show whole-phase stats
+          const presSD = phase.pressure.stdDev > 0.05 ? ` σ=${phase.pressure.stdDev}` : ''
+          const flowSD = phase.flow.stdDev > 0.1 ? ` σ=${phase.flow.stdDev}` : ''
+          const presTrack = phase.pressure.tracking != null ? ` tracking_err=±${phase.pressure.tracking}` : ''
+          const flowTrack = phase.flow.tracking != null ? ` tracking_err=±${phase.flow.tracking}` : ''
+          lines.push(`  Pressure: avg=${phase.pressure.avg} bar, min=${phase.pressure.min}, max=${phase.pressure.max}${presSD}${presTrack}, trend=${phase.trend}`)
+          lines.push(`  Flow: avg=${phase.flow.avg} ml/s, min=${phase.flow.min}, max=${phase.flow.max}${flowSD}${flowTrack}`)
+          if (phase.tempAvg != null) lines.push(`  Basket temp: ${phase.tempAvg}°C`)
+        }
       }
       lines.push('')
     } else {
