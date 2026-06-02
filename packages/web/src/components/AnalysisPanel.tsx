@@ -19,7 +19,6 @@ type TabType = 'barista' | 'roaster' | 'analyst';
 const TABS: { type: TabType; label: string; emoji: string }[] = [
   { type: 'barista', label: 'Barista', emoji: '☕' },
   { type: 'roaster', label: 'Röster', emoji: '🔥' },
-  { type: 'analyst', label: 'Analyst', emoji: '📊' },
 ];
 
 const card: React.CSSProperties = {

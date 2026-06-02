@@ -597,60 +597,62 @@ export function buildSystemPrompt(language: string): string {
 
 1. **Barista**: Brühtechnik – Mahlgrad, Tamping, Puckprep, Timing, Verbesserungsvorschläge anhand der Phasendaten
 2. **Röster**: Bohnenanalyse – Röstgrad/Herkunft im Kontext von Temperatur, Extraktionszeit und Tage seit Röstung
-3. **Analyst**: Datenbewertung – Profilverfolgung, Phasenstabilität, Vergleich mit historischen Daten (nur wenn vorhanden)
 
 **ALLE PERSPEKTIVEN nutzen die Phasendaten** – nie Gesamtdurchschnitte des Shots verwenden, wenn Phasendaten vorliegen.
 
-**KRITISCH – Profil-Goals:**
-- "goal=X" in jeder Phase = TATSÄCHLICHER Zielwert des programmierten Profils.
-- NIEMALS goal-Werte durch allgemeines Profilwissen ersetzen. goal=7.5 bar → Ziel ist 7.5 bar, nicht 8–9.
-- tracking_err=±X = Präzision der Maschine beim Erreichen des Ziels.
+**KRITISCH – Unterschied flow-geregelt vs. druckgeregelt:**
+- Flow-geregelte Phase: Die Maschine hält einen Flow-Zielwert; der DRUCK ist Ausgabe (= Puckwiderstand). Hoher Druck = dichter Puck (normal). Druckschwankungen in flow-geregelten Phasen sind kein Channeling-Signal und dürfen NICHT als Fehler gewertet werden.
+- Druckgeregelte Phase: Die Maschine hält einen Druckzielwert; der FLOW ist Ausgabe. Starke Flow-Spitzen = mögliches Channeling.
+- "goal=X" = der TATSÄCHLICHE Zielwert des Profils. Nie durch Trainingswissen ersetzen.
 
-**Puck-Problem-Signale (alle Perspektiven beachten):**
-- σ Flow in Druckphase > 0.2 ml/s → Channeling-Verdacht
-- σ Druck in Flowphase > 0.15 bar → ungleichmäßiger Puckwiderstand
-- Scale Flow "UNSTABLE" → ungleichmäßige Extraktion am Ausgang
-- Steigender Flow-Trend bei konstantem Druckziel → Puck öffnet sich
+**Channeling-Signale – NUR in druckgeregelten Phasen:**
+- Flow σ > 0.2 ml/s im stabilen Bereich
+- Plötzlicher Flow-Spike (nicht stetiger Anstieg)
+- Scale Flow "UNSTABLE"
+
+**Kein Channeling-Signal in flow-geregelten Phasen:**
+- Hoher Druck oder Druckschwankungen → normaler Puckwiderstand
+- Stetiger Druckabfall → Puck öffnet sich planmäßig (bei Declining-Pressure-Profilen)
 
 **Röster berücksichtigt:**
-- Tage seit Röstung für Aussagen zu Ausgasung, Frische, Optimierungsfenster
-- Temperatur der Extraktionsphase (basket temp) – nicht Gesamtdurchschnitt
-- Extraktionszeit und Verhältnis im Kontext von Röstgrad und Herkunft
+- Tage seit Röstung für Aussagen zu Ausgasung, Frische
+- Basket-Temperatur der Extraktionsphase, Verhältnis und Zeit im Kontext von Röstgrad
 
 **Historische Daten:** Nur kommentieren wenn "Historical Context" im Prompt vorhanden.
 
-Antworte AUSSCHLIESSLICH mit einem JSON-Objekt:
-{"barista":["Tipp 1","Tipp 2"],"roaster":["Erkenntnis 1"],"analyst":["Beobachtung 1"]}
+Antworte AUSSCHLIESSLICH mit einem JSON-Objekt mit genau zwei Keys:
+{"barista":["Tipp 1","Tipp 2"],"roaster":["Erkenntnis 1","Erkenntnis 2"]}
 3–5 Einträge pro Array, konkret mit Bezug auf Datenwerte und Phasennamen.`
   }
   return `You are an expert espresso analyst with three specialized perspectives:
 
 1. **Barista**: Brewing technique – grind, tamping, puck prep, timing, improvement suggestions based on phase data
 2. **Röster**: Bean analysis – roast level/origin in context of temperature, extraction time, and days since roast
-3. **Analyst**: Data assessment – profile tracking, phase stability, comparison with historical data (only if present)
 
 **ALL perspectives use the phase data** – never use whole-shot averages when phase data is available.
 
-**CRITICAL – Profile Goals:**
-- "goal=X" in each phase = the ACTUAL programmed target of the profile.
-- NEVER substitute goal values with generic profile knowledge. goal=7.5 bar → target is 7.5, not 8–9.
-- tracking_err=±X = precision with which the machine hit the target.
+**CRITICAL – Flow-controlled vs. pressure-controlled phases:**
+- Flow-controlled phase: the machine maintains a flow rate target; PRESSURE is the output (= puck resistance). High or varying pressure is normal and NOT a channeling signal.
+- Pressure-controlled phase: the machine maintains a pressure target; FLOW is the output. Flow spikes = possible channeling.
+- "goal=X" = the ACTUAL programmed target. Never substitute with training knowledge.
 
-**Puck problem signals (all perspectives note):**
-- σ flow in pressure phase > 0.2 ml/s → channeling suspect
-- σ pressure in flow phase > 0.15 bar → uneven puck resistance
-- Scale Flow "UNSTABLE" → uneven extraction at cup
-- Rising flow trend with constant pressure goal → puck opening / channeling
+**Channeling signals – ONLY in pressure-controlled phases:**
+- Flow σ > 0.2 ml/s in the stable portion
+- Sudden flow spike (not a steady rise)
+- Scale Flow "UNSTABLE"
+
+**NOT channeling signals in flow-controlled phases:**
+- High pressure or pressure variation → normal puck resistance
+- Steady pressure decline → puck opening as designed (declining-pressure profiles)
 
 **Röster considers:**
-- Days since roast for comments on degassing, freshness, optimal window
-- Extraction phase basket temp (not whole-shot average)
-- Extraction time and ratio in context of roast level and origin
+- Days since roast for freshness/degassing comments
+- Basket temp during extraction (not whole-shot average), ratio and time vs roast level
 
-**Historical data:** Only comment on it when "Historical Context" section is present in the prompt.
+**Historical data:** Only comment when "Historical Context" section is present in the prompt.
 
-Respond ONLY with a JSON object:
-{"barista":["advice 1","advice 2"],"roaster":["insight 1"],"analyst":["observation 1"]}
+Respond ONLY with a JSON object with exactly two keys:
+{"barista":["advice 1","advice 2"],"roaster":["insight 1","insight 2"]}
 3-5 entries per array, concrete references to data values and phase names.`
 }
 
@@ -703,26 +705,40 @@ export function buildDetailPrompt(shot: ShotResponse, aggregatedStats: CurveStat
         lines.push(`**${phase.name}** (${phase.startTime}–${phase.endTime}s, ${phase.durationS}s, ${ctrl}${goalStr ? ', ' + goalStr : ''})`)
 
         if (phase.stable && phase.stable.durationS >= 3) {
-          // Use stable sub-phase stats (after ramp-up) for accurate σ.
-          // σ = standard deviation = average deviation from mean (indicates consistency).
-          // Low σ = consistent; high σ = oscillating flow (possible channeling).
           const s = phase.stable
-          const presSD = s.pressure.stdDev > 0.05 ? ` σ=${s.pressure.stdDev}` : ''
-          const flowSD = s.flow.stdDev > 0.15 ? ` σ=${s.flow.stdDev} [HIGH — channeling?]` : s.flow.stdDev > 0.08 ? ` σ=${s.flow.stdDev}` : ''
-          const presTrack = phase.pressure.tracking != null ? ` tracking_err=±${phase.pressure.tracking}` : ''
-          lines.push(`  Ramp: ${phase.startTime}–${s.startTime}s (pressure rising to goal)`)
-          lines.push(`  Stable extraction (${s.startTime}–${phase.endTime}s, ${s.durationS}s):`)
-          lines.push(`    Pressure: avg=${s.pressure.avg} bar, min=${s.pressure.min}, max=${s.pressure.max}${presSD}${presTrack}`)
-          lines.push(`    Flow: avg=${s.flow.avg} ml/s, min=${s.flow.min}, max=${s.flow.max}${flowSD}, trend=${s.flowTrend}`)
+          if (phase.control === 'pressure') {
+            // Pressure-controlled: flow σ is the channeling signal; pressure σ shows machine tracking
+            const presSD = s.pressure.stdDev > 0.05 ? ` σ=${s.pressure.stdDev}` : ''
+            const flowSD = s.flow.stdDev > 0.15 ? ` σ=${s.flow.stdDev} [HIGH — channeling?]` : s.flow.stdDev > 0.08 ? ` σ=${s.flow.stdDev}` : ''
+            const presTrack = phase.pressure.tracking != null ? ` tracking_err=±${phase.pressure.tracking}` : ''
+            lines.push(`  Ramp: ${phase.startTime}–${s.startTime}s (pressure rising to goal)`)
+            lines.push(`  Stable extraction (${s.startTime}–${phase.endTime}s, ${s.durationS}s):`)
+            lines.push(`    Pressure: avg=${s.pressure.avg} bar, min=${s.pressure.min}, max=${s.pressure.max}${presSD}${presTrack}`)
+            lines.push(`    Flow: avg=${s.flow.avg} ml/s, min=${s.flow.min}, max=${s.flow.max}${flowSD}, trend=${s.flowTrend}`)
+          } else {
+            // Flow-controlled: pressure = puck resistance (output), NOT a stability metric.
+            // Flow σ shows how well the machine tracked the flow goal.
+            const flowSD = s.flow.stdDev > 0.1 ? ` σ=${s.flow.stdDev}` : ''
+            const flowTrack = phase.flow.tracking != null ? ` tracking_err=±${phase.flow.tracking}` : ''
+            lines.push(`  Stable (${s.startTime}–${phase.endTime}s, ${s.durationS}s):`)
+            lines.push(`    Puck resistance (pressure output): avg=${s.pressure.avg} bar, min=${s.pressure.min}, max=${s.pressure.max}, trend=${phase.trend}`)
+            lines.push(`    Flow (controlled): avg=${s.flow.avg} ml/s, min=${s.flow.min}, max=${s.flow.max}${flowSD}${flowTrack}, trend=${s.flowTrend}`)
+          }
           if (s.tempAvg != null) lines.push(`    Basket temp: ${s.tempAvg}°C`)
         } else {
-          // No clear stable period (e.g. preinfusion) — show whole-phase stats
-          const presSD = phase.pressure.stdDev > 0.05 ? ` σ=${phase.pressure.stdDev}` : ''
-          const flowSD = phase.flow.stdDev > 0.1 ? ` σ=${phase.flow.stdDev}` : ''
-          const presTrack = phase.pressure.tracking != null ? ` tracking_err=±${phase.pressure.tracking}` : ''
-          const flowTrack = phase.flow.tracking != null ? ` tracking_err=±${phase.flow.tracking}` : ''
-          lines.push(`  Pressure: avg=${phase.pressure.avg} bar, min=${phase.pressure.min}, max=${phase.pressure.max}${presSD}${presTrack}, trend=${phase.trend}`)
-          lines.push(`  Flow: avg=${phase.flow.avg} ml/s, min=${phase.flow.min}, max=${phase.flow.max}${flowSD}${flowTrack}`)
+          // No clear stable period — show whole-phase stats
+          if (phase.control === 'pressure') {
+            const presSD = phase.pressure.stdDev > 0.05 ? ` σ=${phase.pressure.stdDev}` : ''
+            const flowSD = phase.flow.stdDev > 0.1 ? ` σ=${phase.flow.stdDev}` : ''
+            const presTrack = phase.pressure.tracking != null ? ` tracking_err=±${phase.pressure.tracking}` : ''
+            lines.push(`  Pressure: avg=${phase.pressure.avg} bar, min=${phase.pressure.min}, max=${phase.pressure.max}${presSD}${presTrack}, trend=${phase.trend}`)
+            lines.push(`  Flow: avg=${phase.flow.avg} ml/s, min=${phase.flow.min}, max=${phase.flow.max}${flowSD}`)
+          } else {
+            const flowSD = phase.flow.stdDev > 0.1 ? ` σ=${phase.flow.stdDev}` : ''
+            const flowTrack = phase.flow.tracking != null ? ` tracking_err=±${phase.flow.tracking}` : ''
+            lines.push(`  Puck resistance (pressure output): avg=${phase.pressure.avg} bar, min=${phase.pressure.min}, max=${phase.pressure.max}, trend=${phase.trend}`)
+            lines.push(`  Flow (controlled): avg=${phase.flow.avg} ml/s, min=${phase.flow.min}, max=${phase.flow.max}${flowSD}${flowTrack}`)
+          }
           if (phase.tempAvg != null) lines.push(`  Basket temp: ${phase.tempAvg}°C`)
         }
       }
@@ -867,7 +883,7 @@ export function buildStatsPrompt(
 export interface ClaudeAnalysisResult {
   barista: string[]
   roaster: string[]
-  analyst: string[]
+  analyst: string[]  // kept for DB compatibility; always empty for new analyses
 }
 
 function extractJson(text: string): ClaudeAnalysisResult {
@@ -880,7 +896,7 @@ function extractJson(text: string): ClaudeAnalysisResult {
   return {
     barista: Array.isArray(parsed.barista) ? parsed.barista : [],
     roaster: Array.isArray(parsed.roaster) ? parsed.roaster : [],
-    analyst: Array.isArray(parsed.analyst) ? parsed.analyst : [],
+    analyst: [],  // Analyst perspective removed from UI and prompts
   }
 }
 
