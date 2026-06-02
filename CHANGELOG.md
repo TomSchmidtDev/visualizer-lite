@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-06-02
+
+### Added
+- **KI-Analyse (experimentell)** — On-demand AI analysis of individual espresso shots using Claude or OpenAI models
+  - Two perspectives: **Barista** (brewing technique) and **Röster** (bean & roast analysis)
+  - Supports Claude Haiku 4.5 / Sonnet 4.6 / Opus 4.8 and GPT-4o mini / GPT-4o
+  - User-provided API keys stored in Settings (Claude and/or OpenAI)
+  - Per-model selector dropdown in Settings
+  - Optional machine context textarea (pre-filled with DE1-specific knowledge)
+  - Results cached per shot; regenerate button to refresh
+  - Dark-theme aware UI with tab navigation (☕ Barista / 🔥 Röster)
+- **Phase-aware analysis**: shot curves automatically segmented into Preinfusion and Extraction phases based on profile goal signals; statistics computed per phase, not over the whole shot
+- **Stable sub-phase detection**: extraction stats (σ, avg, min, max) computed only after the flow minimum is reached, excluding the pressure ramp-down
+- **Flow vs. pressure control semantics**: flow-controlled phases treat pressure as puck resistance (output), not a stability metric; channeling signals only raised in pressure-controlled phases
+- Shot date and days-since-roast passed to the AI for freshness-aware roast analysis
+- Scale flow (cup output) included in the analysis: first-drop timing and stability
+
+### Changed
+- Language-aware AI prompts: German or English based on app language setting
+
 ## [1.8.0] - 2026-05-31
 
 ### Added

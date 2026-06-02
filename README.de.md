@@ -10,6 +10,7 @@ Jeden Shot erfassen, Extraktionskurven analysieren, Geschmack bewerten und Muste
 - **Filterbare Shot-Liste** — Suche und Filter nach Röster, Bohne, Profil, Mahlwerk, Getränketyp, Datumsbereich und mehr
 - **Statistik-Dashboard** — KPI-Kacheln mit Periodenvergleich (24h bis Gesamt), Top-Röster/Röstungen/Profile, konfigurierbarer Getränkefilter (Espresso vs. Filter); inkl. **Röster & Bohnen**- und **Profile**-Tabs mit sortierbaren Metriktabellen
 - **Shot-Vergleich** — Zwei Shots überlagert oder nebeneinander mit Extraktionskurven und Kennzahlen-Diff
+- **KI-Analyse (experimentell)** — On-Demand Shot-Analyse über Claude oder OpenAI: **Barista**-Perspektive (Brühtechnik, Mahlgrad, Tamping) und **Röster**-Perspektive (Bohne, Röstgrad, Frische); phasenbewusst mit stabiler Sub-Phasen-Erkennung; eigener API-Key erforderlich
 - **Self-Hosted, einzelner Container** — Läuft lokal oder auf einem NAS (Synology etc.) als einzelner Docker-Container mit SQLite; keine Cloud, kein Account, volle Datenkontrolle
   - ⚠️ Kein Multi-Tenant-Support — eine Instanz, ein Benutzer
   - ⚠️ Bewusst nicht mit der Decent/Kaffee-Community verbunden (kein Teilen, kein Leaderboard)

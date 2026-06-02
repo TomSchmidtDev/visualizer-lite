@@ -1,8 +1,11 @@
 {
   "name": "visualizer-lite",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "private": true,
-  "workspaces": ["packages/api", "packages/web"],
+  "workspaces": [
+    "packages/api",
+    "packages/web"
+  ],
   "scripts": {
     "dev:api": "npm run dev -w packages/api",
     "build": "npm run build -w packages/api && npm run build -w packages/web",

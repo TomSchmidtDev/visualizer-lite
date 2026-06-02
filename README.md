@@ -10,6 +10,7 @@ Track every shot, analyse extraction curves, rate taste, and discover patterns a
 - **Filterable shot list** — search and filter by roaster, bean, profile, grinder, beverage type, date range, and more
 - **Statistics dashboard** — KPI tiles with period comparison (24h to all-time), top roasters/roasts/profiles, configurable beverage filter (espresso vs. filter); includes **Roasters & Beans** and **Profiles** tabs with sortable metrics tables
 - **Shot comparison** — overlay or split two shots' extraction curves side by side with key metrics diff
+- **AI analysis (experimental)** — on-demand shot analysis via Claude or OpenAI: **Barista** perspective (brewing technique, grind, tamping) and **Röster** perspective (bean, roast level, freshness); phase-aware with stable sub-phase detection; bring your own API key
 - **Self-hosted, single container** — runs on a local machine or NAS (Synology etc.) as a single Docker container with SQLite; no cloud, no account, full data ownership
   - ⚠️ No multi-tenant support — one instance, one user
   - ⚠️ By design not connected to the broader Decent/coffee community (no sharing, no leaderboards)
