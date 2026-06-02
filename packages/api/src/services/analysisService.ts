@@ -18,6 +18,19 @@ export interface CurveStats {
   shotCount?: number
 }
 
+export interface ShotPhase {
+  name: string
+  control: 'flow' | 'pressure' | 'unknown'
+  goalValue: number | null
+  startTime: number
+  endTime: number
+  durationS: number
+  pressure: { avg: number; min: number; max: number; tracking?: number }
+  flow: { avg: number; min: number; max: number; tracking?: number }
+  tempAvg: number | null
+  trend: 'stable' | 'rising' | 'falling' | 'peaked'
+}
+
 export interface DownsampledCurve {
   pressure?: number[]
   flow?: number[]
@@ -135,6 +148,150 @@ export function describeCurve(data: number[] | undefined, unit: string): string 
   return `Min: ${stats.min}, Max: ${stats.max}, Avg: ${stats.avg.toFixed(1)} ${unit}`
 }
 
+function trend(data: number[]): 'stable' | 'rising' | 'falling' | 'peaked' {
+  if (data.length < 6) return 'stable'
+  const third = Math.floor(data.length / 3)
+  const first = data.slice(0, third).reduce((a, b) => a + b, 0) / third
+  const last = data.slice(-third).reduce((a, b) => a + b, 0) / third
+  const mid = data.slice(third, 2 * third).reduce((a, b) => a + b, 0) / third
+  const peakMid = mid > first * 1.05 && mid > last * 1.05
+  if (peakMid) return 'peaked'
+  const diff = last - first
+  const range = Math.max(...data) - Math.min(...data)
+  if (range < 0.3) return 'stable'
+  if (diff > range * 0.3) return 'rising'
+  if (diff < -range * 0.3) return 'falling'
+  return 'stable'
+}
+
+function avg(arr: number[]): number {
+  return arr.length === 0 ? 0 : arr.reduce((a, b) => a + b, 0) / arr.length
+}
+
+/**
+ * Detect shot phases from goal signals.
+ * A phase boundary occurs when the control variable switches (flow↔pressure)
+ * or the goal value changes significantly.
+ * goal = -1 means "not the control variable for this step".
+ */
+export function detectShotPhases(shotData: ShotData): ShotPhase[] {
+  const timeframe = shotData.timeframe as number[] | undefined
+  const pres = shotData.espresso_pressure as number[] | undefined
+  const presGoal = shotData.espresso_pressure_goal as number[] | undefined
+  const flow = shotData.espresso_flow as number[] | undefined
+  const flowGoal = shotData.espresso_flow_goal as number[] | undefined
+  const temp = (shotData.espresso_temperature_basket || shotData.espresso_temperature_mix) as number[] | undefined
+
+  if (!timeframe || timeframe.length < 4) return []
+  if (!pres || !presGoal || !flow || !flowGoal) return []
+
+  const n = Math.min(timeframe.length, pres.length, presGoal.length, flow.length, flowGoal.length)
+
+  // Determine control type per sample: flow-controlled if flowGoal != -1, else pressure
+  type CtrlType = 'flow' | 'pressure'
+  const ctrl: CtrlType[] = []
+  const goalVals: number[] = []
+  for (let i = 0; i < n; i++) {
+    const fg = flowGoal[i]
+    const pg = presGoal[i]
+    if (fg !== undefined && fg > 0) {
+      ctrl.push('flow')
+      goalVals.push(fg)
+    } else if (pg !== undefined && pg > 0) {
+      ctrl.push('pressure')
+      goalVals.push(pg)
+    } else {
+      ctrl.push(i > 0 ? ctrl[i - 1] : 'flow')
+      goalVals.push(i > 0 ? goalVals[i - 1] : 0)
+    }
+  }
+
+  // Find phase boundaries (control switches + significant goal jumps)
+  const boundaries: number[] = [0]
+  for (let i = 1; i < n; i++) {
+    if (ctrl[i] !== ctrl[i - 1]) {
+      boundaries.push(i)
+    } else if (Math.abs(goalVals[i] - goalVals[i - 1]) > 1.0) {
+      boundaries.push(i)
+    }
+  }
+  boundaries.push(n)
+
+  const phases: ShotPhase[] = []
+  for (let b = 0; b < boundaries.length - 1; b++) {
+    const start = boundaries[b]
+    const end = boundaries[b + 1]
+    if (end - start < 3) continue  // skip tiny slivers
+
+    const tStart = timeframe[start]
+    const tEnd = timeframe[end - 1]
+    const presSlice = pres.slice(start, end)
+    const flowSlice = flow.slice(start, end)
+    const tempSlice = temp ? temp.slice(start, end) : []
+    const goalSlice = goalVals.slice(start, end)
+    const presGoalSlice = presGoal.slice(start, end).filter(v => v > 0)
+    const flowGoalSlice = flowGoal.slice(start, end).filter(v => v > 0)
+
+    const control = ctrl[start]
+    const goalVal = avg(goalSlice)
+    const presAvg = avg(presSlice)
+    const flowAvg = avg(flowSlice)
+
+    // Tracking accuracy: how close actual was to goal
+    let presTracking: number | undefined
+    if (presGoalSlice.length > 0 && control === 'pressure') {
+      presTracking = Math.abs(presAvg - avg(presGoalSlice))
+    }
+    let flowTracking: number | undefined
+    if (flowGoalSlice.length > 0 && control === 'flow') {
+      flowTracking = Math.abs(flowAvg - avg(flowGoalSlice))
+    }
+
+    // Name phases intelligently
+    let name: string
+    const shotIndex = phases.length
+    if (shotIndex === 0 && tEnd < 20 && control === 'flow' && flowAvg > 0.5) {
+      name = 'Preinfusion'
+    } else if (shotIndex === 0 && tEnd < 20 && control === 'pressure' && presAvg < 2.5) {
+      name = 'Preinfusion'
+    } else if (control === 'pressure' && presAvg > 4) {
+      name = `Extraction`
+    } else if (control === 'flow') {
+      name = shotIndex === 0 ? 'Preinfusion' : `Flow Phase`
+    } else {
+      name = `Phase ${shotIndex + 1}`
+    }
+    if (phases.length > 0 && phases[phases.length - 1].name === name) {
+      name = `${name} 2`
+    }
+
+    phases.push({
+      name,
+      control,
+      goalValue: goalVal > 0 ? parseFloat(goalVal.toFixed(2)) : null,
+      startTime: parseFloat(tStart.toFixed(1)),
+      endTime: parseFloat(tEnd.toFixed(1)),
+      durationS: parseFloat((tEnd - tStart).toFixed(1)),
+      pressure: {
+        avg: parseFloat(presAvg.toFixed(2)),
+        min: parseFloat(Math.min(...presSlice).toFixed(2)),
+        max: parseFloat(Math.max(...presSlice).toFixed(2)),
+        tracking: presTracking !== undefined ? parseFloat(presTracking.toFixed(2)) : undefined,
+      },
+      flow: {
+        avg: parseFloat(flowAvg.toFixed(2)),
+        min: parseFloat(Math.min(...flowSlice).toFixed(2)),
+        max: parseFloat(Math.max(...flowSlice).toFixed(2)),
+        tracking: flowTracking !== undefined ? parseFloat(flowTracking.toFixed(2)) : undefined,
+      },
+      tempAvg: tempSlice.length > 0 ? parseFloat(avg(tempSlice).toFixed(1)) : null,
+      trend: trend(control === 'pressure' ? presSlice : flowSlice),
+    })
+  }
+
+  return phases
+}
+
 /**
  * Preprocess a shot for AI analysis.
  * Loads the target shot, context shots within time window, and aggregated stats.
@@ -178,14 +335,15 @@ export async function preprocessShots(
     take: 100,
   })
 
-  // Aggregate stats from all shots (target + context)
+  // Aggregate stats from context shots only (not target) — extraction phase only
+  // This gives a fair baseline: only the pressure-controlled extraction phase,
+  // not preinfusion which would dilute the averages.
   const allShots = [targetShot, ...contextShots]
   const pressureData: number[] = []
   const flowData: number[] = []
   const temperatureData: number[] = []
 
-  for (const shot of allShots) {
-    // Parse shotData JSON if it's stored as string
+  for (const shot of contextShots) {
     let shotData: ShotData
     if (typeof shot.shotData === 'string') {
       shotData = JSON.parse(shot.shotData)
@@ -193,14 +351,36 @@ export async function preprocessShots(
       shotData = shot.shotData as ShotData
     }
 
-    if (shotData.espresso_pressure) {
-      pressureData.push(...shotData.espresso_pressure)
-    }
-    if (shotData.espresso_flow) {
-      flowData.push(...shotData.espresso_flow)
-    }
-    if (shotData.espresso_temperature_mix) {
-      temperatureData.push(...shotData.espresso_temperature_mix)
+    // Try to extract only the extraction phase using phase detection
+    const phases = detectShotPhases(shotData)
+    const extractionPhases = phases.filter(p => p.name.toLowerCase().includes('extract') || (p.control === 'pressure' && p.pressure.avg > 4))
+
+    if (extractionPhases.length > 0) {
+      // Use extraction phase pressure/flow — these are already computed averages per phase
+      for (const phase of extractionPhases) {
+        pressureData.push(phase.pressure.avg)
+        flowData.push(phase.flow.avg)
+        if (phase.tempAvg != null) temperatureData.push(phase.tempAvg)
+      }
+    } else {
+      // Fallback: filter samples where pressure goal is active (> 0)
+      const presGoal = shotData.espresso_pressure_goal as number[] | undefined
+      const pres = shotData.espresso_pressure as number[] | undefined
+      const flow = shotData.espresso_flow as number[] | undefined
+      const tempArr = (shotData.espresso_temperature_basket || shotData.espresso_temperature_mix) as number[] | undefined
+      if (pres && presGoal) {
+        for (let i = 0; i < Math.min(pres.length, presGoal.length); i++) {
+          if (presGoal[i] > 0) {
+            pressureData.push(pres[i])
+            if (flow && flow[i] !== undefined) flowData.push(flow[i])
+            if (tempArr && tempArr[i] !== undefined) temperatureData.push(tempArr[i])
+          }
+        }
+      } else if (pres) {
+        pressureData.push(...pres)
+        if (flow) flowData.push(...flow)
+        if (tempArr) temperatureData.push(...tempArr)
+      }
     }
   }
 
@@ -312,105 +492,114 @@ export function buildSystemPrompt(language: string): string {
   if (isGerman) {
     return `Du bist ein Espresso-Experte mit drei spezialisierten Perspektiven:
 
-1. **Barista**: Praktische Brühtipps – Technik, Timing, Mahlgrad, Tamping, Temperaturmanagement
+1. **Barista**: Praktische Brühtipps – Technik, Timing, Mahlgrad, Tamping, Puckprep
 2. **Röster**: Bohnen- und Röstanalyse – Herkunftseigenschaften, Röstgrad, Geschmacksentwicklung
-3. **Analyst**: Trends und Datenmuster – Konsistenzmetriken, Verbesserungspotenzial, statistische Erkenntnisse
+3. **Analyst**: Datenbasierte Bewertung – Phasenqualität, Profilverfolgung, Konsistenz
 
-Analysiere die bereitgestellten Espresso-Shot-Daten und antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Markdown, kein Erklärtext):
+Die Shot-Daten sind **nach Profil-Phasen gegliedert** (z.B. Preinfusion, Extraktion). Analysiere jede Phase separat:
+- Bei flow-geregelten Phasen: Wie gut wurde die Flow-Rate gehalten? Druckaufbau zeigt Widerstandsentwicklung.
+- Bei druckgeregelten Phasen: Wie präzise folgte der Druck dem Ziel (tracking)? Flow-Anstieg = Puck öffnet sich / Channeling.
+- "Historical context" = Durchschnitt der letzten Shots aus der Datenbank, nicht Lebenszeit-Statistik.
+- Verweise auf konkrete Phasennamen und Zahlenwerte aus den Daten.
 
+Antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Markdown, kein Erklärtext):
 {"barista":["Tipp 1","Tipp 2"],"roaster":["Erkenntnis 1","Erkenntnis 2"],"analyst":["Beobachtung 1","Beobachtung 2"]}
-
-Jedes Array soll 3–5 konkrete Einträge enthalten. Beziehe dich auf die tatsächlichen Werte aus den Shot-Daten.`
+Jedes Array soll 3–5 konkrete Einträge enthalten.`
   }
   return `You are an expert espresso analyst with three specialized perspectives:
 
-1. **Barista**: Practical brewing advice - technique, timing, grind adjustments, tamping, temperature management
-2. **Röster**: Bean and roast analysis - origin characteristics, roast level implications, flavor development
-3. **Analyst**: Trends and data patterns - consistency metrics, improvement areas, statistical insights
+1. **Barista**: Practical brewing advice – technique, timing, grind, tamping, puck prep
+2. **Röster**: Bean and roast analysis – origin characteristics, roast level, flavor development
+3. **Analyst**: Data-driven assessment – phase quality, profile tracking, consistency
 
-Analyze the provided espresso shot data and respond ONLY with a JSON object (no markdown, no explanation text):
+Shot data is **structured by profile phases** (e.g. Preinfusion, Extraction). Analyze each phase separately:
+- Flow-controlled phases: how well was the flow rate maintained? Pressure shows puck resistance development.
+- Pressure-controlled phases: how precisely did pressure track the goal? Rising flow = puck opening / channeling.
+- "Historical context" = average of recent shots from the database, not lifetime statistics.
+- Reference specific phase names and numeric values from the data.
 
+Respond ONLY with a JSON object (no markdown, no explanation text):
 {"barista":["advice 1","advice 2"],"roaster":["insight 1","insight 2"],"analyst":["observation 1","observation 2"]}
-
-Each array should contain 3-5 insights. Be specific and reference actual values from the shot data.`
+Each array should contain 3-5 concrete insights.`
 }
 
 /**
  * Build a user prompt for analyzing a single shot.
- * Includes bean info, roast data, shot parameters, and curve descriptions.
+ * Uses phase-segmented data for accurate per-phase analysis.
  */
 export function buildDetailPrompt(shot: ShotResponse, aggregatedStats: CurveStats, customContext = ''): string {
   const lines: string[] = []
 
-  lines.push(`## Shot Analysis Request`)
+  lines.push(`## Shot Analysis`)
   lines.push('')
 
-  // Bean and roast information
-  if (shot.beanBrand || shot.beanType) {
-    lines.push(`### Bean Info`)
-    if (shot.beanBrand) lines.push(`- Brand: ${shot.beanBrand}`)
-    if (shot.beanType) lines.push(`- Type: ${shot.beanType}`)
-    if (shot.roastLevel) lines.push(`- Roast Level: ${shot.roastLevel}`)
-    if (shot.roastDate) lines.push(`- Roast Date: ${shot.roastDate}`)
+  // Bean and roast
+  if (shot.beanBrand || shot.beanType || shot.roastLevel) {
+    lines.push(`**Bean:** ${[shot.beanBrand, shot.beanType, shot.roastLevel].filter(Boolean).join(' · ')}`)
+    if (shot.roastDate) lines.push(`**Roast Date:** ${shot.roastDate}`)
+  }
+
+  // Key parameters
+  const params: string[] = []
+  if (shot.beanWeight && shot.drinkWeight) params.push(`${shot.beanWeight}g → ${shot.drinkWeight}g (1:${(shot.drinkWeight / shot.beanWeight).toFixed(2)})`)
+  if (shot.duration) params.push(`${shot.duration.toFixed(1)}s`)
+  if (shot.drinkTds) params.push(`TDS ${shot.drinkTds}%`)
+  if (shot.drinkEy) params.push(`EY ${shot.drinkEy}%`)
+  if (shot.espressoEnjoyment != null) params.push(`Score ${shot.espressoEnjoyment}/100`)
+  if (params.length) lines.push(`**Parameters:** ${params.join(' · ')}`)
+  if (shot.profileTitle) lines.push(`**Profile:** ${shot.profileTitle}`)
+  if (shot.grinderModel) lines.push(`**Grinder:** ${shot.grinderModel}${shot.grinderSetting ? ` @ ${shot.grinderSetting}` : ''}`)
+  lines.push('')
+
+  // Phase-based extraction data
+  if (shot.shotData) {
+    const phases = detectShotPhases(shot.shotData)
+    if (phases.length >= 1) {
+      lines.push(`### Profile Phases`)
+      for (const phase of phases) {
+        const ctrl = phase.control === 'flow' ? 'flow-controlled' : 'pressure-controlled'
+        const goalStr = phase.goalValue != null
+          ? phase.control === 'flow' ? `goal ${phase.goalValue} ml/s` : `goal ${phase.goalValue} bar`
+          : ''
+        lines.push(`**${phase.name}** (${phase.startTime}–${phase.endTime}s, ${phase.durationS}s, ${ctrl}${goalStr ? ', ' + goalStr : ''})`)
+
+        lines.push(`  Pressure: avg ${phase.pressure.avg} bar, min ${phase.pressure.min}, max ${phase.pressure.max}${phase.pressure.tracking != null ? `, tracking error ±${phase.pressure.tracking} bar` : ''}, trend: ${phase.trend === 'stable' ? 'stable' : phase.trend}`)
+        lines.push(`  Flow: avg ${phase.flow.avg} ml/s, min ${phase.flow.min}, max ${phase.flow.max}${phase.flow.tracking != null ? `, tracking error ±${phase.flow.tracking} ml/s` : ''}`)
+        if (phase.tempAvg != null) lines.push(`  Basket temp: ${phase.tempAvg}°C`)
+      }
+      lines.push('')
+    } else {
+      // Fallback: whole-shot curves if phase detection fails
+      lines.push(`### Extraction Curves`)
+      if (shot.shotData.espresso_pressure) lines.push(`- Pressure: ${describeCurve(shot.shotData.espresso_pressure, 'bar')}`)
+      if (shot.shotData.espresso_flow) lines.push(`- Flow: ${describeCurve(shot.shotData.espresso_flow, 'ml/s')}`)
+      if (shot.shotData.espresso_temperature_basket || shot.shotData.espresso_temperature_mix) {
+        const tempArr = (shot.shotData.espresso_temperature_basket || shot.shotData.espresso_temperature_mix) as number[]
+        lines.push(`- Temperature: ${describeCurve(tempArr, '°C')}`)
+      }
+      lines.push('')
+    }
+  }
+
+  // Tasting notes
+  const tastingParts: string[] = []
+  if (shot.espressoNotes) tastingParts.push(`Notes: "${shot.espressoNotes}"`)
+  if (shot.acidity) tastingParts.push(`Acidity ${shot.acidity}`)
+  if (shot.sweetness) tastingParts.push(`Sweetness ${shot.sweetness}`)
+  if (shot.bitterness) tastingParts.push(`Bitterness ${shot.bitterness}`)
+  if (shot.mouthfeel) tastingParts.push(`Mouthfeel ${shot.mouthfeel}`)
+  if (tastingParts.length) {
+    lines.push(`### Tasting`)
+    lines.push(tastingParts.join(' · '))
     lines.push('')
   }
 
-  // Shot parameters
-  lines.push(`### Shot Parameters`)
-  if (shot.beanWeight) lines.push(`- Bean Weight: ${shot.beanWeight}g`)
-  if (shot.drinkWeight) lines.push(`- Drink Weight: ${shot.drinkWeight}g`)
-  if (shot.duration) lines.push(`- Duration: ${shot.duration}s`)
-  if (shot.drinkTds) lines.push(`- TDS: ${shot.drinkTds}`)
-  if (shot.drinkEy) lines.push(`- EY: ${shot.drinkEy}`)
-  if (shot.grinderModel) lines.push(`- Grinder: ${shot.grinderModel} @ ${shot.grinderSetting}`)
-  if (shot.profileTitle) lines.push(`- Profile: ${shot.profileTitle}`)
-  lines.push('')
-
-  // Flavor notes
-  if (shot.fragrance || shot.aroma || shot.flavor || shot.aftertaste) {
-    lines.push(`### Flavor Profile`)
-    if (shot.fragrance) lines.push(`- Fragrance: ${shot.fragrance}`)
-    if (shot.aroma) lines.push(`- Aroma: ${shot.aroma}`)
-    if (shot.flavor) lines.push(`- Flavor: ${shot.flavor}`)
-    if (shot.aftertaste) lines.push(`- Aftertaste: ${shot.aftertaste}`)
-    lines.push('')
-  }
-
-  // Tasting attributes
-  if (shot.acidity || shot.bitterness || shot.sweetness || shot.mouthfeel) {
-    lines.push(`### Tasting Attributes`)
-    if (shot.acidity) lines.push(`- Acidity: ${shot.acidity}`)
-    if (shot.bitterness) lines.push(`- Bitterness: ${shot.bitterness}`)
-    if (shot.sweetness) lines.push(`- Sweetness: ${shot.sweetness}`)
-    if (shot.mouthfeel) lines.push(`- Mouthfeel: ${shot.mouthfeel}`)
-    lines.push('')
-  }
-
-  // Curve descriptions
-  lines.push(`### Extraction Curves`)
-  if (shot.shotData?.espresso_pressure) {
-    lines.push(`- Pressure: ${describeCurve(shot.shotData.espresso_pressure, 'bar')}`)
-  }
-  if (shot.shotData?.espresso_flow) {
-    lines.push(`- Flow: ${describeCurve(shot.shotData.espresso_flow, 'ml/s')}`)
-  }
-  if (shot.shotData?.espresso_temperature_mix) {
-    lines.push(`- Temperature: ${describeCurve(shot.shotData.espresso_temperature_mix, 'C')}`)
-  }
-  lines.push('')
-
-  // Context from aggregated stats
-  if (Object.keys(aggregatedStats).length > 0 && aggregatedStats.shotCount && aggregatedStats.shotCount > 1) {
-    lines.push(`### Historical Context (${aggregatedStats.shotCount} recent shots)`)
-    if (aggregatedStats.pressure) {
-      lines.push(`- Avg pressure: ${aggregatedStats.pressure.avg.toFixed(1)} bar`)
-    }
-    if (aggregatedStats.flow) {
-      lines.push(`- Avg flow: ${aggregatedStats.flow.avg.toFixed(1)} ml/s`)
-    }
-    if (aggregatedStats.temperature) {
-      lines.push(`- Avg temperature: ${aggregatedStats.temperature.avg.toFixed(1)} °C`)
-    }
+  // Historical context — extraction-phase stats only for fair comparison
+  if (aggregatedStats.shotCount && aggregatedStats.shotCount > 1) {
+    lines.push(`### Historical Context (${aggregatedStats.shotCount - 1} recent shots, extraction-phase averages)`)
+    if (aggregatedStats.pressure) lines.push(`- Avg extraction pressure: ${aggregatedStats.pressure.avg.toFixed(1)} bar`)
+    if (aggregatedStats.flow) lines.push(`- Avg extraction flow: ${aggregatedStats.flow.avg.toFixed(1)} ml/s`)
+    if (aggregatedStats.temperature) lines.push(`- Avg basket temp: ${aggregatedStats.temperature.avg.toFixed(1)}°C`)
     lines.push('')
   }
 
@@ -420,7 +609,7 @@ export function buildDetailPrompt(shot: ShotResponse, aggregatedStats: CurveStat
     lines.push('')
   }
 
-  lines.push(`Provide analysis from all three perspectives: Barista, Röster, and Analyst.`)
+  lines.push(`Analyze this shot from all three perspectives: Barista, Röster, Analyst.`)
 
   return lines.join('\n')
 }
