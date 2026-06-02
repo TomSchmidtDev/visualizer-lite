@@ -593,67 +593,33 @@ export async function preprocessShots(
 export function buildSystemPrompt(language: string): string {
   const isGerman = language === 'de'
   if (isGerman) {
-    return `Du bist ein Espresso-Experte mit drei spezialisierten Perspektiven:
+    return `Du bist Espresso-Experte. Analysiere den Shot aus zwei Perspektiven:
+barista – Brühtechnik: Mahlgrad, Tamping, Puckprep, Timing
+roaster – Bohne & Röstung: Herkunft, Röstgrad, Temperatur, Tage seit Röstung
 
-1. **Barista**: Brühtechnik – Mahlgrad, Tamping, Puckprep, Timing, Verbesserungsvorschläge anhand der Phasendaten
-2. **Röster**: Bohnenanalyse – Röstgrad/Herkunft im Kontext von Temperatur, Extraktionszeit und Tage seit Röstung
+REGELN:
+1. Nur Phasendaten verwenden. Keine Gesamtdurchschnitte.
+2. goal=X ist der programmierte Zielwert – nie durch Trainingswissen ersetzen.
+3. Flow-geregelte Phase: Druck = Puckwiderstand (Ausgabe). Druckschwankungen sind KEIN Fehler.
+4. Druckgeregelte Phase: Flow = Ausgabe. Flow-Spikes (σ > 0.2 ml/s, plötzlich) = mögliches Channeling.
+5. Historische Werte VERBOTEN zu nennen oder zu erfinden – es sei denn, im Prompt steht ein "Historical Context"-Abschnitt.
 
-**ALLE PERSPEKTIVEN nutzen die Phasendaten** – nie Gesamtdurchschnitte des Shots verwenden, wenn Phasendaten vorliegen.
-
-**KRITISCH – Unterschied flow-geregelt vs. druckgeregelt:**
-- Flow-geregelte Phase: Die Maschine hält einen Flow-Zielwert; der DRUCK ist Ausgabe (= Puckwiderstand). Hoher Druck = dichter Puck (normal). Druckschwankungen in flow-geregelten Phasen sind kein Channeling-Signal und dürfen NICHT als Fehler gewertet werden.
-- Druckgeregelte Phase: Die Maschine hält einen Druckzielwert; der FLOW ist Ausgabe. Starke Flow-Spitzen = mögliches Channeling.
-- "goal=X" = der TATSÄCHLICHE Zielwert des Profils. Nie durch Trainingswissen ersetzen.
-
-**Channeling-Signale – NUR in druckgeregelten Phasen:**
-- Flow σ > 0.2 ml/s im stabilen Bereich
-- Plötzlicher Flow-Spike (nicht stetiger Anstieg)
-- Scale Flow "UNSTABLE"
-
-**Kein Channeling-Signal in flow-geregelten Phasen:**
-- Hoher Druck oder Druckschwankungen → normaler Puckwiderstand
-- Stetiger Druckabfall → Puck öffnet sich planmäßig (bei Declining-Pressure-Profilen)
-
-**Röster berücksichtigt:**
-- Tage seit Röstung für Aussagen zu Ausgasung, Frische
-- Basket-Temperatur der Extraktionsphase, Verhältnis und Zeit im Kontext von Röstgrad
-
-**Historische Daten:** Nur kommentieren wenn "Historical Context" im Prompt vorhanden.
-
-Antworte AUSSCHLIESSLICH mit einem JSON-Objekt mit genau zwei Keys:
-{"barista":["Tipp 1","Tipp 2"],"roaster":["Erkenntnis 1","Erkenntnis 2"]}
-3–5 Einträge pro Array, konkret mit Bezug auf Datenwerte und Phasennamen.`
+Antworte NUR mit: {"barista":["..."],"roaster":["..."]}
+3–5 konkrete Einträge pro Array mit Bezug auf Datenwerte.`
   }
-  return `You are an expert espresso analyst with three specialized perspectives:
+  return `You are an espresso expert. Analyze the shot from two perspectives:
+barista – brewing technique: grind, tamping, puck prep, timing
+roaster – bean & roast: origin, roast level, temperature, days since roast
 
-1. **Barista**: Brewing technique – grind, tamping, puck prep, timing, improvement suggestions based on phase data
-2. **Röster**: Bean analysis – roast level/origin in context of temperature, extraction time, and days since roast
+RULES:
+1. Use only phase data. No whole-shot averages.
+2. goal=X is the programmed profile target – never replace with training knowledge.
+3. Flow-controlled phase: pressure = puck resistance (output). Pressure variation is NOT a problem.
+4. Pressure-controlled phase: flow = output. Flow spikes (σ > 0.2 ml/s, sudden) = possible channeling.
+5. FORBIDDEN: mentioning or inventing historical values unless a "Historical Context" section appears in the prompt.
 
-**ALL perspectives use the phase data** – never use whole-shot averages when phase data is available.
-
-**CRITICAL – Flow-controlled vs. pressure-controlled phases:**
-- Flow-controlled phase: the machine maintains a flow rate target; PRESSURE is the output (= puck resistance). High or varying pressure is normal and NOT a channeling signal.
-- Pressure-controlled phase: the machine maintains a pressure target; FLOW is the output. Flow spikes = possible channeling.
-- "goal=X" = the ACTUAL programmed target. Never substitute with training knowledge.
-
-**Channeling signals – ONLY in pressure-controlled phases:**
-- Flow σ > 0.2 ml/s in the stable portion
-- Sudden flow spike (not a steady rise)
-- Scale Flow "UNSTABLE"
-
-**NOT channeling signals in flow-controlled phases:**
-- High pressure or pressure variation → normal puck resistance
-- Steady pressure decline → puck opening as designed (declining-pressure profiles)
-
-**Röster considers:**
-- Days since roast for freshness/degassing comments
-- Basket temp during extraction (not whole-shot average), ratio and time vs roast level
-
-**Historical data:** Only comment when "Historical Context" section is present in the prompt.
-
-Respond ONLY with a JSON object with exactly two keys:
-{"barista":["advice 1","advice 2"],"roaster":["insight 1","insight 2"]}
-3-5 entries per array, concrete references to data values and phase names.`
+Reply ONLY with: {"barista":["..."],"roaster":["..."]}
+3–5 concrete entries per array referencing actual data values.`
 }
 
 /**
@@ -947,15 +913,10 @@ export async function callOpenAI(
   const message = await client.chat.completions.create({
     model: 'gpt-4o-mini',
     max_tokens: 2048,
+    response_format: { type: 'json_object' },
     messages: [
-      {
-        role: 'system',
-        content: sysPrompt,
-      },
-      {
-        role: 'user',
-        content: prompt,
-      },
+      { role: 'system', content: sysPrompt },
+      { role: 'user', content: prompt },
     ],
   })
 
@@ -993,35 +954,24 @@ export async function analyzeShot(
   let analysisResult: ClaudeAnalysisResult
 
   if (model === 'openai') {
-    // Call OpenAI
     const client = new OpenAI({ apiKey })
     const openaiModel = modelName || 'gpt-4o-mini'
 
     const message = await client.chat.completions.create({
       model: openaiModel,
       max_tokens: 2048,
+      response_format: { type: 'json_object' },  // enforce JSON output
       messages: [
-        {
-          role: 'system',
-          content: systemPrompt,
-        },
-        {
-          role: 'user',
-          content: prompt,
-        },
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: prompt },
       ],
     })
 
-    // Extract token counts from OpenAI
     tokenInputCount = message.usage?.prompt_tokens || 0
     tokenOutputCount = message.usage?.completion_tokens || 0
 
-    // Extract and parse JSON response
     const textContent = message.choices[0]?.message?.content
-    if (!textContent) {
-      throw new Error('No text response from OpenAI')
-    }
-
+    if (!textContent) throw new Error('No text response from OpenAI')
     analysisResult = extractJson(textContent)
   } else {
     // Call Claude (default)
