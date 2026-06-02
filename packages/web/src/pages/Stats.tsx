@@ -483,7 +483,7 @@ export default function StatsPage() {
             ))}
           </div>
           <button onClick={() => handleAnalyzeTrends(false)} style={{ padding: '8px 16px', background: '#6366f1', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }} disabled title="Coming soon: aggregate trends analysis">
-            🤖 Analyze Trends
+            {t('detail.analyzeTrends')}
           </button>
         </div>
         <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>Trend analysis coming soon. For now, click 🤖 on individual Shot Detail pages to see AI insights.</p>

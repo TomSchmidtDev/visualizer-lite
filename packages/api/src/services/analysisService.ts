@@ -506,55 +506,63 @@ export function buildSystemPrompt(language: string): string {
   if (isGerman) {
     return `Du bist ein Espresso-Experte mit drei spezialisierten Perspektiven:
 
-1. **Barista**: Praktische Brühtipps – Technik, Timing, Mahlgrad, Tamping, Puckprep
-2. **Röster**: Bohnen- und Röstanalyse – Herkunftseigenschaften, Röstgrad, Geschmacksentwicklung
-3. **Analyst**: Datenbasierte Bewertung – Phasenqualität, Profilverfolgung, Konsistenz
+1. **Barista**: Brühtechnik – Mahlgrad, Tamping, Puckprep, Timing, Verbesserungsvorschläge anhand der Phasendaten
+2. **Röster**: Bohnenanalyse – Röstgrad/Herkunft im Kontext von Temperatur, Extraktionszeit und Tage seit Röstung
+3. **Analyst**: Datenbewertung – Profilverfolgung, Phasenstabilität, Vergleich mit historischen Daten (nur wenn vorhanden)
+
+**ALLE PERSPEKTIVEN nutzen die Phasendaten** – nie Gesamtdurchschnitte des Shots verwenden, wenn Phasendaten vorliegen.
 
 **KRITISCH – Profil-Goals:**
-- Das Feld "goal=X" in jeder Phase ist der TATSÄCHLICHE Zielwert des programmierten Profils.
-- Vergleiche immer actual vs. goal aus den Daten. Ersetze NIEMALS goal-Werte durch allgemeines Profilwissen (z.B. "typisch 8–9 bar bei Slayer"). Wenn goal=7.5 bar, dann ist 7.5 bar das Ziel – nicht 9 bar.
-- tracking_err=±X zeigt wie präzise die Maschine das Ziel traf.
+- "goal=X" in jeder Phase = TATSÄCHLICHER Zielwert des programmierten Profils.
+- NIEMALS goal-Werte durch allgemeines Profilwissen ersetzen. goal=7.5 bar → Ziel ist 7.5 bar, nicht 8–9.
+- tracking_err=±X = Präzision der Maschine beim Erreichen des Ziels.
 
-**Signale für Puck-Probleme:**
-- σ (Standardabweichung) bei Flow während Druckkontrolle > 0.2 ml/s → Channeling-Verdacht
-- σ bei Druck während Flowkontrolle > 0.15 bar → ungleichmäßiger Widerstand
-- Scale Flow "UNSTABLE" → Extraktion ungleichmäßig
-- Stark steigender Flow bei konstantem Druckziel → Puck öffnet sich / Kanal
+**Puck-Problem-Signale (alle Perspektiven beachten):**
+- σ Flow in Druckphase > 0.2 ml/s → Channeling-Verdacht
+- σ Druck in Flowphase > 0.15 bar → ungleichmäßiger Puckwiderstand
+- Scale Flow "UNSTABLE" → ungleichmäßige Extraktion am Ausgang
+- Steigender Flow-Trend bei konstantem Druckziel → Puck öffnet sich
 
-**Phasen-Analyse:**
-- Flow-geregelte Phasen: Flow-Genauigkeit und Druckaufbau als Widerstandssignal
-- Druckgeregelte Phasen: Druck-Tracking und Flow-Varianz als Stabilitätssignal
-- "Historical context" = Extraktion der letzten Shots aus DB (nicht Lebenszeit)
+**Röster berücksichtigt:**
+- Tage seit Röstung für Aussagen zu Ausgasung, Frische, Optimierungsfenster
+- Temperatur der Extraktionsphase (basket temp) – nicht Gesamtdurchschnitt
+- Extraktionszeit und Verhältnis im Kontext von Röstgrad und Herkunft
+
+**Historische Daten:** Nur kommentieren wenn "Historical Context" im Prompt vorhanden.
 
 Antworte AUSSCHLIESSLICH mit einem JSON-Objekt:
-{"barista":["Tipp 1","Tipp 2"],"roaster":["Erkenntnis 1","Erkenntnis 2"],"analyst":["Beobachtung 1","Beobachtung 2"]}
-Jedes Array soll 3–5 konkrete Einträge mit Bezug auf die Datenwerte enthalten.`
+{"barista":["Tipp 1","Tipp 2"],"roaster":["Erkenntnis 1"],"analyst":["Beobachtung 1"]}
+3–5 Einträge pro Array, konkret mit Bezug auf Datenwerte und Phasennamen.`
   }
   return `You are an expert espresso analyst with three specialized perspectives:
 
-1. **Barista**: Practical brewing advice – technique, timing, grind, tamping, puck prep
-2. **Röster**: Bean and roast analysis – origin characteristics, roast level, flavor development
-3. **Analyst**: Data-driven assessment – phase quality, profile tracking, consistency
+1. **Barista**: Brewing technique – grind, tamping, puck prep, timing, improvement suggestions based on phase data
+2. **Röster**: Bean analysis – roast level/origin in context of temperature, extraction time, and days since roast
+3. **Analyst**: Data assessment – profile tracking, phase stability, comparison with historical data (only if present)
+
+**ALL perspectives use the phase data** – never use whole-shot averages when phase data is available.
 
 **CRITICAL – Profile Goals:**
-- The "goal=X" field in each phase is the ACTUAL programmed target of the user's profile.
-- Always compare actual vs. goal from the data. NEVER substitute goal values with generic profile knowledge (e.g. "typical Slayer is 8-9 bar"). If goal=7.5 bar, 7.5 is the target — not 9 bar.
-- tracking_err=±X shows how precisely the machine hit the target.
+- "goal=X" in each phase = the ACTUAL programmed target of the profile.
+- NEVER substitute goal values with generic profile knowledge. goal=7.5 bar → target is 7.5, not 8–9.
+- tracking_err=±X = precision with which the machine hit the target.
 
-**Puck problem signals:**
-- σ (std dev) of flow during pressure-controlled phase > 0.2 ml/s → channeling suspect
-- σ of pressure during flow-controlled phase > 0.15 bar → uneven puck resistance
-- Scale Flow marked "UNSTABLE" → uneven extraction at the cup
-- Strongly rising flow with constant pressure goal → puck opening / channeling
+**Puck problem signals (all perspectives note):**
+- σ flow in pressure phase > 0.2 ml/s → channeling suspect
+- σ pressure in flow phase > 0.15 bar → uneven puck resistance
+- Scale Flow "UNSTABLE" → uneven extraction at cup
+- Rising flow trend with constant pressure goal → puck opening / channeling
 
-**Phase analysis:**
-- Flow-controlled phases: flow accuracy + pressure buildup as resistance signal
-- Pressure-controlled phases: pressure tracking accuracy + flow variance as stability signal
-- "Historical context" = extraction averages of recent shots from DB (not lifetime stats)
+**Röster considers:**
+- Days since roast for comments on degassing, freshness, optimal window
+- Extraction phase basket temp (not whole-shot average)
+- Extraction time and ratio in context of roast level and origin
+
+**Historical data:** Only comment on it when "Historical Context" section is present in the prompt.
 
 Respond ONLY with a JSON object:
-{"barista":["advice 1","advice 2"],"roaster":["insight 1","insight 2"],"analyst":["observation 1","observation 2"]}
-Each array should contain 3-5 concrete insights referencing actual data values.`
+{"barista":["advice 1","advice 2"],"roaster":["insight 1"],"analyst":["observation 1"]}
+3-5 entries per array, concrete references to data values and phase names.`
 }
 
 /**
@@ -567,10 +575,18 @@ export function buildDetailPrompt(shot: ShotResponse, aggregatedStats: CurveStat
   lines.push(`## Shot Analysis`)
   lines.push('')
 
+  // Shot date
+  const shotDate = new Date(shot.startTime)
+  lines.push(`**Shot Date:** ${shotDate.toISOString().slice(0, 10)}`)
+
   // Bean and roast
   if (shot.beanBrand || shot.beanType || shot.roastLevel) {
     lines.push(`**Bean:** ${[shot.beanBrand, shot.beanType, shot.roastLevel].filter(Boolean).join(' · ')}`)
-    if (shot.roastDate) lines.push(`**Roast Date:** ${shot.roastDate}`)
+    if (shot.roastDate) {
+      const roastDate = new Date(shot.roastDate)
+      const daysSinceRoast = Math.round((shotDate.getTime() - roastDate.getTime()) / 86400000)
+      lines.push(`**Roast Date:** ${shot.roastDate} (${daysSinceRoast} days since roast)`)
+    }
   }
 
   // Key parameters
@@ -653,9 +669,10 @@ export function buildDetailPrompt(shot: ShotResponse, aggregatedStats: CurveStat
     lines.push('')
   }
 
-  // Historical context — extraction-phase stats only for fair comparison
-  if (aggregatedStats.shotCount && aggregatedStats.shotCount > 1) {
-    lines.push(`### Historical Context (${aggregatedStats.shotCount - 1} recent shots, extraction-phase averages)`)
+  // Historical context — only when at least 2 context shots exist, extraction-phase only
+  const contextShotCount = (aggregatedStats.shotCount ?? 1) - 1
+  if (contextShotCount >= 2 && (aggregatedStats.pressure || aggregatedStats.flow)) {
+    lines.push(`### Historical Context (${contextShotCount} recent shots, extraction-phase averages)`)
     if (aggregatedStats.pressure) lines.push(`- Avg extraction pressure: ${aggregatedStats.pressure.avg.toFixed(1)} bar`)
     if (aggregatedStats.flow) lines.push(`- Avg extraction flow: ${aggregatedStats.flow.avg.toFixed(1)} ml/s`)
     if (aggregatedStats.temperature) lines.push(`- Avg basket temp: ${aggregatedStats.temperature.avg.toFixed(1)}°C`)

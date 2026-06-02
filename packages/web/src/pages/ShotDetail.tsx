@@ -155,7 +155,7 @@ export default function ShotDetail() {
 
           {/* AI Analysis */}
           <button onClick={() => handleAnalyze(false)} style={{ marginTop: 16, padding: '8px 16px', background: '#6366f1', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', width: '100%' }}>
-            🤖 Analyze with AI
+            {t('detail.analyzeAI')}
           </button>
 
           {(analysisData || analysisLoading || analysisError) && (

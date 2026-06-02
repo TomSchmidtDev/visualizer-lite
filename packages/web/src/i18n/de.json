@@ -69,7 +69,13 @@
     "stateChange": "Zustandsänderung",
     "compare": "Vergleichen",
     "compareBanner": "Wähle einen Shot zum Vergleich",
-    "cancelCompare": "Abbrechen"
+    "cancelCompare": "Abbrechen",
+    "analyzeAI": "🤖 KI-Analyse",
+    "analyzeTrends": "🤖 Trends analysieren",
+    "aiAnalyzing": "Analysiere…",
+    "aiError": "Fehler: ",
+    "aiRetry": "Erneut versuchen",
+    "aiRegenerate": "Neu generieren"
   },
   "compare": {
     "title": "Shot-Vergleich",

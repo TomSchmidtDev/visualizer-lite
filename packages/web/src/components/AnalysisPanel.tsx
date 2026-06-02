@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export interface Analysis {
   barista: string[];
@@ -36,12 +37,13 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   error,
   onRegenerate,
 }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabType>('barista');
 
   if (loading) {
     return (
       <div style={card}>
-        <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Analysiere…</div>
+        <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('detail.aiAnalyzing')}</div>
       </div>
     );
   }
@@ -50,11 +52,11 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
     return (
       <div style={card}>
         <div style={{ color: 'var(--error, #e05252)', fontSize: 13, marginBottom: onRegenerate ? 8 : 0 }}>
-          Fehler: {error}
+          {t('detail.aiError')}{error}
         </div>
         {onRegenerate && (
           <button onClick={onRegenerate} className="btn btn-secondary" style={{ fontSize: 12 }}>
-            Erneut versuchen
+            {t('detail.aiRetry')}
           </button>
         )}
       </div>
@@ -107,7 +109,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
 
       {onRegenerate && (
         <button onClick={onRegenerate} className="btn btn-secondary" style={{ marginTop: 12, fontSize: 12 }}>
-          Regenerieren
+          {t('detail.aiRegenerate')}
         </button>
       )}
     </div>
