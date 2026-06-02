@@ -301,19 +301,35 @@ export function detectShotPhases(shotData: ShotData): ShotPhase[] {
       name = `${name} 2`
     }
 
-    // Find stable sub-phase: where the controlled variable is within 10% of its goal.
-    // This excludes initial ramp-up (pressure) or slow fill (flow) from σ calculations.
+    // Find stable sub-phase.
+    // For PRESSURE-controlled phases: start at the flow minimum.
+    //   The flow falls from the headspace fill, hits a trough, then levels off/rises.
+    //   Everything before the trough is ramp-down and skews σ upwards.
+    // For FLOW-controlled phases: start when flow reaches ≥90% of goal.
     let stablePhase: ShotPhase['stable'] | undefined
     if (goalVal > 0 && end - start >= 6) {
-      const threshold = goalVal * 0.90
       let stableStartIdx = -1
-      for (let i = start; i < end; i++) {
-        const ctrl_val = control === 'pressure' ? (pres[i] ?? 0) : (flow[i] ?? 0)
-        if (ctrl_val >= threshold) {
-          stableStartIdx = i
-          break
+
+      if (control === 'pressure') {
+        // Find the flow minimum (trough after the initial ramp-down)
+        let minFlowVal = Infinity
+        let minFlowIdx = start
+        for (let i = start; i < end; i++) {
+          const fv = flow[i] ?? 0
+          if (fv < minFlowVal) { minFlowVal = fv; minFlowIdx = i }
+        }
+        // Only use trough if it's not right at the start and there's enough data after it
+        if (minFlowIdx > start + 1) {
+          stableStartIdx = minFlowIdx
+        }
+      } else {
+        // Flow-controlled: start when flow reaches ≥90% of goal
+        const threshold = goalVal * 0.90
+        for (let i = start; i < end; i++) {
+          if ((flow[i] ?? 0) >= threshold) { stableStartIdx = i; break }
         }
       }
+
       if (stableStartIdx >= 0 && end - stableStartIdx >= 4) {
         const sPresSlice = pres.slice(stableStartIdx, end)
         const sFlowSlice = flow.slice(stableStartIdx, end)
@@ -433,30 +449,36 @@ export async function preprocessShots(
     const extractionPhases = phases.filter(p => p.name.toLowerCase().includes('extract') || (p.control === 'pressure' && p.pressure.avg > 4))
 
     if (extractionPhases.length > 0) {
-      // Use extraction phase pressure/flow — these are already computed averages per phase
+      // Prefer stable sub-phase stats if available, otherwise whole-phase avg
       for (const phase of extractionPhases) {
-        pressureData.push(phase.pressure.avg)
-        flowData.push(phase.flow.avg)
-        if (phase.tempAvg != null) temperatureData.push(phase.tempAvg)
+        const p = phase.stable ?? phase
+        pressureData.push(p.pressure.avg)
+        flowData.push(p.flow.avg)
+        if (p.tempAvg != null) temperatureData.push(p.tempAvg)
       }
     } else {
-      // Fallback: filter samples where pressure goal is active (> 0)
+      // Fallback: filter by pressure goal > 0 (if available) or pressure > 4 bar heuristic
       const presGoal = shotData.espresso_pressure_goal as number[] | undefined
       const pres = shotData.espresso_pressure as number[] | undefined
       const flow = shotData.espresso_flow as number[] | undefined
       const tempArr = (shotData.espresso_temperature_basket || shotData.espresso_temperature_mix) as number[] | undefined
       if (pres && presGoal) {
         for (let i = 0; i < Math.min(pres.length, presGoal.length); i++) {
-          if (presGoal[i] > 0) {
+          if (presGoal[i] > 0 && pres[i] > 4) {  // goal active AND clearly in extraction
             pressureData.push(pres[i])
-            if (flow && flow[i] !== undefined) flowData.push(flow[i])
-            if (tempArr && tempArr[i] !== undefined) temperatureData.push(tempArr[i])
+            if (flow?.[i] !== undefined) flowData.push(flow[i])
+            if (tempArr?.[i] !== undefined) temperatureData.push(tempArr[i])
           }
         }
       } else if (pres) {
-        pressureData.push(...pres)
-        if (flow) flowData.push(...flow)
-        if (tempArr) temperatureData.push(...tempArr)
+        // No goal data at all — use pressure > 5 bar as extraction heuristic
+        for (let i = 0; i < pres.length; i++) {
+          if (pres[i] > 5.0) {
+            pressureData.push(pres[i])
+            if (flow?.[i] !== undefined) flowData.push(flow[i])
+            if (tempArr?.[i] !== undefined) temperatureData.push(tempArr[i])
+          }
+        }
       }
     }
   }
