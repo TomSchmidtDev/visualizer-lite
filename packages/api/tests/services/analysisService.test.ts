@@ -396,7 +396,7 @@ describe('callOpenAI', () => {
 
   it('should throw error if OpenAI API key is invalid', async () => {
     const { callOpenAI } = await import('../../src/services/analysisService.js')
-    const invalidApiKey = 'sk-invalid-key-12345'
+    const invalidApiKey = 'sk-invalid-key-12345' // gitleaks:allow
     const prompt = 'Test prompt'
 
     await expect(callOpenAI(prompt, invalidApiKey)).rejects.toThrow()
