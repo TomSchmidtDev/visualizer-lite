@@ -103,6 +103,10 @@ export interface Analysis {
   barista: string[]
   roaster: string[]
   analyst: string[]
+  aiModel?: string
+  tokenInputCount?: number
+  tokenOutputCount?: number
+  createdAt?: string
 }
 
 export interface AnalysisResponse {

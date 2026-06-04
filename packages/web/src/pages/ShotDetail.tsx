@@ -50,7 +50,15 @@ export default function ShotDetail() {
     setAnalysisError(null)
     try {
       const response = await api.analyzeShot(id, { type: 'detail', regenerate })
-      setAnalysisData({ barista: response.barista, roaster: response.roaster, analyst: response.analyst })
+      setAnalysisData({
+        barista: response.barista,
+        roaster: response.roaster,
+        analyst: response.analyst,
+        aiModel: response.aiModel,
+        tokenInputCount: response.tokenInputCount,
+        tokenOutputCount: response.tokenOutputCount,
+        createdAt: response.createdAt,
+      })
     } catch (err) {
       setAnalysisError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
