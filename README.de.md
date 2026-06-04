@@ -454,3 +454,14 @@ docker run -d \
   -e VL_PASSWORD="dein-passwort" \
   visualizer-lite:nas
 ```
+
+
+---
+
+## Haftungsausschluss
+
+Visualizer Lite ist ein persönliches Hobbyprojekt, das unter der [Business Source License 1.1](LICENSE.md) kostenlos für den persönlichen, nicht-kommerziellen und internen Geschäftsgebrauch (einschließlich Self-Hosting) zur Verfügung gestellt wird. Die Nutzung dieser Software erfolgt vollständig auf eigenes Risiko.
+
+Die Software wird **„wie besehen“** ohne jegliche Gewährleistung bereitgestellt. Der Autor bietet keinen Support und übernimmt keine Haftung für Schäden jeglicher Art, die aus der Nutzung, der Nichtnutzbarkeit oder dem Missbrauch dieser Software entstehen — einschließlich, aber nicht beschränkt auf Datenverlust, Sicherheitsvorfälle oder Systemausfälle. Die vollständigen Haftungsausschlüsse und Lizenzbedingungen sind in [LICENSE.md](LICENSE.md) festgelegt.
+
+Jeder Nutzer ist allein verantwortlich für die Sicherheit und Integrität seiner eigenen Systeme sowie für sämtliche Konfigurationsentscheidungen — einschließlich Netzwerkzugang, Authentifizierungskonfiguration und TLS-Einrichtung —, insbesondere wenn die Instanz außerhalb eines vertrauenswürdigen lokalen Netzwerks erreichbar ist.
