@@ -1030,7 +1030,10 @@ export async function analyzeShot(
     analysisResult = extractJson(textContent.text)
   }
 
-  const pricing = await getModelPricing(modelName ?? '')
+  const resolvedModel = model === 'openai'
+    ? (modelName || 'gpt-4o-mini')
+    : (modelName || 'claude-haiku-4-5-20251001')
+  const pricing = await getModelPricing(resolvedModel)
   const costInputUsd = pricing !== null ? tokenInputCount * pricing.inputPerToken : null
   const costOutputUsd = pricing !== null ? tokenOutputCount * pricing.outputPerToken : null
 
