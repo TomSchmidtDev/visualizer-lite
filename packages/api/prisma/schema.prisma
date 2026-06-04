@@ -73,6 +73,8 @@ model ShotAnalysis {
   rawPrompt         String?   // optional, for debugging
   tokenInputCount   Int
   tokenOutputCount  Int
+  costInputUsd      Float?
+  costOutputUsd     Float?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
