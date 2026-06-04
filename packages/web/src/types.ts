@@ -106,6 +106,8 @@ export interface Analysis {
   aiModel?: string
   tokenInputCount?: number
   tokenOutputCount?: number
+  costInputUsd?: number | null
+  costOutputUsd?: number | null
   createdAt?: string
 }
 
@@ -119,6 +121,8 @@ export interface AnalysisResponse {
   analyst: string[]
   tokenInputCount: number
   tokenOutputCount: number
+  costInputUsd: number | null
+  costOutputUsd: number | null
   createdAt: string
   cachedAt?: string
 }
