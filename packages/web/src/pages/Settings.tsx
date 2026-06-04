@@ -199,6 +199,41 @@ export default function Settings() {
     <div style={{ maxWidth: 600, margin: '0 auto', padding: 24 }}>
       <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 24 }}>{t('settings.title')}</h1>
 
+      {/* Tab bar */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: 16 }}>
+        {([
+          { id: 'ansicht',    icon: '🎨', label: t('settings.tabAnsicht') },
+          { id: 'daten',      icon: '💾', label: t('settings.tabDaten') },
+          { id: 'sicherheit', icon: '🔒', label: t('settings.tabSicherheit') },
+          { id: 'ki',         icon: '🤖', label: t('settings.tabKi') },
+        ] as { id: Tab; icon: string; label: string }[]).map(({ id, icon, label }) => (
+          <button
+            key={id}
+            role="tab"
+            aria-selected={tab === id}
+            onClick={() => handleTabChange(id)}
+            style={{
+              flex: 1,
+              padding: '10px 8px',
+              background: 'none',
+              border: 'none',
+              borderBottom: `2px solid ${tab === id ? 'var(--accent)' : 'transparent'}`,
+              color: tab === id ? 'var(--accent)' : 'var(--text-dim)',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 3,
+              fontSize: 11,
+              fontWeight: tab === id ? 600 : 500,
+            }}
+          >
+            <span style={{ fontSize: 17 }}>{icon}</span>
+            <span style={{ textTransform: 'uppercase', letterSpacing: 0.8 }}>{label}</span>
+          </button>
+        ))}
+      </div>
+
       {/* Theme */}
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="card-title">{t('settings.theme')}</div>
