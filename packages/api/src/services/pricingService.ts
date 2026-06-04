@@ -64,8 +64,9 @@ export async function getModelPricing(modelName: string): Promise<ModelPricing |
       cache = { data: fresh, fetchedAt: now }
     } else if (!cache) {
       return FALLBACK_PRICING[modelName] ?? null
+    } else {
+      cache = { data: cache.data, fetchedAt: now }
     }
-    // fetch failed but stale cache exists — continue using stale data below
   }
 
   const openRouterId = MODEL_TO_OPENROUTER[modelName] ?? modelName
