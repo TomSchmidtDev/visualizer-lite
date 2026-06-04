@@ -47,6 +47,7 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
             tokenOutputCount: cached.tokenOutputCount,
             costInputUsd: cached.costInputUsd,
             costOutputUsd: cached.costOutputUsd,
+            analysisMode: cached.analysisMode,
             createdAt: cached.createdAt,
             cachedAt: cached.createdAt,
           })
@@ -54,12 +55,13 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       // Get user API keys, selected model, and language from settings
-      const [claudeKeyRow, openaiKeyRow, selectedModelRow, languageRow, customContextRow] = await Promise.all([
+      const [claudeKeyRow, openaiKeyRow, selectedModelRow, languageRow, customContextRow, analysisModeRow] = await Promise.all([
         prisma.settings.findUnique({ where: { key: 'apiKeyClaudeKey' } }),
         prisma.settings.findUnique({ where: { key: 'apiKeyOpenaiKey' } }),
         prisma.settings.findUnique({ where: { key: 'aiModel' } }),
         prisma.settings.findUnique({ where: { key: 'language' } }),
         prisma.settings.findUnique({ where: { key: 'aiCustomContext' } }),
+        prisma.settings.findUnique({ where: { key: 'aiAnalysisMode' } }),
       ])
 
       const claudeKey = claudeKeyRow?.value || ''
@@ -80,9 +82,10 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
 
       const language = languageRow?.value === 'de' ? 'de' : 'en'
       const customContext = customContextRow?.value || ''
+      const analysisMode = (analysisModeRow?.value === 'optimized' ? 'optimized' : 'standard') as 'standard' | 'optimized'
 
       // Call analyzeShot service with the specific model name and language
-      const result = await analyzeShot(shotId, apiKey, provider, analysisType, window, selectedModel, language, customContext)
+      const result = await analyzeShot(shotId, apiKey, provider, analysisType, window, selectedModel, language, customContext, analysisMode)
 
       const aiModel = selectedModel
 
@@ -100,6 +103,7 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
           tokenOutputCount: result.tokenOutputCount,
           costInputUsd: result.costInputUsd,
           costOutputUsd: result.costOutputUsd,
+          analysisMode: result.analysisMode,
         },
         update: {
           analysisType,
@@ -111,6 +115,7 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
           tokenOutputCount: result.tokenOutputCount,
           costInputUsd: result.costInputUsd,
           costOutputUsd: result.costOutputUsd,
+          analysisMode: result.analysisMode,
         },
       })
 
@@ -126,6 +131,7 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
         tokenOutputCount: analysis.tokenOutputCount,
         costInputUsd: analysis.costInputUsd,
         costOutputUsd: analysis.costOutputUsd,
+        analysisMode: analysis.analysisMode,
         createdAt: analysis.createdAt,
       })
     } catch (error) {

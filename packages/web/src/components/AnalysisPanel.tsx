@@ -122,6 +122,9 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
             {analysis.costInputUsd != null && analysis.costOutputUsd != null && (
               <><span style={{ margin: '0 5px', opacity: 0.5 }}>•</span>↑ {formatCostUsd(analysis.costInputUsd)} / ↓ {formatCostUsd(analysis.costOutputUsd)} = {formatCostUsd(analysis.costInputUsd + analysis.costOutputUsd)}</>
             )}
+            {analysis.analysisMode === 'optimized' && (
+              <><span style={{ margin: '0 5px', opacity: 0.5 }}>•</span><span style={{ background: 'var(--accent)', color: '#fff', fontSize: 9, padding: '1px 6px', borderRadius: 3, letterSpacing: 0.5, textTransform: 'uppercase', verticalAlign: 'middle' }}>Optimiert</span></>
+            )}
           </div>
         )}
         {onRegenerate && (

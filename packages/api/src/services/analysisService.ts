@@ -657,6 +657,167 @@ Respond ONLY with a JSON object with exactly two keys:
 3-5 entries per array, concrete references to data values and phase names.`
 }
 
+export function buildSystemPromptOptimized(language: string): string {
+  const isGerman = language === 'de'
+  if (isGerman) {
+    return `Du bist ein Espresso-Experte mit zwei Perspektiven:
+
+1. **Barista**: Mahlgrad, Tamping, Puckprep, Timing — konkrete Tipps anhand der Phasendaten
+2. **Röster**: Bohnenanalyse — Röstgrad/Herkunft vs. Temperatur, Extraktionszeit, Tage seit Röstung
+
+Regeln:
+- Phasendaten verwenden, keine Gesamt-Shot-Durchschnitte
+- Flow-geregelte Phase: DRUCK ist Puckwiderstand-Ausgabe. Druckschwankungen sind normal, kein Channeling.
+- Druckgeregelte Phase: FLOW ist Ausgabe. Channeling nur bei Flow σ > 0,20 ml/s UND plötzlichem Spike.
+- "goal=X" = tatsächlicher Profilwert, kein Trainingswissen
+- Röster: Tage seit Röstung, Basket-Temp in der Extraktionsphase, Ratio vs. Röstgrad
+- Keine historischen Vergleiche, außer wenn eine "Verlauf"-Zeile im Prompt vorhanden ist
+
+Nur Abweichungen erwähnen, die die Extraktionsqualität klar beeinflussen. Kleine Variationen ignorieren.
+
+Antworte NUR mit JSON: {"barista":[...],"roaster":[...]}
+Einträge müssen konkrete Datenwerte und Phasennamen referenzieren.`
+  }
+  return `You are an espresso expert with two perspectives:
+
+1. **Barista**: grind, tamping, puck prep, timing — concrete suggestions from phase data
+2. **Röster**: bean analysis — roast level/origin vs. temp, extraction time, days since roast
+
+Rules:
+- Use phase data, not whole-shot averages
+- Flow-ctrl phase: PRESSURE is puck-resistance output. Pressure variation is normal, not channeling.
+- Pres-ctrl phase: FLOW is output. Flag channeling only if flow σ > 0.20 ml/s AND there is a sudden spike.
+- "goal=X" = actual programmed target, never substitute training knowledge
+- Röster: days since roast, basket temp in extraction phase, ratio vs. roast level
+- No historical references unless a "History" line is present in the prompt
+
+Only flag deviations that clearly impact extraction quality. Ignore minor variations within equipment tolerance.
+
+Respond ONLY with JSON: {"barista":[...],"roaster":[...]}
+Entries must reference specific data values and phase names.`
+}
+
+function r1(v: number): string { return v.toFixed(1) }
+function r2(v: number): string { return v.toFixed(2) }
+
+export function buildDetailPromptOptimized(shot: ShotResponse, aggregatedStats: CurveStats, customContext = ''): string {
+  const lines: string[] = []
+
+  const shotDate = new Date(shot.startTime)
+  lines.push(`Shot ${shotDate.toISOString().slice(0, 10)}`)
+
+  const beanParts = [shot.beanBrand, shot.beanType, shot.roastLevel].filter(Boolean)
+  if (beanParts.length) {
+    let beanLine = `Bean: ${beanParts.join(' · ')}`
+    if (shot.roastDate) {
+      const daysSinceRoast = Math.round((shotDate.getTime() - new Date(shot.roastDate).getTime()) / 86400000)
+      beanLine += ` (${daysSinceRoast}d post-roast)`
+    }
+    lines.push(beanLine)
+  }
+
+  const params: string[] = []
+  if (shot.beanWeight && shot.drinkWeight) params.push(`${shot.beanWeight}g→${shot.drinkWeight}g (1:${(shot.drinkWeight / shot.beanWeight).toFixed(1)})`)
+  if (shot.duration) params.push(`${shot.duration.toFixed(0)}s`)
+  if (shot.drinkTds) params.push(`TDS ${shot.drinkTds}%`)
+  if (shot.drinkEy) params.push(`EY ${shot.drinkEy}%`)
+  if (shot.espressoEnjoyment != null) params.push(`Score ${shot.espressoEnjoyment}/100`)
+  if (params.length) lines.push(`Params: ${params.join(' · ')}`)
+
+  const eq: string[] = []
+  if (shot.profileTitle) eq.push(shot.profileTitle)
+  if (shot.grinderModel) eq.push(`${shot.grinderModel}${shot.grinderSetting ? ` @${shot.grinderSetting}` : ''}`)
+  if (eq.length) lines.push(`Setup: ${eq.join(' | ')}`)
+  lines.push('')
+
+  if (shot.shotData) {
+    const phases = detectShotPhases(shot.shotData)
+    if (phases.length >= 1) {
+      lines.push(`### Phases`)
+      for (const phase of phases) {
+        const ctrl = phase.control === 'flow' ? 'flow-ctrl' : 'pres-ctrl'
+        const goal = phase.goalValue != null
+          ? ` goal=${phase.goalValue}${phase.control === 'flow' ? 'ml/s' : 'bar'}`
+          : ''
+        lines.push(`${phase.name} ${phase.startTime}–${phase.endTime}s | ${ctrl}${goal}`)
+
+        if (phase.stable && phase.stable.durationS >= 3) {
+          const s = phase.stable
+          if (phase.control === 'pressure') {
+            const sigma = s.flow.stdDev > 0.20 ? ` σ=${r2(s.flow.stdDev)} max=${r1(s.flow.max)}` : ''
+            const temp = s.tempAvg != null ? ` temp=${s.tempAvg}°C` : ''
+            lines.push(`  ramp ${phase.startTime}–${r1(s.startTime)}s`)
+            lines.push(`  stable ${r1(s.startTime)}–${phase.endTime}s: pres=${r1(s.pressure.avg)} flow=${r1(s.flow.avg)}${sigma} trend=${s.flowTrend}${temp}`)
+          } else {
+            const sigma = s.flow.stdDev > 0.20 ? ` σ=${r2(s.flow.stdDev)}` : ''
+            const temp = s.tempAvg != null ? ` temp=${s.tempAvg}°C` : ''
+            lines.push(`  stable ${r1(s.startTime)}–${phase.endTime}s: pres=${r1(s.pressure.avg)} flow=${r1(s.flow.avg)}${sigma} trend=${s.flowTrend}${temp}`)
+          }
+        } else {
+          const sigma = phase.flow.stdDev > 0.20 ? ` σ=${r2(phase.flow.stdDev)}` : ''
+          const temp = phase.tempAvg != null ? ` temp=${phase.tempAvg}°C` : ''
+          if (phase.control === 'pressure') {
+            lines.push(`  pres=${r1(phase.pressure.avg)} flow=${r1(phase.flow.avg)}${sigma} trend=${phase.trend}${temp}`)
+          } else {
+            lines.push(`  pres=${r1(phase.pressure.avg)} flow=${r1(phase.flow.avg)}${sigma} trend=${phase.trend}${temp}`)
+          }
+        }
+      }
+      lines.push('')
+    } else {
+      if (shot.shotData.espresso_pressure) lines.push(`Pressure: ${describeCurve(shot.shotData.espresso_pressure, 'bar')}`)
+      if (shot.shotData.espresso_flow) lines.push(`Flow: ${describeCurve(shot.shotData.espresso_flow, 'ml/s')}`)
+      lines.push('')
+    }
+  }
+
+  if (shot.shotData?.espresso_flow_weight) {
+    const scaleFlow = shot.shotData.espresso_flow_weight as number[]
+    const timeframe = shot.shotData.timeframe as number[] | undefined
+    const nonZero = scaleFlow.map((v, i) => ({ v, t: timeframe?.[i] ?? i })).filter(x => x.v > 0.05)
+    if (nonZero.length > 5) {
+      const vals = nonZero.map(x => x.v)
+      const lastThird = vals.slice(Math.floor(vals.length * 0.67))
+      const lastAvg = avg(lastThird)
+      const residuals: number[] = []
+      for (let i = 2; i < vals.length - 2; i++) {
+        const localAvg = avg(vals.slice(i - 2, i + 3))
+        residuals.push(Math.abs(vals[i] - localAvg))
+      }
+      const residualSD = avg(residuals)
+      const flowTrend = trend(vals)
+      const isUnstable = residualSD > 0.12 && flowTrend !== 'rising' && flowTrend !== 'falling'
+      const unstableStr = isUnstable ? ` UNSTABLE(σ=${residualSD.toFixed(3)})` : ''
+      lines.push(`Scale flow: first-drop=${nonZero[0].t.toFixed(1)}s peak=${r2(Math.max(...vals))}ml/s late=${r1(lastAvg)}ml/s trend=${flowTrend}${unstableStr}`)
+      lines.push('')
+    }
+  }
+
+  const tastingParts: string[] = []
+  if (shot.espressoNotes) tastingParts.push(`"${shot.espressoNotes}"`)
+  if (shot.acidity) tastingParts.push(`acid=${shot.acidity}`)
+  if (shot.sweetness) tastingParts.push(`sweet=${shot.sweetness}`)
+  if (shot.bitterness) tastingParts.push(`bitter=${shot.bitterness}`)
+  if (shot.mouthfeel) tastingParts.push(`body=${shot.mouthfeel}`)
+  if (tastingParts.length) lines.push(`Tasting: ${tastingParts.join(' · ')}`)
+
+  const contextShotCount = (aggregatedStats.shotCount ?? 1) - 1
+  if (contextShotCount >= 2 && (aggregatedStats.pressure || aggregatedStats.flow)) {
+    const histParts: string[] = []
+    if (aggregatedStats.pressure) histParts.push(`pres=${r1(aggregatedStats.pressure.avg)}bar`)
+    if (aggregatedStats.flow) histParts.push(`flow=${r1(aggregatedStats.flow.avg)}ml/s`)
+    if (aggregatedStats.temperature) histParts.push(`temp=${r1(aggregatedStats.temperature.avg)}°C`)
+    lines.push(`History (${contextShotCount} shots): ${histParts.join(' · ')}`)
+  }
+
+  if (customContext.trim()) {
+    lines.push('')
+    lines.push(`Context: ${customContext.trim()}`)
+  }
+
+  return lines.join('\n')
+}
+
 /**
  * Build a user prompt for analyzing a single shot.
  * Uses phase-segmented data for accurate per-phase analysis.
@@ -906,6 +1067,7 @@ export interface AnalyzeResult extends ClaudeAnalysisResult {
   tokenOutputCount: number
   costInputUsd: number | null
   costOutputUsd: number | null
+  analysisMode: 'standard' | 'optimized'
 }
 
 /**
@@ -974,14 +1136,20 @@ export async function analyzeShot(
   window: '7d' | '30d' | '90d' | 'all' = '30d',
   modelName?: string,
   language = 'en',
-  customContext = ''
+  customContext = '',
+  analysisMode: 'standard' | 'optimized' = 'standard'
 ): Promise<AnalyzeResult> {
   const preprocessed = await preprocessShots(shotId, window)
-  const systemPrompt = buildSystemPrompt(language)
+
+  const systemPrompt = analysisMode === 'optimized'
+    ? buildSystemPromptOptimized(language)
+    : buildSystemPrompt(language)
 
   let prompt: string
   if (analysisType === 'detail') {
-    prompt = buildDetailPrompt(preprocessed.targetShot, preprocessed.aggregatedStats, customContext)
+    prompt = analysisMode === 'optimized'
+      ? buildDetailPromptOptimized(preprocessed.targetShot, preprocessed.aggregatedStats, customContext)
+      : buildDetailPrompt(preprocessed.targetShot, preprocessed.aggregatedStats, customContext)
   } else {
     prompt = buildStatsPrompt(preprocessed.contextShots, preprocessed.aggregatedStats, window)
   }
@@ -1014,13 +1182,32 @@ export async function analyzeShot(
     // Call Claude (default)
     const client = new Anthropic({ apiKey })
     const claudeModel = modelName || 'claude-haiku-4-5-20251001'
+    const maxTokens = analysisMode === 'optimized' ? 1024 : 2048
 
-    const message = await client.messages.create({
-      model: claudeModel,
-      max_tokens: 2048,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: prompt }],
-    })
+    let message: Awaited<ReturnType<typeof client.messages.create>>
+
+    if (analysisMode === 'optimized') {
+      // Use prompt caching for system prompt in optimized mode
+      message = await client.messages.create({
+        model: claudeModel,
+        max_tokens: maxTokens,
+        system: [
+          {
+            type: 'text' as const,
+            text: systemPrompt,
+            cache_control: { type: 'ephemeral' as const },
+          },
+        ] as Parameters<typeof client.messages.create>[0]['system'],
+        messages: [{ role: 'user', content: prompt }],
+      })
+    } else {
+      message = await client.messages.create({
+        model: claudeModel,
+        max_tokens: maxTokens,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: prompt }],
+      })
+    }
 
     tokenInputCount = message.usage.input_tokens
     tokenOutputCount = message.usage.output_tokens
@@ -1043,5 +1230,6 @@ export async function analyzeShot(
     tokenOutputCount,
     costInputUsd,
     costOutputUsd,
+    analysisMode,
   }
 }

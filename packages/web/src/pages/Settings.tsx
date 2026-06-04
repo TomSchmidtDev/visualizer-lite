@@ -46,6 +46,7 @@ export default function Settings() {
   const [apiKeyOpenaiKey, setApiKeyOpenaiKey] = useState('')
   const [aiModel, setAiModel] = useState('claude-haiku-4-5-20251001')
   const [aiCustomContext, setAiCustomContext] = useState(DEFAULT_AI_CONTEXT)
+  const [aiAnalysisMode, setAiAnalysisMode] = useState('standard')
   const [aiKeysMsg, setAiKeysMsg] = useState('')
   const [aiKeysError, setAiKeysError] = useState('')
 
@@ -74,7 +75,8 @@ export default function Settings() {
     if (settings?.apiKeyOpenaiKey) setApiKeyOpenaiKey(settings.apiKeyOpenaiKey)
     if (settings?.aiModel) setAiModel(settings.aiModel)
     if (settings?.aiCustomContext !== undefined) setAiCustomContext(settings.aiCustomContext || DEFAULT_AI_CONTEXT)
-  }, [settings?.de1Url, settings?.de1DefaultBeverage, settings?.apiKeyClaudeKey, settings?.apiKeyOpenaiKey, settings?.aiModel, settings?.aiCustomContext])
+    if (settings?.aiAnalysisMode) setAiAnalysisMode(settings.aiAnalysisMode)
+  }, [settings?.de1Url, settings?.de1DefaultBeverage, settings?.apiKeyClaudeKey, settings?.apiKeyOpenaiKey, settings?.aiModel, settings?.aiCustomContext, settings?.aiAnalysisMode])
 
   // Pre-fill "Von" date with last import's "Bis" date (once on first load)
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -583,12 +585,51 @@ export default function Settings() {
           <small style={{ color: 'var(--text-dim)' }}>Wird jeder Analyse als Kontext mitgegeben</small>
         </div>
 
+        {/* Analysis Mode */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 12, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: 0.8, display: 'block', marginBottom: 8 }}>
+            Analyse-Modus
+          </label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {([
+              { val: 'standard', label: 'Standard', desc: 'Bewährtes Format, unverändertes Verhalten' },
+              { val: 'optimized', label: 'Optimiert', desc: 'Kompakter, günstiger, weniger Fehlalarme' },
+            ] as const).map(({ val, label, desc }) => (
+              <label
+                key={val}
+                style={{
+                  flex: 1,
+                  padding: '10px 12px',
+                  border: `1px solid ${aiAnalysisMode === val ? 'var(--accent)' : 'var(--border)'}`,
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 3,
+                  background: aiAnalysisMode === val ? 'color-mix(in srgb, var(--accent) 8%, transparent)' : 'transparent',
+                }}
+              >
+                <input
+                  type="radio"
+                  name="aiAnalysisMode"
+                  value={val}
+                  checked={aiAnalysisMode === val}
+                  onChange={(e) => setAiAnalysisMode(e.target.value)}
+                  style={{ display: 'none' }}
+                />
+                <span style={{ fontSize: 13, fontWeight: 600, color: aiAnalysisMode === val ? 'var(--accent)' : 'var(--text)' }}>{label}</span>
+                <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>{desc}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
         <button
           onClick={async () => {
             setAiKeysMsg('')
             setAiKeysError('')
             try {
-              await api.updateSettings({ apiKeyClaudeKey, apiKeyOpenaiKey, aiModel, aiCustomContext })
+              await api.updateSettings({ apiKeyClaudeKey, apiKeyOpenaiKey, aiModel, aiCustomContext, aiAnalysisMode })
               setAiKeysMsg('✅ AI Settings saved successfully')
               setTimeout(() => setAiKeysMsg(''), 3000)
             } catch (err) {

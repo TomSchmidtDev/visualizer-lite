@@ -97,6 +97,7 @@ export interface AppSettings {
   apiKeyOpenaiKey?: string
   aiModel?: string
   aiCustomContext?: string
+  aiAnalysisMode?: string
 }
 
 export interface Analysis {
@@ -108,6 +109,7 @@ export interface Analysis {
   tokenOutputCount?: number
   costInputUsd?: number | null
   costOutputUsd?: number | null
+  analysisMode?: string
   createdAt?: string
 }
 
@@ -123,6 +125,7 @@ export interface AnalysisResponse {
   tokenOutputCount: number
   costInputUsd: number | null
   costOutputUsd: number | null
+  analysisMode?: string
   createdAt: string
   cachedAt?: string
 }

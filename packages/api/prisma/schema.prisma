@@ -75,6 +75,7 @@ model ShotAnalysis {
   tokenOutputCount  Int
   costInputUsd      Float?
   costOutputUsd     Float?
+  analysisMode      String    @default("standard")
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 

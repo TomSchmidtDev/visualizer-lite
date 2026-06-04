@@ -24,6 +24,7 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
       apiKeyOpenaiKey:    map.apiKeyOpenaiKey ?? '',
       aiModel:            map.aiModel ?? 'claude-haiku-4-5-20251001',
       aiCustomContext:    map.aiCustomContext ?? '',
+      aiAnalysisMode:     map.aiAnalysisMode ?? 'standard',
     })
   })
 
@@ -42,11 +43,12 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
       apiKeyOpenaiKey?: string
       aiModel?: string
       aiCustomContext?: string
+      aiAnalysisMode?: string
       currentPassword?: string
       newPassword?: string
     }
   }>('/', auth, async (request, reply) => {
-    const { language, theme, de1Url, tooltipOpacity, showAvgRatio, de1LastImportDate, statsTopN, statsShowPrevValue, de1DefaultBeverage, apiKeyClaudeKey, apiKeyOpenaiKey, aiModel, aiCustomContext, currentPassword, newPassword } = request.body
+    const { language, theme, de1Url, tooltipOpacity, showAvgRatio, de1LastImportDate, statsTopN, statsShowPrevValue, de1DefaultBeverage, apiKeyClaudeKey, apiKeyOpenaiKey, aiModel, aiCustomContext, aiAnalysisMode, currentPassword, newPassword } = request.body
 
     if (language)
       await prisma.settings.upsert({
@@ -125,6 +127,12 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
         where: { key: 'aiCustomContext' },
         create: { key: 'aiCustomContext', value: aiCustomContext },
         update: { value: aiCustomContext },
+      })
+    if (aiAnalysisMode !== undefined)
+      await prisma.settings.upsert({
+        where: { key: 'aiAnalysisMode' },
+        create: { key: 'aiAnalysisMode', value: aiAnalysisMode },
+        update: { value: aiAnalysisMode },
       })
     if (currentPassword && newPassword) {
       const row = await prisma.settings.findUnique({ where: { key: 'passwordHash' } })
