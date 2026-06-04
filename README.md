@@ -22,7 +22,7 @@ Visualizer Lite grew out of that need:
 - **Auto-upload (push)** — shots are pushed automatically after each extraction via the modified [*Upload to visualizer*](de1app/de1plus/plugins/visualizer_upload/) DE1 plugin included in this repo
 - **Manual upload** — drag-and-drop or file-picker upload of `.shot` files via the web interface
 - **Export** — download your entire shot archive as a ZIP file for backup or external analysis
-- **Filterable shot list** — search and filter by roaster, bean, profile, grinder, beverage type, date range, and more
+- **Filterable shot list** — search and filter by roaster, bean, profile, grinder, beverage type, and more
 - **Statistics dashboard** — KPI tiles with period comparison (24h to all-time), top roasters/roasts/profiles, configurable beverage filter (espresso vs. filter); includes **Roasters & Beans** and **Profiles** tabs with sortable metrics tables
 - **Shot comparison** — overlay or split two shots' extraction curves side by side with key metrics diff
 - **AI analysis (experimental, for fun)** — on-demand shot analysis via Claude or OpenAI: **Barista** perspective (brewing technique, grind, tamping) and **Röster** perspective (bean, roast level, freshness); phase-aware with stable sub-phase detection; bring your own API key. Results are interesting but not authoritative — best results with **Claude Sonnet**
@@ -257,17 +257,19 @@ The [Advanced REST API](https://github.com/randomcoffeesnob/decent-advanced-rest
 
 ### System Overview
 
-Visualizer Lite runs as a single Docker container. The DE1 machine communicates with it in both directions; the browser accesses the same container on port 3000.
+Visualizer Lite runs as a single Docker container. The DE1 machine communicates with it in both directions; the browser accesses the same container on port 3000. For AI analysis, the container calls external APIs (Claude or OpenAI) on demand — no API key is required for any other feature.
 
 ```mermaid
 graph LR
     DE1["🖥️ DE1 Espresso Machine\n(Decent app + plugin)"]
     VL["📦 Visualizer Lite\n(Docker Container :3000)"]
     Browser["🌐 Browser"]
+    AI["☁️ AI API\n(Claude / OpenAI)"]
 
     DE1 -- "Push: POST /api/shots/upload\n(after each extraction)" --> VL
     VL -- "Pull: Advanced REST API\n(on demand from Settings)" --> DE1
     Browser -- "HTTP / HTTPS" --> VL
+    VL -- "Shot analysis\n(on demand, optional)" --> AI
 ```
 
 ### Container Internals
@@ -284,6 +286,7 @@ graph TB
             Upload["Upload\n/api/shots/upload"]
             DE1API["DE1 Import\n/api/de1"]
             Stats["Stats & Export\n/api/stats /api/export"]
+            Analysis["Analysis\n/api/analysis"]
             Static["Static\n(React SPA)"]
         end
         Prisma["Prisma ORM"]
@@ -295,7 +298,11 @@ graph TB
         Files[("files/\n*.shot (raw)")]
     end
 
+    AI["☁️ AI API\n(Claude / OpenAI)"]
+
     ShotAPI & Upload & DE1API & Stats --> Prisma
+    Analysis --> Prisma
+    Analysis -- "on demand" --> AI
     Prisma --> DB
     DB --> FTS
     Upload & DE1API --> Files
@@ -343,12 +350,12 @@ visualizer-lite/
 ├── packages/
 │   ├── api/                  # Fastify backend (Node.js)
 │   │   ├── src/
-│   │   │   ├── routes/       # auth, shots, upload, de1, stats, export, search
-│   │   │   ├── services/     # shotService, searchService, de1Service, …
+│   │   │   ├── routes/       # auth, shots, upload, de1, stats, export, search, analysis
+│   │   │   ├── services/     # shotService, searchService, de1Service, analysisService, …
 │   │   │   ├── parsers/      # decent.ts — .shot file parser
 │   │   │   └── plugins/      # auth (JWT + cookie)
 │   │   └── prisma/
-│   │       └── schema.prisma # SQLite schema (Shot, Tag, Settings)
+│   │       └── schema.prisma # SQLite schema (Shot, ShotAnalysis, Tag, Settings)
 │   └── web/                  # React 19 + Vite 6 frontend
 │       └── src/
 │           ├── pages/        # ShotList, ShotDetail, ShotEdit, Stats, …
@@ -378,6 +385,17 @@ erDiagram
         int     espressoEnjoyment
         string  shotData     "JSON (time-series)"
     }
+    ShotAnalysis {
+        string   id              PK
+        string   shotId          FK
+        string   analysisType    "detail | stats"
+        string   aiModel
+        string   barista         "JSON array"
+        string   roaster         "JSON array"
+        int      tokenInputCount
+        int      tokenOutputCount
+        datetime createdAt
+    }
     Tag {
         string id   PK
         string name UK
@@ -386,6 +404,7 @@ erDiagram
         string key   PK
         string value
     }
+    Shot ||--o| ShotAnalysis : "analysis"
     Shot }o--o{ Tag : "tags"
 ```
 
