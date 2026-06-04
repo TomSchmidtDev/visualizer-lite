@@ -3,6 +3,7 @@ import { prisma } from '../db.js'
 import type { ShotData, ShotResponse } from '../types.js'
 import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
+import { getModelPricing } from './pricingService.js'
 
 export interface AggregatedStats {
   min: number
@@ -903,6 +904,8 @@ function extractJson(text: string): ClaudeAnalysisResult {
 export interface AnalyzeResult extends ClaudeAnalysisResult {
   tokenInputCount: number
   tokenOutputCount: number
+  costInputUsd: number | null
+  costOutputUsd: number | null
 }
 
 /**
@@ -1027,9 +1030,15 @@ export async function analyzeShot(
     analysisResult = extractJson(textContent.text)
   }
 
+  const pricing = await getModelPricing(modelName ?? '')
+  const costInputUsd = pricing !== null ? tokenInputCount * pricing.inputPerToken : null
+  const costOutputUsd = pricing !== null ? tokenOutputCount * pricing.outputPerToken : null
+
   return {
     ...analysisResult,
     tokenInputCount,
     tokenOutputCount,
+    costInputUsd,
+    costOutputUsd,
   }
 }
