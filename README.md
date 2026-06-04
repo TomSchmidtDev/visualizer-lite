@@ -187,6 +187,30 @@ Place your certificate files at:
 
 ---
 
+## Importing Shots
+
+There are three ways to get shots into Visualizer Lite:
+
+### Auto-push (recommended)
+
+Once the *Upload to Visualizer* plugin is installed and configured, shots are uploaded automatically after every extraction — nothing else to do.
+
+### Direct import from the DE1 machine
+
+Requires the [Advanced REST API](https://github.com/randomcoffeesnob/decent-advanced-rest-api) plugin to be installed on the tablet.
+
+Open **Settings → DE1 Import** in Visualizer Lite, set a date range, and start the import. The app streams results live and saves the date of the last successful import — next time you open the settings, the start date is pre-filled, so triggering a catch-up import is just one click.
+
+> **Using Visualizer Lite alongside the official Visualizer:** If you use direct import instead of auto-push, the *Upload to Visualizer* plugin on the tablet can continue uploading to [visualizer.coffee](https://visualizer.coffee) as usual — the two are completely independent. This means you can run both services in parallel: the community features of visualizer.coffee and your local history in Visualizer Lite.
+
+Useful for: initial bulk import of an existing shot history, catching up after the push plugin was temporarily not running, or when you prefer to keep the official Visualizer as your primary upload target.
+
+### Manual upload
+
+In the top navigation bar, use the upload button to select one or more `.shot` files from your computer. Duplicate detection (SHA-256) prevents the same shot from being stored twice, regardless of how it was imported.
+
+---
+
 ## DE1 Plugin
 
 Copy `de1app/de1plus/plugins/visualizer_upload/` to `/de1plus/plugins/visualizer_upload/` on the DE1 tablet, then restart the DE1 app.

@@ -187,6 +187,30 @@ Zertifikatsdateien ablegen unter:
 
 ---
 
+## Shots importieren
+
+Es gibt drei Wege, Shots in Visualizer Lite zu importieren:
+
+### Automatischer Upload (empfohlen)
+
+Sobald das *Upload to Visualizer*-Plugin installiert und konfiguriert ist, werden Shots nach jeder Extraktion automatisch hochgeladen — kein weiterer Aufwand erforderlich.
+
+### Direktimport von der DE1-Maschine
+
+Erfordert das [Advanced REST API](https://github.com/randomcoffeesnob/decent-advanced-rest-api)-Plugin auf dem Tablet.
+
+**Einstellungen → DE1-Import** in Visualizer Lite öffnen, einen Datumsbereich festlegen und den Import starten. Die App streamt die Ergebnisse live und speichert das Datum des letzten erfolgreichen Imports — beim nächsten Öffnen der Einstellungen ist das Startdatum bereits vorausgefüllt, sodass ein Aufholimport mit einem Klick gestartet werden kann.
+
+> **Visualizer Lite parallel zum offiziellen Visualizer nutzen:** Wer den Direktimport statt des automatischen Uploads verwendet, kann das *Upload to Visualizer*-Plugin auf dem Tablet weiterhin so konfigurieren, dass Shots wie gewohnt an [visualizer.coffee](https://visualizer.coffee) gesendet werden — beide sind vollständig unabhängig voneinander. So lassen sich beide Dienste parallel betreiben: die Community-Funktionen von visualizer.coffee und die lokale Historie in Visualizer Lite.
+
+Geeignet für: initialen Massenimport einer bestehenden Shot-Historie, Nachholen von Shots nach einer Auszeit des Upload-Plugins, oder wenn der offizielle Visualizer das primäre Upload-Ziel bleiben soll.
+
+### Manueller Upload
+
+Über die Upload-Schaltfläche in der oberen Navigationsleiste können eine oder mehrere `.shot`-Dateien vom eigenen Computer ausgewählt werden. Eine SHA-256-Duplikatserkennung verhindert, dass derselbe Shot mehrfach gespeichert wird — unabhängig vom Importweg.
+
+---
+
 ## DE1-Plugin
 
 Den Ordner `de1app/de1plus/plugins/visualizer_upload/` nach `/de1plus/plugins/visualizer_upload/` auf das DE1-Tablet kopieren und die DE1-App neu starten.
