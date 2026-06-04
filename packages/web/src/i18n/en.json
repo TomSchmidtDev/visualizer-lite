@@ -155,7 +155,11 @@
     "showAvgRatio": "Show ∅ Ratio in shot list",
     "statsSection": "Statistics",
     "statsTopN": "Top N entries (lists)",
-    "statsShowPrevValue": "Show previous period value in KPIs"
+    "statsShowPrevValue": "Show previous period value in KPIs",
+    "tabAnsicht": "View",
+    "tabDaten": "Data",
+    "tabSicherheit": "Security",
+    "tabKi": "AI Analysis"
   },
   "stats": {
     "title": "Statistics",

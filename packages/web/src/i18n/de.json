@@ -155,7 +155,11 @@
     "showAvgRatio": "∅ Ratio in der Shot-Liste anzeigen",
     "statsSection": "Statistiken",
     "statsTopN": "Top-N Einträge (Listen)",
-    "statsShowPrevValue": "Vorperiodenwert bei KPIs anzeigen"
+    "statsShowPrevValue": "Vorperiodenwert bei KPIs anzeigen",
+    "tabAnsicht": "Ansicht",
+    "tabDaten": "Daten",
+    "tabSicherheit": "Sicherheit",
+    "tabKi": "KI Analyse"
   },
   "stats": {
     "title": "Statistiken",
