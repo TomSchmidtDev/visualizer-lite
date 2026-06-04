@@ -11,6 +11,14 @@ interface AnalysisPanelProps {
 
 type TabType = 'barista' | 'roaster' | 'analyst';
 
+function formatCostUsd(amount: number): string {
+  const decimals = amount < 0.001 ? 6 : 4
+  const parts = amount.toFixed(decimals).split('.')
+  const dec = parts[1].replace(/0+$/, '')
+  const finalDec = dec.length < 2 ? dec.padEnd(2, '0') : dec
+  return `$${parts[0]}.${finalDec}`
+}
+
 const TABS: { type: TabType; label: string; emoji: string }[] = [
   { type: 'barista', label: 'Barista', emoji: '☕' },
   { type: 'roaster', label: 'Röster', emoji: '🔥' },
@@ -103,14 +111,17 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
 
       <div style={{ marginTop: 12 }}>
         {analysis.createdAt && (
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
-            {analysis.aiModel && (
-              <>{analysis.aiModel}<span style={{ margin: '0 5px', opacity: 0.5 }}>•</span></>
-            )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
+            <div>{new Date(analysis.createdAt).toLocaleString()}</div>
+            {analysis.aiModel && <div>{analysis.aiModel}</div>}
             {analysis.tokenInputCount !== undefined && analysis.tokenOutputCount !== undefined && (
-              <>↑ {analysis.tokenInputCount.toLocaleString()} / ↓ {analysis.tokenOutputCount.toLocaleString()} Tokens<span style={{ margin: '0 5px', opacity: 0.5 }}>•</span></>
+              <div>↑ {analysis.tokenInputCount.toLocaleString()} / ↓ {analysis.tokenOutputCount.toLocaleString()} Tokens</div>
             )}
-            {new Date(analysis.createdAt).toLocaleString()}
+            {analysis.costInputUsd != null && analysis.costOutputUsd != null && (
+              <div>
+                ↑ {formatCostUsd(analysis.costInputUsd)} / ↓ {formatCostUsd(analysis.costOutputUsd)} = {formatCostUsd(analysis.costInputUsd + analysis.costOutputUsd)}
+              </div>
+            )}
           </div>
         )}
         {onRegenerate && (

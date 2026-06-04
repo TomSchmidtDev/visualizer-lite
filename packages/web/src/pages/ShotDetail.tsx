@@ -57,6 +57,8 @@ export default function ShotDetail() {
         aiModel: response.aiModel,
         tokenInputCount: response.tokenInputCount,
         tokenOutputCount: response.tokenOutputCount,
+        costInputUsd: response.costInputUsd,
+        costOutputUsd: response.costOutputUsd,
         createdAt: response.createdAt,
       })
     } catch (err) {
