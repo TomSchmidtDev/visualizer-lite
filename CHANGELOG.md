@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.0] - 2026-06-04
+
+### Changed
+- **Settings tabbed navigation** — Reorganized the Settings page into 4 icon+label tabs: 🎨 Ansicht (Language, Theme, Statistics), 💾 Daten (DE1 Import, Export, Database Info), 🔒 Sicherheit (Password), 🤖 KI Analyse (AI Analysis). Active tab is remembered across sessions via `localStorage`.
+
 ## [1.12.0] - 2026-06-04
 
 ### Added
