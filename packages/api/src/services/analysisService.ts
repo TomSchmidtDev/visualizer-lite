@@ -1,5 +1,6 @@
 // packages/api/src/services/analysisService.ts
 import { prisma } from '../db.js'
+import type { Prisma } from '@prisma/client'
 import type { ShotData, ShotResponse } from '../types.js'
 import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
@@ -17,6 +18,8 @@ export interface CurveStats {
   flow?: AggregatedStats
   temperature?: AggregatedStats
   shotCount?: number
+  /** Describes what was matched, e.g. "same profile & bean" or "same profile" */
+  contextLabel?: string
 }
 
 export interface ShotPhase {
@@ -415,19 +418,61 @@ export async function preprocessShots(
   const targetDate = new Date(targetShot.startTime)
   const windowStart = new Date(targetDate.getTime() - windowMs[window])
 
-  // Load context shots within time window, excluding target shot, limit to 100
-  const contextShots = await prisma.shot.findMany({
-    where: {
-      id: { not: shotId },
-      startTime: {
-        gte: windowStart.toISOString(),
-        lte: targetDate.toISOString(),
-      },
+  // Load context shots — tiered matching for a meaningful baseline:
+  //   Tier 1 (ideal):   same profileTitle + same beanBrand + same beanType
+  //   Tier 2 (fallback): same profileTitle only
+  //   No profile set:   skip historical context entirely (incomparable profiles)
+  //
+  // Minimum 2 context shots required; fewer → no historical stats in prompt.
+  const baseWhere = {
+    id: { not: shotId },
+    startTime: {
+      gte: windowStart.toISOString(),
+      lte: targetDate.toISOString(),
     },
-    include: { tags: true },
-    orderBy: { startTime: 'desc' },
-    take: 100,
-  })
+  }
+
+  type ShotWithTags = Prisma.ShotGetPayload<{ include: { tags: true } }>
+  let contextShots: ShotWithTags[] = []
+  let contextLabel = ''
+
+  if (targetShot.profileTitle) {
+    // Tier 1: same profile AND same bean (both brand and type must be present)
+    if (targetShot.beanBrand && targetShot.beanType) {
+      contextShots = await prisma.shot.findMany({
+        where: {
+          ...baseWhere,
+          profileTitle: targetShot.profileTitle,
+          beanBrand: targetShot.beanBrand,
+          beanType: targetShot.beanType,
+        },
+        include: { tags: true },
+        orderBy: { startTime: 'desc' },
+        take: 100,
+      })
+      if (contextShots.length >= 2) {
+        contextLabel = 'same profile & bean'
+      }
+    }
+
+    // Tier 2 fallback: same profile only
+    if (contextShots.length < 2) {
+      contextShots = await prisma.shot.findMany({
+        where: {
+          ...baseWhere,
+          profileTitle: targetShot.profileTitle,
+        },
+        include: { tags: true },
+        orderBy: { startTime: 'desc' },
+        take: 100,
+      })
+      contextLabel = contextShots.length >= 2 ? 'same profile' : ''
+    }
+
+    // Clear if still below threshold — no meaningful stats
+    if (contextShots.length < 2) contextShots = []
+  }
+  // No profileTitle → contextShots stays empty, no historical context
 
   // Aggregate stats from context shots only (not target) — extraction phase only
   // This gives a fair baseline: only the pressure-controlled extraction phase,
@@ -484,7 +529,7 @@ export async function preprocessShots(
     }
   }
 
-  const aggregatedStats: CurveStats = { shotCount: allShots.length }
+  const aggregatedStats: CurveStats = { shotCount: allShots.length, contextLabel }
   if (pressureData.length > 0) {
     aggregatedStats.pressure = aggregateStats(pressureData)
   }
@@ -807,7 +852,8 @@ export function buildDetailPromptOptimized(shot: ShotResponse, aggregatedStats: 
     if (aggregatedStats.pressure) histParts.push(`pres=${r1(aggregatedStats.pressure.avg)}bar`)
     if (aggregatedStats.flow) histParts.push(`flow=${r1(aggregatedStats.flow.avg)}ml/s`)
     if (aggregatedStats.temperature) histParts.push(`temp=${r1(aggregatedStats.temperature.avg)}°C`)
-    lines.push(`History (${contextShotCount} shots): ${histParts.join(' · ')}`)
+    const contextDesc = aggregatedStats.contextLabel ?? 'recent'
+    lines.push(`History (${contextShotCount} shots, ${contextDesc}): ${histParts.join(' · ')}`)
   }
 
   if (customContext.trim()) {
@@ -966,7 +1012,8 @@ export function buildDetailPrompt(shot: ShotResponse, aggregatedStats: CurveStat
   // Historical context — only when at least 2 context shots exist, extraction-phase only
   const contextShotCount = (aggregatedStats.shotCount ?? 1) - 1
   if (contextShotCount >= 2 && (aggregatedStats.pressure || aggregatedStats.flow)) {
-    lines.push(`### Historical Context (${contextShotCount} recent shots, extraction-phase averages)`)
+    const contextDesc = aggregatedStats.contextLabel ?? 'recent shots'
+    lines.push(`### Historical Context (${contextShotCount} shots, ${contextDesc}, extraction-phase averages)`)
     if (aggregatedStats.pressure) lines.push(`- Avg extraction pressure: ${aggregatedStats.pressure.avg.toFixed(1)} bar`)
     if (aggregatedStats.flow) lines.push(`- Avg extraction flow: ${aggregatedStats.flow.avg.toFixed(1)} ml/s`)
     if (aggregatedStats.temperature) lines.push(`- Avg basket temp: ${aggregatedStats.temperature.avg.toFixed(1)}°C`)

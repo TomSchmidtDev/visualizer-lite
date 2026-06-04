@@ -58,6 +58,16 @@ The shot is loaded from SQLite with all fields:
 
 Up to **100 recent shots** preceding the target shot are loaded within a configurable time window (7 d, 30 d, 90 d, all). They are used **only** for historical baseline calculation — not included in the user prompt directly.
 
+**Tiered matching** ensures the baseline is always comparable:
+
+| Tier | Condition | Label in prompt |
+|------|-----------|-----------------|
+| 1 — ideal | Same `profileTitle` **and** same `beanBrand` + `beanType` | `same profile & bean` |
+| 2 — fallback | Same `profileTitle` only | `same profile` |
+| — | `profileTitle` is null, or fewer than 2 matches found | no historical context |
+
+Comparing across different profiles is meaningless — a Turbo shot (high-flow, low-pressure) and a Blooming Flow shot have entirely different baseline curves. Shots with no profile stored produce no historical section in the prompt at all.
+
 ### 3. Curve Downsampling
 
 Raw sensor curves typically contain **300–600 data points** at ~2 Hz for a 30–60 s shot. Before analysis they are downsampled to **50 points** per channel using linear interpolation, preserving the overall shape while keeping the payload small.
@@ -194,7 +204,7 @@ Markdown-formatted prose. Typical size: **400–800 tokens**.
 ### Tasting
 Notes: "slightly bitter finish" · Acidity 3 · Sweetness 4 · Bitterness 5 · Mouthfeel 3
 
-### Historical Context (28 recent shots, extraction-phase averages)
+### Historical Context (28 shots, same profile & bean, extraction-phase averages)
 - Avg extraction pressure: 9.1 bar
 - Avg extraction flow: 1.9 ml/s
 - Avg basket temp: 93.2°C
@@ -228,7 +238,7 @@ Extraction 8.5–30.2s | pres-ctrl goal=9.0bar
 Scale flow: first-drop=6.2s peak=2.41ml/s late=1.8ml/s trend=falling
 
 Tasting: "slightly bitter finish" · acid=3 · sweet=4 · bitter=5 · body=3
-History (28 shots): pres=9.1bar · flow=1.9ml/s · temp=93.2°C
+History (28 shots, same profile & bean): pres=9.1bar · flow=1.9ml/s · temp=93.2°C
 
 Context: Machine: Decent Espresso DE1
 [user-configured custom context]
