@@ -1,11 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-
-export interface Analysis {
-  barista: string[];
-  roaster: string[];
-  analyst: string[];
-}
+import type { Analysis } from '../types.js';
 
 interface AnalysisPanelProps {
   analysis: Analysis | null;
@@ -106,11 +101,24 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
         ))}
       </ul>
 
-      {onRegenerate && (
-        <button onClick={onRegenerate} className="btn btn-secondary" style={{ marginTop: 12, fontSize: 12 }}>
-          {t('detail.aiRegenerate')}
-        </button>
-      )}
+      <div style={{ marginTop: 12 }}>
+        {analysis.createdAt && (
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
+            {analysis.aiModel && (
+              <>{analysis.aiModel}<span style={{ margin: '0 5px', opacity: 0.5 }}>•</span></>
+            )}
+            {analysis.tokenInputCount !== undefined && analysis.tokenOutputCount !== undefined && (
+              <>↑ {analysis.tokenInputCount.toLocaleString()} / ↓ {analysis.tokenOutputCount.toLocaleString()} Tokens<span style={{ margin: '0 5px', opacity: 0.5 }}>•</span></>
+            )}
+            {new Date(analysis.createdAt).toLocaleString()}
+          </div>
+        )}
+        {onRegenerate && (
+          <button onClick={onRegenerate} className="btn btn-secondary" style={{ fontSize: 12 }}>
+            {t('detail.aiRegenerate')}
+          </button>
+        )}
+      </div>
     </div>
   );
 };
