@@ -111,16 +111,16 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
 
       <div style={{ marginTop: 12 }}>
         {analysis.createdAt && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
-            <div>{new Date(analysis.createdAt).toLocaleString()}</div>
-            {analysis.aiModel && <div>{analysis.aiModel}</div>}
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
+            {new Date(analysis.createdAt).toLocaleString()}
+            {analysis.aiModel && (
+              <><span style={{ margin: '0 5px', opacity: 0.5 }}>•</span>{analysis.aiModel}</>
+            )}
             {analysis.tokenInputCount !== undefined && analysis.tokenOutputCount !== undefined && (
-              <div>↑ {analysis.tokenInputCount.toLocaleString()} / ↓ {analysis.tokenOutputCount.toLocaleString()} Tokens</div>
+              <><span style={{ margin: '0 5px', opacity: 0.5 }}>•</span>↑ {analysis.tokenInputCount.toLocaleString()} / ↓ {analysis.tokenOutputCount.toLocaleString()} Tokens</>
             )}
             {analysis.costInputUsd != null && analysis.costOutputUsd != null && (
-              <div>
-                ↑ {formatCostUsd(analysis.costInputUsd)} / ↓ {formatCostUsd(analysis.costOutputUsd)} = {formatCostUsd(analysis.costInputUsd + analysis.costOutputUsd)}
-              </div>
+              <><span style={{ margin: '0 5px', opacity: 0.5 }}>•</span>↑ {formatCostUsd(analysis.costInputUsd)} / ↓ {formatCostUsd(analysis.costOutputUsd)} = {formatCostUsd(analysis.costInputUsd + analysis.costOutputUsd)}</>
             )}
           </div>
         )}

@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0] - 2026-06-04
+
+### Added
+- **AI analysis cost tracking** — input and output token costs (USD) are now stored at the time of analysis and displayed inline: `date • model • ↑ N / ↓ N Tokens • ↑ $X / ↓ $Y = $total`. Pricing is fetched live from the OpenRouter API (24 h in-memory cache) with a hardcoded fallback; unavailable pricing silently stores `null` without affecting the analysis. Costs are stored persistently so historical entries remain accurate even if prices change later.
+
 ## [1.10.0] - 2026-06-04
 
 ### Added
