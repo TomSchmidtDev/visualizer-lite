@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] - 2026-06-04
+
+### Added
+- **AI analysis metadata** — creation date, model name, and token counts (input / output) are now displayed above the "Regenerate" button on the shot detail page
+
+### Documentation
+- README overhaul (EN + DE): story-first structure with new "Why Visualizer Lite?" section, expanded Quick Start with parameter explanations and HTTPS guidance, new "Importing Shots" section, expanded DE1 Plugins section describing both plugins and the HTTP/HTTPS extension, Related Links section, and BUSL-compliant Disclaimer
+- Architecture diagrams updated: AI API as external node, Analysis route added, ShotAnalysis model added to data model diagram
+
 ## [1.9.2] - 2026-06-02
 
 ### Fixed
