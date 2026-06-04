@@ -241,6 +241,18 @@ Die [Advanced REST API](https://github.com/randomcoffeesnob/decent-advanced-rest
 
 ---
 
+## Verwandte Links
+
+- [Decent Espresso](https://decentespresso.com) — offizielle Website
+- [Decent Espresso auf GitHub](https://github.com/decentespresso)
+- [Decent Diaspora auf Basecamp](https://3.basecamp.com/3671212/projects/7351439) *(Registrierung erforderlich)*
+- [Visualizer](https://visualizer.coffee) — der offizielle Community Shot Visualizer
+- [Visualizer auf GitHub](https://github.com/miharekar/visualizer)
+- [Upload to Visualizer Plugin](https://github.com/decentespresso/de1app/tree/main/de1plus/plugins/visualizer_upload) — Original-Plugin von Johanna Schander (Basis der hier enthaltenen modifizierten Version)
+- [Advanced REST API Plugin](https://github.com/randomcoffeesnob/decent-advanced-rest-api) — erforderlich für den Direktimport
+
+---
+
 ## Architektur
 
 ### Systemübersicht
