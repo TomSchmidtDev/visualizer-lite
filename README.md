@@ -110,50 +110,6 @@ docker run -d \
 
 ---
 
-## Build & Deploy
-
-> Only needed if you want to build the image yourself (e.g. for local development or a fork).
-
-### 1. Build the Docker image
-
-On your development machine:
-
-```bash
-# For local use (native platform)
-docker build -t visualizer-lite:local .
-
-# For Synology NAS or any other x86_64/amd64 device (cross-compile from Apple Silicon)
-docker build --platform linux/amd64 -t visualizer-lite:nas .
-docker save visualizer-lite:nas | gzip > visualizer-lite.tar.gz
-```
-
-### 2. Transfer and load on the NAS
-
-```bash
-# Transfer
-scp visualizer-lite.tar.gz admin@<NAS-IP>:/volume1/docker/
-
-# On the NAS (via SSH)
-docker load < /volume1/docker/visualizer-lite.tar.gz
-mkdir -p /volume1/docker/visualizer-lite/data/files
-chown -R 1000:1000 /volume1/docker/visualizer-lite/data
-```
-
-### 3. Start the container
-
-```bash
-docker run -d \
-  --name visualizer-lite \
-  --restart unless-stopped \
-  -p 3000:3000 \
-  -v /volume1/docker/visualizer-lite/data:/data \
-  -e VL_SESSION_SECRET="$(openssl rand -base64 48)" \
-  -e VL_PASSWORD="your-password" \
-  visualizer-lite:nas
-```
-
----
-
 ## HTTP vs. HTTPS
 
 | | HTTP | HTTPS |
@@ -378,4 +334,48 @@ cd packages/web && npm run dev
 
 # Tests
 cd packages/api && npx vitest run
+```
+
+---
+
+## Build & Deploy
+
+> Only needed if you want to build the image yourself (e.g. for local development or a fork).
+
+### 1. Build the Docker image
+
+On your development machine:
+
+```bash
+# For local use (native platform)
+docker build -t visualizer-lite:local .
+
+# For Synology NAS or any other x86_64/amd64 device (cross-compile from Apple Silicon)
+docker build --platform linux/amd64 -t visualizer-lite:nas .
+docker save visualizer-lite:nas | gzip > visualizer-lite.tar.gz
+```
+
+### 2. Transfer and load on the NAS
+
+```bash
+# Transfer
+scp visualizer-lite.tar.gz admin@<NAS-IP>:/volume1/docker/
+
+# On the NAS (via SSH)
+docker load < /volume1/docker/visualizer-lite.tar.gz
+mkdir -p /volume1/docker/visualizer-lite/data/files
+chown -R 1000:1000 /volume1/docker/visualizer-lite/data
+```
+
+### 3. Start the container
+
+```bash
+docker run -d \
+  --name visualizer-lite \
+  --restart unless-stopped \
+  -p 3000:3000 \
+  -v /volume1/docker/visualizer-lite/data:/data \
+  -e VL_SESSION_SECRET="$(openssl rand -base64 48)" \
+  -e VL_PASSWORD="your-password" \
+  visualizer-lite:nas
 ```
