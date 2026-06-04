@@ -211,11 +211,17 @@ Geeignet für: initialen Massenimport einer bestehenden Shot-Historie, Nachholen
 
 ---
 
-## DE1-Plugin
+## DE1-Plugins
 
-Den Ordner `de1app/de1plus/plugins/visualizer_upload/` nach `/de1plus/plugins/visualizer_upload/` auf das DE1-Tablet kopieren und die DE1-App neu starten.
+Zwei Plugins arbeiten zusammen, um die DE1-Maschine mit Visualizer Lite zu verbinden:
 
-**Plugin-Einstellungen:**
+### 1. Upload to Visualizer *(in diesem Repository enthalten — modifizierte Version)*
+
+Dieses Plugin übernimmt den **automatischen Push-Upload**: Nach jeder Extraktion sendet die DE1-App die `.shot`-Datei im Hintergrund an Visualizer Lite.
+
+Es basiert auf dem Original-Plugin [*Upload to Visualizer*](https://github.com/decentespresso/de1app/tree/main/de1plus/plugins/visualizer_upload) von Johanna Schander, das ursprünglich für den Upload zu [visualizer.coffee](https://visualizer.coffee) konzipiert wurde. Die hier enthaltene Version wurde erweitert, um **benutzerdefinierte Upload-Ziele** zu unterstützen — damit kann es statt des öffentlichen Dienstes auf die eigene Visualizer-Lite-Instanz zeigen. Es unterstützt sowohl **HTTPS** (empfohlen bei Zugriff von außerhalb des Netzwerks) als auch **HTTP** (unverschlüsselt — nur für vertrauenswürdige lokale Netzwerke geeignet, da Zugangsdaten im Klartext übertragen werden).
+
+**Installation:** Den Ordner `de1app/de1plus/plugins/visualizer_upload/` nach `/de1plus/plugins/visualizer_upload/` auf das DE1-Tablet kopieren und die DE1-App neu starten. In den Plugin-Einstellungen die URL und Zugangsdaten der Visualizer-Lite-Instanz eintragen.
 
 | Einstellung | HTTP (lokales Netzwerk) | HTTPS (externer Zugriff) |
 |---|---|---|
@@ -225,7 +231,13 @@ Den Ordner `de1app/de1plus/plugins/visualizer_upload/` nach `/de1plus/plugins/vi
 
 - `http://` mit interner IP-Adresse verwenden für einfachen lokalen Zugriff ohne Zertifikate.
 - `https://` mit Domain-Namen verwenden, wenn die Instanz aus dem Internet erreichbar ist.
-- Das Plugin zeigt eine Warnung, wenn eine HTTP-URL konfiguriert wird (unsicher über das Internet).
+- Das Plugin zeigt eine Warnung, wenn eine HTTP-URL für eine internetfähige Instanz konfiguriert wird.
+
+### 2. Advanced REST API *(extern — erforderlich für den Direktimport)*
+
+Die [Advanced REST API](https://github.com/randomcoffeesnob/decent-advanced-rest-api)-Extension ist ein separates Community-Plugin, das eine REST-Schnittstelle auf der DE1-Maschine bereitstellt. Visualizer Lite nutzt diese Schnittstelle für den **Pull-basierten Import**: Shots können direkt über die Einstellungsseite von Visualizer Lite importiert werden, ohne manuellen Dateitransfer.
+
+**Installation:** Den Anweisungen im [Advanced REST API Repository](https://github.com/randomcoffeesnob/decent-advanced-rest-api) folgen. Dieses Plugin wird nur für den Direktimport benötigt.
 
 ---
 
