@@ -103,5 +103,7 @@ export interface AnalysisResult {
   analyst: string[]
   tokenInputCount: number
   tokenOutputCount: number
+  costInputUsd: number | null
+  costOutputUsd: number | null
   createdAt: string
 }

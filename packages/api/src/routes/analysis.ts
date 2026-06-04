@@ -45,6 +45,8 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
             analyst: JSON.parse(cached.analyst),
             tokenInputCount: cached.tokenInputCount,
             tokenOutputCount: cached.tokenOutputCount,
+            costInputUsd: cached.costInputUsd,
+            costOutputUsd: cached.costOutputUsd,
             createdAt: cached.createdAt,
             cachedAt: cached.createdAt,
           })
@@ -96,6 +98,8 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
           analyst: JSON.stringify(result.analyst),
           tokenInputCount: result.tokenInputCount,
           tokenOutputCount: result.tokenOutputCount,
+          costInputUsd: result.costInputUsd,
+          costOutputUsd: result.costOutputUsd,
         },
         update: {
           analysisType,
@@ -105,6 +109,8 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
           analyst: JSON.stringify(result.analyst),
           tokenInputCount: result.tokenInputCount,
           tokenOutputCount: result.tokenOutputCount,
+          costInputUsd: result.costInputUsd,
+          costOutputUsd: result.costOutputUsd,
         },
       })
 
@@ -118,6 +124,8 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
         analyst: result.analyst,
         tokenInputCount: analysis.tokenInputCount,
         tokenOutputCount: analysis.tokenOutputCount,
+        costInputUsd: analysis.costInputUsd,
+        costOutputUsd: analysis.costOutputUsd,
         createdAt: analysis.createdAt,
       })
     } catch (error) {
