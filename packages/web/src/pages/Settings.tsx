@@ -234,6 +234,8 @@ export default function Settings() {
         ))}
       </div>
 
+      {tab === 'ansicht' && <>
+
       {/* Theme */}
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="card-title">{t('settings.theme')}</div>
@@ -352,7 +354,9 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Password */}
+      </>}
+
+      {tab === 'sicherheit' && (
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="card-title">{t('settings.changePassword')}</div>
         <form onSubmit={handlePasswordChange}>
@@ -375,6 +379,9 @@ export default function Settings() {
           <button type="submit" className="btn btn-primary">{t('settings.savePassword')}</button>
         </form>
       </div>
+      )}
+
+      {tab === 'daten' && <>
 
       {/* Export */}
       <div className="card" style={{ marginBottom: 16 }}>
@@ -561,7 +568,9 @@ export default function Settings() {
         )}
       </div>
 
-      {/* AI Analysis Settings */}
+      </>}
+
+      {tab === 'ki' && (
       <div className="card">
         <div className="card-title">🤖 AI Analysis</div>
 
@@ -690,8 +699,9 @@ export default function Settings() {
         {aiKeysMsg && <div style={{ marginTop: 8, fontSize: 12, color: '#22c55e' }}>{aiKeysMsg}</div>}
         {aiKeysError && <div style={{ marginTop: 8, fontSize: 12, color: '#ef4444' }}>{aiKeysError}</div>}
       </div>
+      )}
 
-      {/* DB info */}
+      {tab === 'daten' && (
       <div className="card">
         <div className="card-title">{t('settings.dbInfo')}</div>
         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
@@ -699,6 +709,7 @@ export default function Settings() {
           <span style={{ fontSize: 12, fontWeight: 600 }}>{allShotsData?.total ?? '—'}</span>
         </div>
       </div>
+      )}
     </div>
   )
 }
