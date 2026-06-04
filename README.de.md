@@ -80,6 +80,15 @@ docker run -d \
   ghcr.io/tomschmidtdev/visualizer-lite:latest
 ```
 
+> **Parameter-Erläuterung:**
+>
+> | Parameter | Was anpassen |
+> |---|---|
+> | `-v /volume1/docker/visualizer-lite/data:/data` | Der Pfad **links vom Doppelpunkt** gibt an, wo die Daten auf dem Host gespeichert werden. Beliebiges Verzeichnis wählen (z.B. `/home/benutzer/visualizer-daten`). Das `/data` rechts muss so bleiben. |
+> | `VL_SESSION_SECRET` | Ein langer, zufälliger String zum Signieren von Login-Sessions. Generieren mit `openssl rand -base64 48` oder einem Passwort-Manager. **Geheim halten und konsistent lassen** — eine Änderung meldet alle aktiven Sessions ab. |
+> | `VL_PASSWORD` | Das Login-Passwort. Starkes Passwort wählen, wenn die Instanz außerhalb des Heimnetzwerks erreichbar ist. Kann später in den App-Einstellungen geändert werden. |
+> | `-p 3000:3000` | Der Zugriffsport (linke Seite). Auf z.B. `-p 8080:3000` ändern, wenn Port 3000 bereits belegt ist. |
+
 **macOS / Windows — HTTP (lokale Nutzung):**
 
 macOS (Terminal):
@@ -109,6 +118,9 @@ docker run -d `
 Danach im Browser öffnen: http://localhost:3000
 
 ---
+
+> **Wann wird HTTPS benötigt?**
+> Wenn Visualizer Lite nur innerhalb des Heimnetzwerks genutzt wird — also im selben Netzwerk wie die DE1 und alle Geräte, mit denen auf die App zugegriffen wird — ist reines HTTP ausreichend. Der Datenverkehr verlässt das Netzwerk nicht. HTTPS ist nur nötig, wenn die Instanz von außen erreichbar sein soll (Mobilfunk, Büro, VPN). In diesem Fall entweder ein Zertifikatsverzeichnis einbinden (wie unten gezeigt) oder einen Reverse Proxy (z.B. Nginx Proxy Manager oder Synologys eingebauten Reverse Proxy) vorschalten und den Container intern auf HTTP betreiben.
 
 **HTTPS (mit Zertifikaten):**
 ```bash

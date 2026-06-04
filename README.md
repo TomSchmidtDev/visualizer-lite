@@ -80,6 +80,15 @@ docker run -d \
   ghcr.io/tomschmidtdev/visualizer-lite:latest
 ```
 
+> **Parameter explanation:**
+>
+> | Parameter | What to change |
+> |---|---|
+> | `-v /volume1/docker/visualizer-lite/data:/data` | The path **left of the colon** is where data is stored on your host machine. Change it to any directory you prefer (e.g. `/home/user/visualizer-data`). The `/data` on the right must stay as-is. |
+> | `VL_SESSION_SECRET` | A long random string used to sign login sessions. Generate one with `openssl rand -base64 48` or use any password manager. **Keep it secret and consistent** — changing it logs out all active sessions. |
+> | `VL_PASSWORD` | Your login password. Choose something strong if the instance is reachable outside your home network. Can be changed later in the app settings. |
+> | `-p 3000:3000` | The port used to access the app (left side). Change to e.g. `-p 8080:3000` if port 3000 is already in use on your machine. |
+
 **macOS / Windows — HTTP (local use):**
 
 macOS (Terminal):
@@ -109,6 +118,9 @@ docker run -d `
 Open http://localhost:3000 in your browser.
 
 ---
+
+> **When do you need HTTPS?**
+> If you only access Visualizer Lite from within your home network — the same network as both the DE1 and any device you use to access the app — plain HTTP is fine. Traffic never leaves your network. Only add HTTPS if you want to access the app from outside (mobile data, office, VPN). In that case, mount a certificate directory as shown below, or place a reverse proxy (e.g. Nginx Proxy Manager, Synology's built-in reverse proxy) in front of the container and run it on plain HTTP internally.
 
 **HTTPS (with certificates):**
 ```bash
