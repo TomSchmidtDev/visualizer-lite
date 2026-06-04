@@ -31,6 +31,8 @@ type De1Phase =
   | { name: 'importing'; current: number; total: number; filename: string }
   | { name: 'done'; imported: number; updated: number; skipped: number; errors: number; errorDetails: { filename: string; message: string }[] }
 
+type Tab = 'ansicht' | 'daten' | 'sicherheit' | 'ki'
+
 function todayStr(): string {
   return new Date().toISOString().slice(0, 10)
 }
@@ -47,6 +49,10 @@ export default function Settings() {
   const [aiModel, setAiModel] = useState('claude-haiku-4-5-20251001')
   const [aiCustomContext, setAiCustomContext] = useState(DEFAULT_AI_CONTEXT)
   const [aiAnalysisMode, setAiAnalysisMode] = useState('standard')
+  const [tab, setTab] = useState<Tab>(() => {
+    const s = localStorage.getItem('vl-settings-tab') as Tab | null
+    return s && (['ansicht', 'daten', 'sicherheit', 'ki'] as Tab[]).includes(s) ? s : 'ansicht'
+  })
   const [aiKeysMsg, setAiKeysMsg] = useState('')
   const [aiKeysError, setAiKeysError] = useState('')
 
@@ -103,6 +109,11 @@ export default function Settings() {
     setLanguage(lang)
     await api.updateSettings({ language: lang })
     qc.invalidateQueries({ queryKey: ['settings'] })
+  }
+
+  function handleTabChange(t: Tab) {
+    setTab(t)
+    localStorage.setItem('vl-settings-tab', t)
   }
 
   async function handlePasswordChange(e: FormEvent) {
