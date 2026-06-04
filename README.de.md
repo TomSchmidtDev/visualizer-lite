@@ -19,11 +19,13 @@ Visualizer Lite entstand aus diesem Bedarf:
 ## Key Features
 
 - **Direktimport (Pull)** — Shots direkt von der DE1-Maschine holen mit der [Advanced REST API](https://github.com/randomcoffeesnob/decent-advanced-rest-api)-Extension; kein Kabel, keine manuelle Dateiübertragung nötig
-- **Automatischer Upload (Push)** — Shots werden nach jeder Extraktion automatisch hochgeladen über das aktualisierte *Upload to visualizer*-DE1-Plugin
+- **Automatischer Upload (Push)** — Shots werden nach jeder Extraktion automatisch hochgeladen über das modifizierte [*Upload to visualizer*](de1app/de1plus/plugins/visualizer_upload/)-DE1-Plugin aus diesem Repository
+- **Manueller Upload** — Einzelne oder mehrere `.shot`-Dateien per Drag-and-drop oder Dateiauswahl über das Web-Interface hochladen
+- **Export** — Die gesamte Shot-Sammlung als ZIP-Archiv herunterladen, zur Sicherung oder für externe Analysen
 - **Filterbare Shot-Liste** — Suche und Filter nach Röster, Bohne, Profil, Mahlwerk, Getränketyp, Datumsbereich und mehr
 - **Statistik-Dashboard** — KPI-Kacheln mit Periodenvergleich (24h bis Gesamt), Top-Röster/Röstungen/Profile, konfigurierbarer Getränkefilter (Espresso vs. Filter); inkl. **Röster & Bohnen**- und **Profile**-Tabs mit sortierbaren Metriktabellen
 - **Shot-Vergleich** — Zwei Shots überlagert oder nebeneinander mit Extraktionskurven und Kennzahlen-Diff
-- **KI-Analyse (experimentell)** — On-Demand Shot-Analyse über Claude oder OpenAI: **Barista**-Perspektive (Brühtechnik, Mahlgrad, Tamping) und **Röster**-Perspektive (Bohne, Röstgrad, Frische); phasenbewusst mit stabiler Sub-Phasen-Erkennung; eigener API-Key erforderlich
+- **KI-Analyse (experimentell, zum Spaß)** — On-Demand Shot-Analyse über Claude oder OpenAI: **Barista**-Perspektive (Brühtechnik, Mahlgrad, Tamping) und **Röster**-Perspektive (Bohne, Röstgrad, Frische); phasenbewusst mit stabiler Sub-Phasen-Erkennung; eigener API-Key erforderlich. Die Ergebnisse sind interessant, aber nicht verbindlich — beste Resultate mit **Claude Sonnet**
 - **Self-Hosted, einzelner Container** — Läuft lokal oder auf einem NAS (Synology etc.) als einzelner Docker-Container mit SQLite; keine Cloud, kein Account, volle Datenkontrolle
   - ⚠️ Kein Multi-Tenant-Support — eine Instanz, ein Benutzer
   - ⚠️ Bewusst nicht mit der Decent/Kaffee-Community verbunden (kein Teilen, kein Leaderboard)
