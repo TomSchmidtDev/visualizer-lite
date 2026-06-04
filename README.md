@@ -1,7 +1,20 @@
 # Visualizer Lite
 
-Self-hosted espresso shot manager for the [Decent Espresso DE1](https://decentespresso.com/).  
-Track every shot, analyse extraction curves, rate taste, and discover patterns across your entire history.
+Self-hosted espresso shot manager for the [Decent Espresso DE1](https://decentespresso.com/). Track every shot, analyse extraction curves, compare profiles, and discover patterns across your entire brewing history — stored locally, owned entirely by you.
+
+---
+
+## Why Visualizer Lite?
+
+The Decent DE1 is an exceptional espresso machine — but the Decent app on the tablet accumulates shot data over the years, and a large history slows it down. I wanted to archive shots off the tablet, keep them permanently accessible, and analyse them on my own terms.
+
+Visualizer Lite grew out of that need:
+
+- **Data ownership** — all data stays local; no cloud account, no external service dependency
+- **Full history** — browse, filter, and compare shots across years, not just recent ones
+- **Tablet performance** — once shots are imported, you can delete them from the DE1 machine, keeping the Decent app fast and responsive
+- **Extensibility** — the data is yours; export it, analyse it, query it directly
+- **A good side project** — honestly, building it has been fun
 
 ## Key Features
 
