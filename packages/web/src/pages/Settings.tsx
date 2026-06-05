@@ -50,6 +50,8 @@ export default function Settings() {
   const [aiCustomContext, setAiCustomContext] = useState(DEFAULT_AI_CONTEXT)
   const [aiAnalysisMode, setAiAnalysisMode] = useState('standard')
   const [aiContextWindow, setAiContextWindow] = useState('30d')
+  const [aiContextTier1Min, setAiContextTier1Min] = useState(10)
+  const [aiContextMinShots, setAiContextMinShots] = useState(2)
   const [tab, setTab] = useState<Tab>(() => {
     const s = localStorage.getItem('vl-settings-tab') as Tab | null
     return s && (['ansicht', 'daten', 'sicherheit', 'ki'] as Tab[]).includes(s) ? s : 'ansicht'
@@ -84,7 +86,9 @@ export default function Settings() {
     if (settings?.aiCustomContext !== undefined) setAiCustomContext(settings.aiCustomContext || DEFAULT_AI_CONTEXT)
     if (settings?.aiAnalysisMode) setAiAnalysisMode(settings.aiAnalysisMode)
     if (settings?.aiContextWindow) setAiContextWindow(settings.aiContextWindow)
-  }, [settings?.de1Url, settings?.de1DefaultBeverage, settings?.apiKeyClaudeKey, settings?.apiKeyOpenaiKey, settings?.aiModel, settings?.aiCustomContext, settings?.aiAnalysisMode, settings?.aiContextWindow])
+    if (settings?.aiContextTier1Min !== undefined) setAiContextTier1Min(settings.aiContextTier1Min)
+    if (settings?.aiContextMinShots !== undefined) setAiContextMinShots(settings.aiContextMinShots)
+  }, [settings?.de1Url, settings?.de1DefaultBeverage, settings?.apiKeyClaudeKey, settings?.apiKeyOpenaiKey, settings?.aiModel, settings?.aiCustomContext, settings?.aiAnalysisMode, settings?.aiContextWindow, settings?.aiContextTier1Min, settings?.aiContextMinShots])
 
   // Pre-fill "Von" date with last import's "Bis" date (once on first load)
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -574,11 +578,11 @@ export default function Settings() {
 
       {tab === 'ki' && (
       <div className="card">
-        <div className="card-title">🤖 AI Analysis</div>
+        <div className="card-title">{t('settings.aiSection')}</div>
 
         <div style={{ marginBottom: 12 }}>
           <label style={{ fontSize: 12, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: 0.8, display: 'block', marginBottom: 4 }}>
-            Claude API Key
+            {t('settings.aiClaudeKey')}
           </label>
           <input
             type="password"
@@ -587,12 +591,12 @@ export default function Settings() {
             onChange={(e) => setApiKeyClaudeKey(e.target.value)}
             style={{ width: '100%', padding: '8px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 13 }}
           />
-          <small style={{ color: 'var(--text-dim)' }}>Get from https://console.anthropic.com</small>
+          <small style={{ color: 'var(--text-dim)' }}>{t('settings.aiClaudeKeyHint')}</small>
         </div>
 
         <div style={{ marginBottom: 12 }}>
           <label style={{ fontSize: 12, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: 0.8, display: 'block', marginBottom: 4 }}>
-            OpenAI API Key
+            {t('settings.aiOpenaiKey')}
           </label>
           <input
             type="password"
@@ -601,12 +605,12 @@ export default function Settings() {
             onChange={(e) => setApiKeyOpenaiKey(e.target.value)}
             style={{ width: '100%', padding: '8px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 13 }}
           />
-          <small style={{ color: 'var(--text-dim)' }}>Get from https://platform.openai.com/api-keys</small>
+          <small style={{ color: 'var(--text-dim)' }}>{t('settings.aiOpenaiKeyHint')}</small>
         </div>
 
         <div style={{ marginBottom: 12 }}>
           <label style={{ fontSize: 12, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: 0.8, display: 'block', marginBottom: 4 }}>
-            AI Model
+            {t('settings.aiModelLabel')}
           </label>
           <select
             value={aiModel}
@@ -614,64 +618,96 @@ export default function Settings() {
             style={{ width: '100%', padding: '8px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 13 }}
           >
             <optgroup label="Claude (Anthropic)">
-              <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 — schnell &amp; günstig</option>
-              <option value="claude-sonnet-4-6">Claude Sonnet 4.6 — ausgewogen</option>
-              <option value="claude-opus-4-8">Claude Opus 4.8 — leistungsstark</option>
+              <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 — {t('settings.aiModelFast')}</option>
+              <option value="claude-sonnet-4-6">Claude Sonnet 4.6 — {t('settings.aiModelBalanced')}</option>
+              <option value="claude-opus-4-8">Claude Opus 4.8 — {t('settings.aiModelPowerful')}</option>
             </optgroup>
             <optgroup label="OpenAI">
-              <option value="gpt-4o-mini">GPT-4o mini — schnell &amp; günstig</option>
-              <option value="gpt-4o">GPT-4o — ausgewogen</option>
+              <option value="gpt-4o-mini">GPT-4o mini — {t('settings.aiModelFast')}</option>
+              <option value="gpt-4o">GPT-4o — {t('settings.aiModelBalanced')}</option>
             </optgroup>
           </select>
-          <small style={{ color: 'var(--text-dim)' }}>
-            Claude benötigt einen Anthropic Key · OpenAI-Modelle benötigen einen OpenAI Key
-          </small>
+          <small style={{ color: 'var(--text-dim)' }}>{t('settings.aiModelHint')}</small>
         </div>
 
         <div style={{ marginBottom: 12 }}>
           <label style={{ fontSize: 12, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: 0.8, display: 'block', marginBottom: 4 }}>
-            Maschinenkontext (optional)
+            {t('settings.aiCustomContextLabel')}
           </label>
           <textarea
             rows={5}
-            placeholder={'Erkläre der KI dein Setup, z.B.:\n- Der initiale Flow-Anstieg ist das Befüllen der Brühgruppe\n- Profil verwendet Flow-Goal ab Sekunde 5\n- Maschine: Decent DE1Pro, Mühle: Timemore Sculptor 078S'}
+            placeholder={t('settings.aiCustomContextPlaceholder')}
             value={aiCustomContext}
             onChange={(e) => setAiCustomContext(e.target.value)}
             style={{ width: '100%', padding: '8px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 13, resize: 'vertical', background: 'var(--bg-input)', color: 'var(--text)', boxSizing: 'border-box' }}
           />
-          <small style={{ color: 'var(--text-dim)' }}>Wird jeder Analyse als Kontext mitgegeben</small>
+          <small style={{ color: 'var(--text-dim)' }}>{t('settings.aiCustomContextHint')}</small>
         </div>
 
         {/* Context Window */}
         <div style={{ marginBottom: 12 }}>
           <label style={{ fontSize: 12, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: 0.8, display: 'block', marginBottom: 4 }}>
-            Kontext-Fenster
+            {t('settings.aiContextWindowLabel')}
           </label>
           <select
             value={aiContextWindow}
             onChange={(e) => setAiContextWindow(e.target.value)}
             style={{ width: '100%', padding: '8px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 13 }}
           >
-            <option value="7d">7 Tage</option>
-            <option value="30d">30 Tage (Standard)</option>
-            <option value="90d">90 Tage</option>
-            <option value="all">Alle Shots</option>
+            <option value="7d">{t('settings.aiWindow7d')}</option>
+            <option value="30d">{t('settings.aiWindow30d')}</option>
+            <option value="90d">{t('settings.aiWindow90d')}</option>
+            <option value="all">{t('settings.aiWindowAll')}</option>
           </select>
-          <small style={{ color: 'var(--text-dim)' }}>
-            Zeitraum für historische Basislinie — mehr Shots = genauerer Vergleich, aber längere Vorverarbeitung
-          </small>
+          <small style={{ color: 'var(--text-dim)' }}>{t('settings.aiContextWindowHint')}</small>
+        </div>
+
+        {/* Context Thresholds */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 12, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: 0.8, display: 'block', marginBottom: 8 }}>
+            {t('settings.aiContextThresholdsLabel')}
+          </label>
+          <div style={{ display: 'flex', gap: 12, marginBottom: 6 }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: 11, color: 'var(--text-dim)', display: 'block', marginBottom: 4 }}>
+                {t('settings.aiTier1MinLabel')} <span style={{ opacity: 0.55 }}>{t('settings.aiTier1MinDefault')}</span>
+              </label>
+              <input
+                type="number"
+                min={2}
+                max={100}
+                value={aiContextTier1Min}
+                onChange={(e) => setAiContextTier1Min(Math.max(2, parseInt(e.target.value, 10) || 10))}
+                style={{ width: '100%', padding: '6px 8px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 13, background: 'var(--bg-input)', color: 'var(--text)' }}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: 11, color: 'var(--text-dim)', display: 'block', marginBottom: 4 }}>
+                {t('settings.aiMinContextLabel')} <span style={{ opacity: 0.55 }}>{t('settings.aiMinContextDefault')}</span>
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={20}
+                value={aiContextMinShots}
+                onChange={(e) => setAiContextMinShots(Math.max(1, parseInt(e.target.value, 10) || 2))}
+                style={{ width: '100%', padding: '6px 8px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 13, background: 'var(--bg-input)', color: 'var(--text)' }}
+              />
+            </div>
+          </div>
+          <small style={{ color: 'var(--text-dim)' }}>{t('settings.aiContextThresholdsHint')}</small>
         </div>
 
         {/* Analysis Mode */}
         <div style={{ marginBottom: 16 }}>
           <label style={{ fontSize: 12, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: 0.8, display: 'block', marginBottom: 8 }}>
-            Analyse-Modus
+            {t('settings.aiAnalysisModeLabel')}
           </label>
           <div style={{ display: 'flex', gap: 8 }}>
             {([
-              { val: 'standard', label: 'Standard', desc: 'Bewährtes Format, unverändertes Verhalten' },
-              { val: 'optimized', label: 'Optimiert', desc: 'Kompakter, günstiger, weniger Fehlalarme' },
-            ] as const).map(({ val, label, desc }) => (
+              { val: 'standard' as const, labelKey: 'settings.aiModeStandard', descKey: 'settings.aiModeStandardDesc' },
+              { val: 'optimized' as const, labelKey: 'settings.aiModeOptimized', descKey: 'settings.aiModeOptimizedDesc' },
+            ]).map(({ val, labelKey, descKey }) => (
               <label
                 key={val}
                 style={{
@@ -694,8 +730,8 @@ export default function Settings() {
                   onChange={(e) => setAiAnalysisMode(e.target.value)}
                   style={{ display: 'none' }}
                 />
-                <span style={{ fontSize: 13, fontWeight: 600, color: aiAnalysisMode === val ? 'var(--accent)' : 'var(--text)' }}>{label}</span>
-                <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>{desc}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: aiAnalysisMode === val ? 'var(--accent)' : 'var(--text)' }}>{t(labelKey)}</span>
+                <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>{t(descKey)}</span>
               </label>
             ))}
           </div>
@@ -706,17 +742,17 @@ export default function Settings() {
             setAiKeysMsg('')
             setAiKeysError('')
             try {
-              await api.updateSettings({ apiKeyClaudeKey, apiKeyOpenaiKey, aiModel, aiCustomContext, aiAnalysisMode, aiContextWindow })
-              setAiKeysMsg('✅ AI Settings saved successfully')
+              await api.updateSettings({ apiKeyClaudeKey, apiKeyOpenaiKey, aiModel, aiCustomContext, aiAnalysisMode, aiContextWindow, aiContextTier1Min, aiContextMinShots })
+              setAiKeysMsg(t('settings.aiSaved'))
               setTimeout(() => setAiKeysMsg(''), 3000)
             } catch (err) {
-              setAiKeysError(err instanceof Error ? err.message : 'Failed to save AI settings')
+              setAiKeysError(err instanceof Error ? err.message : t('settings.aiSaveError'))
             }
           }}
           className="btn btn-primary"
           style={{ width: '100%' }}
         >
-          Save AI Settings
+          {t('settings.aiSave')}
         </button>
         {aiKeysMsg && <div style={{ marginTop: 8, fontSize: 12, color: '#22c55e' }}>{aiKeysMsg}</div>}
         {aiKeysError && <div style={{ marginTop: 8, fontSize: 12, color: '#ef4444' }}>{aiKeysError}</div>}

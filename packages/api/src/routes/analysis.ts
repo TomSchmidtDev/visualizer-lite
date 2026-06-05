@@ -47,6 +47,8 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
             costInputUsd: cached.costInputUsd,
             costOutputUsd: cached.costOutputUsd,
             analysisMode: cached.analysisMode,
+            preprocessDurationMs: cached.preprocessDurationMs,
+            aiDurationMs: cached.aiDurationMs,
             createdAt: cached.createdAt,
             cachedAt: cached.createdAt,
             contextSummary: cached.contextSummary ? JSON.parse(cached.contextSummary) : null,
@@ -55,7 +57,7 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       // Get user API keys, selected model, and language from settings
-      const [claudeKeyRow, openaiKeyRow, selectedModelRow, languageRow, customContextRow, analysisModeRow, contextWindowRow] = await Promise.all([
+      const [claudeKeyRow, openaiKeyRow, selectedModelRow, languageRow, customContextRow, analysisModeRow, contextWindowRow, tier1MinRow, minContextRow] = await Promise.all([
         prisma.settings.findUnique({ where: { key: 'apiKeyClaudeKey' } }),
         prisma.settings.findUnique({ where: { key: 'apiKeyOpenaiKey' } }),
         prisma.settings.findUnique({ where: { key: 'aiModel' } }),
@@ -63,6 +65,8 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
         prisma.settings.findUnique({ where: { key: 'aiCustomContext' } }),
         prisma.settings.findUnique({ where: { key: 'aiAnalysisMode' } }),
         prisma.settings.findUnique({ where: { key: 'aiContextWindow' } }),
+        prisma.settings.findUnique({ where: { key: 'aiContextTier1Min' } }),
+        prisma.settings.findUnique({ where: { key: 'aiContextMinShots' } }),
       ])
 
       const claudeKey = claudeKeyRow?.value || ''
@@ -96,9 +100,11 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
       const analysisMode = (analysisModeRow?.value === 'optimized' ? 'optimized' : 'standard') as 'standard' | 'optimized'
       const settingsWindow = (contextWindowRow?.value || '30d') as '7d' | '30d' | '90d' | 'all'
       const contextWindow = (request.query.window || settingsWindow) as '7d' | '30d' | '90d' | 'all'
+      const tier1MinShots = parseInt(tier1MinRow?.value || '10', 10) || 10
+      const minContextShots = parseInt(minContextRow?.value || '2', 10) || 2
 
       // Call analyzeShot service with the specific model name and language
-      const result = await analyzeShot(shotId, apiKey, provider, analysisType, contextWindow, selectedModel, language, customContext, analysisMode)
+      const result = await analyzeShot(shotId, apiKey, provider, analysisType, contextWindow, selectedModel, language, customContext, analysisMode, tier1MinShots, minContextShots)
 
       const aiModel = selectedModel
 
