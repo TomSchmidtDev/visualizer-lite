@@ -49,6 +49,7 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
             analysisMode: cached.analysisMode,
             createdAt: cached.createdAt,
             cachedAt: cached.createdAt,
+            contextSummary: cached.contextSummary ? JSON.parse(cached.contextSummary) : null,
           })
         }
       }
@@ -118,6 +119,7 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
           analysisMode: result.analysisMode,
           preprocessDurationMs: result.preprocessDurationMs,
           aiDurationMs: result.aiDurationMs,
+          contextSummary: JSON.stringify(result.contextSummary),
         },
         update: {
           analysisType,
@@ -132,6 +134,7 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
           analysisMode: result.analysisMode,
           preprocessDurationMs: result.preprocessDurationMs,
           aiDurationMs: result.aiDurationMs,
+          contextSummary: JSON.stringify(result.contextSummary),
         },
       })
 
@@ -151,6 +154,7 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
         preprocessDurationMs: analysis.preprocessDurationMs,
         aiDurationMs: analysis.aiDurationMs,
         createdAt: analysis.createdAt,
+        contextSummary: result.contextSummary,
       })
     } catch (error) {
       const getErrorMessage = (err: unknown): string => {

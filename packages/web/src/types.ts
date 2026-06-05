@@ -101,6 +101,14 @@ export interface AppSettings {
   aiContextWindow?: string
 }
 
+export interface ContextSummary {
+  shotCount: number
+  window: string
+  pressureAvg: number | null
+  flowAvg: number | null
+  tempAvg: number | null
+}
+
 export interface Analysis {
   barista: string[]
   roaster: string[]
@@ -114,6 +122,7 @@ export interface Analysis {
   preprocessDurationMs?: number | null
   aiDurationMs?: number | null
   createdAt?: string
+  contextSummary?: ContextSummary | null
 }
 
 export interface AnalysisResponse {
@@ -133,6 +142,7 @@ export interface AnalysisResponse {
   aiDurationMs?: number | null
   createdAt: string
   cachedAt?: string
+  contextSummary?: ContextSummary | null
 }
 
 export interface StatsWindow {

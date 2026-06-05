@@ -63,6 +63,7 @@ export default function ShotDetail() {
         analysisMode: response.analysisMode,
         preprocessDurationMs: response.preprocessDurationMs,
         aiDurationMs: response.aiDurationMs,
+        contextSummary: response.contextSummary,
       })
     } catch (err) {
       setAnalysisError(err instanceof Error ? err.message : 'Unknown error')

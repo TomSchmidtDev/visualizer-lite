@@ -1132,6 +1132,14 @@ function extractJson(text: string): ClaudeAnalysisResult {
   }
 }
 
+export interface ContextSummary {
+  shotCount: number
+  window: string
+  pressureAvg: number | null
+  flowAvg: number | null
+  tempAvg: number | null
+}
+
 export interface AnalyzeResult extends ClaudeAnalysisResult {
   tokenInputCount: number
   tokenOutputCount: number
@@ -1140,6 +1148,7 @@ export interface AnalyzeResult extends ClaudeAnalysisResult {
   analysisMode: 'standard' | 'optimized'
   preprocessDurationMs: number
   aiDurationMs: number
+  contextSummary: ContextSummary
 }
 
 /**
@@ -1214,6 +1223,21 @@ export async function analyzeShot(
   const preprocessStart = Date.now()
   const preprocessed = await preprocessShots(shotId, window)
   const preprocessDurationMs = Date.now() - preprocessStart
+
+  const contextShotCount = (preprocessed.aggregatedStats.shotCount ?? 1) - 1
+  const contextSummary: ContextSummary = {
+    shotCount: contextShotCount,
+    window,
+    pressureAvg: preprocessed.aggregatedStats.pressure
+      ? parseFloat(preprocessed.aggregatedStats.pressure.avg.toFixed(1))
+      : null,
+    flowAvg: preprocessed.aggregatedStats.flow
+      ? parseFloat(preprocessed.aggregatedStats.flow.avg.toFixed(1))
+      : null,
+    tempAvg: preprocessed.aggregatedStats.temperature
+      ? parseFloat(preprocessed.aggregatedStats.temperature.avg.toFixed(1))
+      : null,
+  }
 
   const systemPrompt = analysisMode === 'optimized'
     ? buildSystemPromptOptimized(language)
@@ -1309,5 +1333,6 @@ export async function analyzeShot(
     analysisMode,
     preprocessDurationMs,
     aiDurationMs,
+    contextSummary,
   }
 }

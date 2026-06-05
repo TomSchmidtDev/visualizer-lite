@@ -26,6 +26,11 @@ function formatDuration(ms: number): string {
   return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} s`
 }
 
+function formatWindow(window: string): string {
+  const map: Record<string, string> = { '7d': '7 T', '30d': '30 T', '90d': '90 T', 'all': 'Alle' }
+  return map[window] ?? window
+}
+
 function formatCostUsd(amount: number): string {
   const decimals = amount < 0.001 ? 6 : 4
   const parts = amount.toFixed(decimals).split('.')
@@ -154,6 +159,26 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
                 {analysis.preprocessDurationMs != null && analysis.aiDurationMs != null && (
                   <><span style={{ margin: '0 5px', opacity: 0.5 }}>•</span>Gesamt {formatDuration(analysis.preprocessDurationMs + analysis.aiDurationMs)}</>
                 )}
+              </div>
+            )}
+            {analysis.contextSummary != null && (
+              <div style={{ marginTop: 3 }}>
+                {'📊 '}
+                {analysis.contextSummary.shotCount < 2
+                  ? 'Kein historischer Kontext'
+                  : <>
+                      {analysis.contextSummary.shotCount} Shots ({formatWindow(analysis.contextSummary.window)})
+                      {analysis.contextSummary.pressureAvg != null && (
+                        <><span style={{ margin: '0 5px', opacity: 0.5 }}>•</span>Ø Druck {analysis.contextSummary.pressureAvg} bar</>
+                      )}
+                      {analysis.contextSummary.flowAvg != null && (
+                        <><span style={{ margin: '0 5px', opacity: 0.5 }}>•</span>Ø Flow {analysis.contextSummary.flowAvg} ml/s</>
+                      )}
+                      {analysis.contextSummary.tempAvg != null && (
+                        <><span style={{ margin: '0 5px', opacity: 0.5 }}>•</span>Ø {analysis.contextSummary.tempAvg} °C</>
+                      )}
+                    </>
+                }
               </div>
             )}
           </div>
