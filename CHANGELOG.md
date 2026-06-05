@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.2] - 2026-06-05
+
+### Fixed
+- **AI analysis: crash when model returns objects instead of strings** — React Error #31 occurred when the optimised-mode model returned structured objects (`{phase, finding, action}`) instead of plain strings. Root cause: system prompt showed `[...]` without a string example, so the model built structured entries. Fix is three-layered: (1) all four system prompts now explicitly require plain text strings and show string examples; (2) `normalizeAnalysisArray()` converts any object entries to readable strings at the API boundary (both fresh responses and cache hits); (3) `AnalysisPanel` renders defensively as a last-resort safety net. Already-stored bad analyses are fixed on next view without needing to regenerate.
+
 ## [1.13.1] - 2026-06-05
 
 ### Fixed

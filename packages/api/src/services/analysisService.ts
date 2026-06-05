@@ -668,7 +668,8 @@ export function buildSystemPrompt(language: string): string {
 
 Antworte AUSSCHLIESSLICH mit einem JSON-Objekt mit genau zwei Keys:
 {"barista":["Tipp 1","Tipp 2"],"roaster":["Erkenntnis 1","Erkenntnis 2"]}
-3–5 Einträge pro Array, konkret mit Bezug auf Datenwerte und Phasennamen.`
+3–5 Einträge pro Array, konkret mit Bezug auf Datenwerte und Phasennamen.
+Jeder Eintrag ist ein einfacher Text-String — KEIN Objekt, KEIN verschachteltes JSON.`
   }
   return `You are an expert espresso analyst with two specialized perspectives:
 
@@ -699,7 +700,8 @@ Antworte AUSSCHLIESSLICH mit einem JSON-Objekt mit genau zwei Keys:
 
 Respond ONLY with a JSON object with exactly two keys:
 {"barista":["advice 1","advice 2"],"roaster":["insight 1","insight 2"]}
-3-5 entries per array, concrete references to data values and phase names.`
+3-5 entries per array, concrete references to data values and phase names.
+Each entry must be a plain text string — NOT an object, NOT nested JSON.`
 }
 
 export function buildSystemPromptOptimized(language: string): string {
@@ -720,8 +722,9 @@ Regeln:
 
 Nur Abweichungen erwähnen, die die Extraktionsqualität klar beeinflussen. Kleine Variationen ignorieren.
 
-Antworte NUR mit JSON: {"barista":[...],"roaster":[...]}
-Einträge müssen konkrete Datenwerte und Phasennamen referenzieren.`
+Antworte NUR mit JSON: {"barista":["String 1","String 2"],"roaster":["String 1","String 2"]}
+Einträge müssen konkrete Datenwerte und Phasennamen referenzieren.
+Jeder Eintrag ist ein einfacher Text-String — KEIN Objekt, KEIN verschachteltes JSON.`
   }
   return `You are an espresso expert with two perspectives:
 
@@ -738,8 +741,9 @@ Rules:
 
 Only flag deviations that clearly impact extraction quality. Ignore minor variations within equipment tolerance.
 
-Respond ONLY with JSON: {"barista":[...],"roaster":[...]}
-Entries must reference specific data values and phase names.`
+Respond ONLY with JSON: {"barista":["string 1","string 2"],"roaster":["string 1","string 2"]}
+Entries must reference specific data values and phase names.
+Each entry must be a plain text string — NOT an object, NOT nested JSON.`
 }
 
 function r1(v: number): string { return v.toFixed(1) }
@@ -1095,6 +1099,23 @@ export interface ClaudeAnalysisResult {
   analyst: string[]  // kept for DB compatibility; always empty for new analyses
 }
 
+/**
+ * Ensure every element of an analysis array is a plain string.
+ * The model occasionally returns objects ({phase, finding, action}) instead of strings.
+ * We normalise by joining all string values with ' — ' to preserve the information.
+ */
+export function normalizeAnalysisArray(items: unknown[]): string[] {
+  return items.map(item => {
+    if (typeof item === 'string') return item
+    if (item !== null && typeof item === 'object') {
+      return Object.values(item as Record<string, unknown>)
+        .filter((v): v is string => typeof v === 'string')
+        .join(' — ')
+    }
+    return String(item)
+  })
+}
+
 function extractJson(text: string): ClaudeAnalysisResult {
   // Strip markdown code blocks if present
   const stripped = text.replace(/```(?:json)?\s*([\s\S]*?)```/g, '$1').trim()
@@ -1103,8 +1124,8 @@ function extractJson(text: string): ClaudeAnalysisResult {
   if (!match) throw new Error('Could not find JSON in response')
   const parsed = JSON.parse(match[0])
   return {
-    barista: Array.isArray(parsed.barista) ? parsed.barista : [],
-    roaster: Array.isArray(parsed.roaster) ? parsed.roaster : [],
+    barista: normalizeAnalysisArray(Array.isArray(parsed.barista) ? parsed.barista : []),
+    roaster: normalizeAnalysisArray(Array.isArray(parsed.roaster) ? parsed.roaster : []),
     analyst: [],  // Analyst perspective removed from UI and prompts
   }
 }

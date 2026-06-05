@@ -1,7 +1,7 @@
 // packages/api/src/routes/analysis.ts
 import type { FastifyPluginAsync } from 'fastify'
 import { prisma } from '../db.js'
-import { analyzeShot } from '../services/analysisService.js'
+import { analyzeShot, normalizeAnalysisArray } from '../services/analysisService.js'
 
 const analysisRoutes: FastifyPluginAsync = async (fastify) => {
   const auth = { preHandler: [(fastify as any).requireAuth] }
@@ -40,8 +40,8 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
             shotId: cached.shotId,
             analysisType: cached.analysisType,
             aiModel: cached.aiModel,
-            barista: JSON.parse(cached.barista),
-            roaster: JSON.parse(cached.roaster),
+            barista: normalizeAnalysisArray(JSON.parse(cached.barista)),
+            roaster: normalizeAnalysisArray(JSON.parse(cached.roaster)),
             analyst: JSON.parse(cached.analyst),
             tokenInputCount: cached.tokenInputCount,
             tokenOutputCount: cached.tokenOutputCount,

@@ -11,6 +11,17 @@ interface AnalysisPanelProps {
 
 type TabType = 'barista' | 'roaster' | 'analyst';
 
+/** Safety net: render analysis items whether they arrived as strings or objects. */
+function renderItem(item: unknown): string {
+  if (typeof item === 'string') return item
+  if (item !== null && typeof item === 'object') {
+    return Object.values(item as Record<string, unknown>)
+      .filter((v): v is string => typeof v === 'string')
+      .join(' — ')
+  }
+  return String(item)
+}
+
 function formatCostUsd(amount: number): string {
   const decimals = amount < 0.001 ? 6 : 4
   const parts = amount.toFixed(decimals).split('.')
@@ -104,7 +115,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
               borderBottom: idx < currentTab.length - 1 ? '1px solid var(--border)' : 'none',
             }}
           >
-            {item}
+            {renderItem(item)}
           </li>
         ))}
       </ul>
