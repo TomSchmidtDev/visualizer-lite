@@ -98,6 +98,7 @@ export interface AppSettings {
   aiModel?: string
   aiCustomContext?: string
   aiAnalysisMode?: string
+  aiContextWindow?: string
 }
 
 export interface Analysis {
@@ -110,6 +111,8 @@ export interface Analysis {
   costInputUsd?: number | null
   costOutputUsd?: number | null
   analysisMode?: string
+  preprocessDurationMs?: number | null
+  aiDurationMs?: number | null
   createdAt?: string
 }
 
@@ -126,6 +129,8 @@ export interface AnalysisResponse {
   costInputUsd: number | null
   costOutputUsd: number | null
   analysisMode?: string
+  preprocessDurationMs?: number | null
+  aiDurationMs?: number | null
   createdAt: string
   cachedAt?: string
 }

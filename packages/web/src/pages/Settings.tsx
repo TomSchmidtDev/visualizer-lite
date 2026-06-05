@@ -49,6 +49,7 @@ export default function Settings() {
   const [aiModel, setAiModel] = useState('claude-haiku-4-5-20251001')
   const [aiCustomContext, setAiCustomContext] = useState(DEFAULT_AI_CONTEXT)
   const [aiAnalysisMode, setAiAnalysisMode] = useState('standard')
+  const [aiContextWindow, setAiContextWindow] = useState('30d')
   const [tab, setTab] = useState<Tab>(() => {
     const s = localStorage.getItem('vl-settings-tab') as Tab | null
     return s && (['ansicht', 'daten', 'sicherheit', 'ki'] as Tab[]).includes(s) ? s : 'ansicht'
@@ -82,7 +83,8 @@ export default function Settings() {
     if (settings?.aiModel) setAiModel(settings.aiModel)
     if (settings?.aiCustomContext !== undefined) setAiCustomContext(settings.aiCustomContext || DEFAULT_AI_CONTEXT)
     if (settings?.aiAnalysisMode) setAiAnalysisMode(settings.aiAnalysisMode)
-  }, [settings?.de1Url, settings?.de1DefaultBeverage, settings?.apiKeyClaudeKey, settings?.apiKeyOpenaiKey, settings?.aiModel, settings?.aiCustomContext, settings?.aiAnalysisMode])
+    if (settings?.aiContextWindow) setAiContextWindow(settings.aiContextWindow)
+  }, [settings?.de1Url, settings?.de1DefaultBeverage, settings?.apiKeyClaudeKey, settings?.apiKeyOpenaiKey, settings?.aiModel, settings?.aiCustomContext, settings?.aiAnalysisMode, settings?.aiContextWindow])
 
   // Pre-fill "Von" date with last import's "Bis" date (once on first load)
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -640,6 +642,26 @@ export default function Settings() {
           <small style={{ color: 'var(--text-dim)' }}>Wird jeder Analyse als Kontext mitgegeben</small>
         </div>
 
+        {/* Context Window */}
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ fontSize: 12, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: 0.8, display: 'block', marginBottom: 4 }}>
+            Kontext-Fenster
+          </label>
+          <select
+            value={aiContextWindow}
+            onChange={(e) => setAiContextWindow(e.target.value)}
+            style={{ width: '100%', padding: '8px', border: '1px solid var(--border)', borderRadius: 4, fontSize: 13 }}
+          >
+            <option value="7d">7 Tage</option>
+            <option value="30d">30 Tage (Standard)</option>
+            <option value="90d">90 Tage</option>
+            <option value="all">Alle Shots</option>
+          </select>
+          <small style={{ color: 'var(--text-dim)' }}>
+            Zeitraum für historische Basislinie — mehr Shots = genauerer Vergleich, aber längere Vorverarbeitung
+          </small>
+        </div>
+
         {/* Analysis Mode */}
         <div style={{ marginBottom: 16 }}>
           <label style={{ fontSize: 12, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: 0.8, display: 'block', marginBottom: 8 }}>
@@ -684,7 +706,7 @@ export default function Settings() {
             setAiKeysMsg('')
             setAiKeysError('')
             try {
-              await api.updateSettings({ apiKeyClaudeKey, apiKeyOpenaiKey, aiModel, aiCustomContext, aiAnalysisMode })
+              await api.updateSettings({ apiKeyClaudeKey, apiKeyOpenaiKey, aiModel, aiCustomContext, aiAnalysisMode, aiContextWindow })
               setAiKeysMsg('✅ AI Settings saved successfully')
               setTimeout(() => setAiKeysMsg(''), 3000)
             } catch (err) {

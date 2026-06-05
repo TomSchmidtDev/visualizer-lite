@@ -1134,6 +1134,8 @@ export interface AnalyzeResult extends ClaudeAnalysisResult {
   costInputUsd: number | null
   costOutputUsd: number | null
   analysisMode: 'standard' | 'optimized'
+  preprocessDurationMs: number
+  aiDurationMs: number
 }
 
 /**
@@ -1205,7 +1207,9 @@ export async function analyzeShot(
   customContext = '',
   analysisMode: 'standard' | 'optimized' = 'standard'
 ): Promise<AnalyzeResult> {
+  const preprocessStart = Date.now()
   const preprocessed = await preprocessShots(shotId, window)
+  const preprocessDurationMs = Date.now() - preprocessStart
 
   const systemPrompt = analysisMode === 'optimized'
     ? buildSystemPromptOptimized(language)
@@ -1224,6 +1228,7 @@ export async function analyzeShot(
   let tokenOutputCount = 0
   let analysisResult: ClaudeAnalysisResult
 
+  const aiStart = Date.now()
   if (model === 'openai') {
     const client = new OpenAI({ apiKey })
     const openaiModel = modelName || 'gpt-4o-mini'
@@ -1282,6 +1287,7 @@ export async function analyzeShot(
     if (!textContent || textContent.type !== 'text') throw new Error('No text response from Claude')
     analysisResult = extractJson(textContent.text)
   }
+  const aiDurationMs = Date.now() - aiStart
 
   const resolvedModel = model === 'openai'
     ? (modelName || 'gpt-4o-mini')
@@ -1297,5 +1303,7 @@ export async function analyzeShot(
     costInputUsd,
     costOutputUsd,
     analysisMode,
+    preprocessDurationMs,
+    aiDurationMs,
   }
 }

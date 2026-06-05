@@ -25,7 +25,6 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
-      const window = (request.query.window || '30d') as '7d' | '30d' | '90d' | 'all'
       const analysisType = (request.query.type || 'detail') as 'detail' | 'stats'
       const regenerate = request.query.regenerate === 'true'
 
@@ -55,13 +54,14 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       // Get user API keys, selected model, and language from settings
-      const [claudeKeyRow, openaiKeyRow, selectedModelRow, languageRow, customContextRow, analysisModeRow] = await Promise.all([
+      const [claudeKeyRow, openaiKeyRow, selectedModelRow, languageRow, customContextRow, analysisModeRow, contextWindowRow] = await Promise.all([
         prisma.settings.findUnique({ where: { key: 'apiKeyClaudeKey' } }),
         prisma.settings.findUnique({ where: { key: 'apiKeyOpenaiKey' } }),
         prisma.settings.findUnique({ where: { key: 'aiModel' } }),
         prisma.settings.findUnique({ where: { key: 'language' } }),
         prisma.settings.findUnique({ where: { key: 'aiCustomContext' } }),
         prisma.settings.findUnique({ where: { key: 'aiAnalysisMode' } }),
+        prisma.settings.findUnique({ where: { key: 'aiContextWindow' } }),
       ])
 
       const claudeKey = claudeKeyRow?.value || ''
@@ -89,9 +89,11 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
           : (request.headers['accept-language'] || '').toLowerCase().startsWith('de') ? 'de' : 'en'
       const customContext = customContextRow?.value || ''
       const analysisMode = (analysisModeRow?.value === 'optimized' ? 'optimized' : 'standard') as 'standard' | 'optimized'
+      const settingsWindow = (contextWindowRow?.value || '30d') as '7d' | '30d' | '90d' | 'all'
+      const contextWindow = (request.query.window || settingsWindow) as '7d' | '30d' | '90d' | 'all'
 
       // Call analyzeShot service with the specific model name and language
-      const result = await analyzeShot(shotId, apiKey, provider, analysisType, window, selectedModel, language, customContext, analysisMode)
+      const result = await analyzeShot(shotId, apiKey, provider, analysisType, contextWindow, selectedModel, language, customContext, analysisMode)
 
       const aiModel = selectedModel
 
@@ -110,6 +112,8 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
           costInputUsd: result.costInputUsd,
           costOutputUsd: result.costOutputUsd,
           analysisMode: result.analysisMode,
+          preprocessDurationMs: result.preprocessDurationMs,
+          aiDurationMs: result.aiDurationMs,
         },
         update: {
           analysisType,
@@ -122,6 +126,8 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
           costInputUsd: result.costInputUsd,
           costOutputUsd: result.costOutputUsd,
           analysisMode: result.analysisMode,
+          preprocessDurationMs: result.preprocessDurationMs,
+          aiDurationMs: result.aiDurationMs,
         },
       })
 
@@ -138,6 +144,8 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
         costInputUsd: analysis.costInputUsd,
         costOutputUsd: analysis.costOutputUsd,
         analysisMode: analysis.analysisMode,
+        preprocessDurationMs: analysis.preprocessDurationMs,
+        aiDurationMs: analysis.aiDurationMs,
         createdAt: analysis.createdAt,
       })
     } catch (error) {

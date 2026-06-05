@@ -22,6 +22,10 @@ function renderItem(item: unknown): string {
   return String(item)
 }
 
+function formatDuration(ms: number): string {
+  return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} s`
+}
+
 function formatCostUsd(amount: number): string {
   const decimals = amount < 0.001 ? 6 : 4
   const parts = amount.toFixed(decimals).split('.')
@@ -135,6 +139,22 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
             )}
             {analysis.analysisMode === 'optimized' && (
               <><span style={{ margin: '0 5px', opacity: 0.5 }}>•</span><span style={{ background: 'var(--accent)', color: '#fff', fontSize: 9, padding: '1px 6px', borderRadius: 3, letterSpacing: 0.5, textTransform: 'uppercase', verticalAlign: 'middle' }}>Optimiert</span></>
+            )}
+            {(analysis.preprocessDurationMs != null || analysis.aiDurationMs != null) && (
+              <div style={{ marginTop: 3 }}>
+                {analysis.preprocessDurationMs != null && (
+                  <>⏱ Vorverarbeitung {formatDuration(analysis.preprocessDurationMs)}</>
+                )}
+                {analysis.preprocessDurationMs != null && analysis.aiDurationMs != null && (
+                  <span style={{ margin: '0 5px', opacity: 0.5 }}>•</span>
+                )}
+                {analysis.aiDurationMs != null && (
+                  <>KI-Aufruf {formatDuration(analysis.aiDurationMs)}</>
+                )}
+                {analysis.preprocessDurationMs != null && analysis.aiDurationMs != null && (
+                  <><span style={{ margin: '0 5px', opacity: 0.5 }}>•</span>Gesamt {formatDuration(analysis.preprocessDurationMs + analysis.aiDurationMs)}</>
+                )}
+              </div>
             )}
           </div>
         )}

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0] - 2026-06-05
+
+### Added
+- **Konfigurierbares Kontext-Fenster**: Neue Einstellung in Settings → KI Analyse: 7 T / 30 T (Standard) / 90 T / Alle. Bestimmt den Zeitraum für die historische Basislinie.
+- **Timing-Anzeige**: Vorverarbeitungs- und KI-Aufruf-Dauer werden serverseitig gemessen, in der DB gespeichert und als zweite Zeile unter den Token/Kosten-Metadaten angezeigt (nur für neu generierte Analysen).
+
 ## [1.13.2] - 2026-06-05
 
 ### Fixed
