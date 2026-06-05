@@ -104,6 +104,7 @@ export interface AppSettings {
 export interface ContextSummary {
   shotCount: number
   window: string
+  tier: 'profile+bean' | 'profile' | 'none'
   pressureAvg: number | null
   flowAvg: number | null
   tempAvg: number | null

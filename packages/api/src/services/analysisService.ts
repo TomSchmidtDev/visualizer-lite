@@ -436,8 +436,13 @@ export async function preprocessShots(
   let contextShots: ShotWithTags[] = []
   let contextLabel = ''
 
+  // Minimum shots in Tier 1 to be considered a reliable sample.
+  // Below this count we fall back to the next tier even if ≥ 2 shots exist,
+  // because a handful of shots produces a noisy and potentially misleading baseline.
+  const TIER1_MIN = 10
+
   if (targetShot.profileTitle) {
-    // Tier 1: same profile AND same bean (both brand and type must be present)
+    // Tier 1: same profile AND same bean (both brand and type must be present and match exactly)
     if (targetShot.beanBrand && targetShot.beanType) {
       contextShots = await prisma.shot.findMany({
         where: {
@@ -450,13 +455,14 @@ export async function preprocessShots(
         orderBy: { startTime: 'desc' },
         take: 100,
       })
-      if (contextShots.length >= 2) {
+      if (contextShots.length >= TIER1_MIN) {
         contextLabel = 'same profile & bean'
       }
     }
 
-    // Tier 2 fallback: same profile only
-    if (contextShots.length < 2) {
+    // Tier 2 fallback: same profile only.
+    // Triggered when Tier 1 is unavailable or has fewer than TIER1_MIN shots.
+    if (contextShots.length < TIER1_MIN) {
       contextShots = await prisma.shot.findMany({
         where: {
           ...baseWhere,
@@ -469,7 +475,7 @@ export async function preprocessShots(
       contextLabel = contextShots.length >= 2 ? 'same profile' : ''
     }
 
-    // Clear if still below threshold — no meaningful stats
+    // Clear if still below minimum — no meaningful stats
     if (contextShots.length < 2) contextShots = []
   }
   // No profileTitle → contextShots stays empty, no historical context
@@ -1135,6 +1141,7 @@ function extractJson(text: string): ClaudeAnalysisResult {
 export interface ContextSummary {
   shotCount: number
   window: string
+  tier: 'profile+bean' | 'profile' | 'none'
   pressureAvg: number | null
   flowAvg: number | null
   tempAvg: number | null
@@ -1225,9 +1232,13 @@ export async function analyzeShot(
   const preprocessDurationMs = Date.now() - preprocessStart
 
   const contextShotCount = (preprocessed.aggregatedStats.shotCount ?? 1) - 1
+  const contextTier: ContextSummary['tier'] =
+    preprocessed.aggregatedStats.contextLabel === 'same profile & bean' ? 'profile+bean' :
+    preprocessed.aggregatedStats.contextLabel === 'same profile' ? 'profile' : 'none'
   const contextSummary: ContextSummary = {
     shotCount: contextShotCount,
     window,
+    tier: contextTier,
     pressureAvg: preprocessed.aggregatedStats.pressure
       ? parseFloat(preprocessed.aggregatedStats.pressure.avg.toFixed(1))
       : null,

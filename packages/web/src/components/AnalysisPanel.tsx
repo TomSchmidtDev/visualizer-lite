@@ -167,7 +167,10 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
                 {analysis.contextSummary.shotCount < 2
                   ? 'Kein historischer Kontext'
                   : <>
-                      {analysis.contextSummary.shotCount} Shots ({formatWindow(analysis.contextSummary.window)})
+                      {analysis.contextSummary.shotCount} Shots ({formatWindow(analysis.contextSummary.window)}
+                      {analysis.contextSummary.tier === 'profile+bean' && ', Profil + Bohne'}
+                      {analysis.contextSummary.tier === 'profile' && ', nur Profil'}
+                      {')'}
                       {analysis.contextSummary.pressureAvg != null && (
                         <><span style={{ margin: '0 5px', opacity: 0.5 }}>•</span>Ø Druck {analysis.contextSummary.pressureAvg} bar</>
                       )}
