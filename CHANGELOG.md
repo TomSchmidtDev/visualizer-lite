@@ -5,11 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.14.0] - 2026-06-05
+## [1.15.0] - 2026-06-05
 
 ### Added
 - **Konfigurierbares Kontext-Fenster**: Neue Einstellung in Settings → KI Analyse: 7 T / 30 T (Standard) / 90 T / Alle. Bestimmt den Zeitraum für die historische Basislinie.
-- **Timing-Anzeige**: Vorverarbeitungs- und KI-Aufruf-Dauer werden serverseitig gemessen, in der DB gespeichert und als zweite Zeile unter den Token/Kosten-Metadaten angezeigt (nur für neu generierte Analysen).
+- **Historischer Kontext in Metadaten**: Neue dritte Metadaten-Zeile in der Analyseansicht zeigt, wie viele Shots der KI als Vergleichsbasis mitgegeben wurden — inklusive Ø-Druck, Ø-Flow, Ø-Temperatur und Matching-Tier (Profil + Bohne / nur Profil). Direkt sichtbar, Details (Timing + Tokens/Kosten) hinter einem ▸/▾-Toggle.
+- **Konfigurierbare Kontext-Schwellwerte**: Tier-1-Minimum (Standard: 10 Shots) und Mindest-Kontext-Shots (Standard: 2) sind in den Einstellungen konfigurierbar.
+- **Timing-Anzeige**: Vorverarbeitungs- und KI-Aufruf-Dauer werden serverseitig gemessen, in der DB gespeichert und im aufklappbaren Detail-Bereich angezeigt.
+- **Vollständige i18n für KI-Analyse-UI**: Alle zuvor hardcodierten Strings in AnalysisPanel und Settings KI-Tab sind jetzt mehrsprachig (DE + EN).
+
+### Changed
+- **AnalysisPanel Metadaten-Layout**: Drei Zeilen neu geordnet — Zeile 1 (immer sichtbar): Zeitstempel + historischer Kontext; Zeilen 2–3 (aufklappbar): Timing und Modell/Tokens/Kosten.
+- **Tiered Matching für historischen Kontext**: Historische Basislinie verwendet Shot-Kontext mit demselben Profil + Bohne (Tier 1, ≥ 10 Shots) oder nur demselben Profil (Tier 2, ≥ 2 Shots) — verhindert bedeutungslose Vergleiche über verschiedene Profile hinweg.
+
+### Fixed
+- **KI antwortet jetzt in der eingestellten Sprache**: Alle vier System-Prompts (Standard/Optimiert, DE/EN) enthalten jetzt eine explizite Sprachanweisung. Zuvor antwortete die KI immer auf Englisch, da der englischsprachige User-Prompt die Sprache des System-Prompts überschrieb.
+- **Accept-Language-Erkennung**: Robusteres Parsen des Browser-Headers — erkennt jetzt auch Deutsch als Zweitsprache (z.B. `en-US,de;q=0.8`).
+- **Timing aus Cache zurückgegeben**: `preprocessDurationMs` und `aiDurationMs` wurden im Cache-Pfad nicht mitgesendet — behoben.
+- **Stale "Analyst"-Instruction entfernt**: Veralteter "Analyze from three perspectives: Barista, Röster, Analyst"-Satz aus dem Standard-Prompt entfernt (Analyst war bereits aus UI und JSON-Format entfernt).
+- **Tier-1-Schwelle angehoben**: Tier 1 (Profil + Bohne) wird erst bei ≥ 10 Shots verwendet; darunter Fallback auf Tier 2 (nur Profil). Verhindert, dass eine kleine Stichprobe als Basislinie gilt.
 
 ## [1.13.2] - 2026-06-05
 
