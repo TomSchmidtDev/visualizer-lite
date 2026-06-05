@@ -1030,8 +1030,6 @@ export function buildDetailPrompt(shot: ShotResponse, aggregatedStats: CurveStat
     lines.push('')
   }
 
-  lines.push(`Analyze this shot from all three perspectives: Barista, Röster, Analyst.`)
-
   return lines.join('\n')
 }
 

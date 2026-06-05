@@ -80,7 +80,13 @@ const analysisRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
-      const language = languageRow?.value === 'de' ? 'de' : 'en'
+      // Determine language: explicit 'de'/'en' wins; 'auto' (or unset) falls back to Accept-Language header
+      const settingLang = languageRow?.value || 'auto'
+      const language: string = settingLang === 'de'
+        ? 'de'
+        : settingLang === 'en'
+          ? 'en'
+          : (request.headers['accept-language'] || '').toLowerCase().startsWith('de') ? 'de' : 'en'
       const customContext = customContextRow?.value || ''
       const analysisMode = (analysisModeRow?.value === 'optimized' ? 'optimized' : 'standard') as 'standard' | 'optimized'
 
