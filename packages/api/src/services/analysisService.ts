@@ -666,6 +666,7 @@ export function buildSystemPrompt(language: string): string {
 
 **VERBOTEN – Historische Daten:** Es ist STRENGSTENS VERBOTEN, historische Durchschnittswerte, Vergleichswerte oder Trends zu nennen, zu schätzen oder zu erfinden. Aussagen wie "historischer Durchschnitt", "dein üblicher Wert" oder "normalerweise bei dir" sind unzulässig, solange kein Abschnitt "Historical Context" im Prompt vorhanden ist.
 
+Antworte ausschließlich auf **Deutsch**.
 Antworte AUSSCHLIESSLICH mit einem JSON-Objekt mit genau zwei Keys:
 {"barista":["Tipp 1","Tipp 2"],"roaster":["Erkenntnis 1","Erkenntnis 2"]}
 3–5 Einträge pro Array, konkret mit Bezug auf Datenwerte und Phasennamen.
@@ -698,6 +699,7 @@ Jeder Eintrag ist ein einfacher Text-String — KEIN Objekt, KEIN verschachtelte
 
 **FORBIDDEN – Historical data:** It is STRICTLY FORBIDDEN to mention, estimate, or invent historical averages, comparison values, or trends. Phrases like "your historical average", "your usual value", or "typically for you" are not allowed unless a "Historical Context" section is present in the prompt.
 
+Respond exclusively in **English**.
 Respond ONLY with a JSON object with exactly two keys:
 {"barista":["advice 1","advice 2"],"roaster":["insight 1","insight 2"]}
 3-5 entries per array, concrete references to data values and phase names.
@@ -722,6 +724,7 @@ Regeln:
 
 Nur Abweichungen erwähnen, die die Extraktionsqualität klar beeinflussen. Kleine Variationen ignorieren.
 
+Antworte ausschließlich auf **Deutsch**.
 Antworte NUR mit JSON: {"barista":["String 1","String 2"],"roaster":["String 1","String 2"]}
 Einträge müssen konkrete Datenwerte und Phasennamen referenzieren.
 Jeder Eintrag ist ein einfacher Text-String — KEIN Objekt, KEIN verschachteltes JSON.`
@@ -741,6 +744,7 @@ Rules:
 
 Only flag deviations that clearly impact extraction quality. Ignore minor variations within equipment tolerance.
 
+Respond exclusively in **English**.
 Respond ONLY with JSON: {"barista":["string 1","string 2"],"roaster":["string 1","string 2"]}
 Entries must reference specific data values and phase names.
 Each entry must be a plain text string — NOT an object, NOT nested JSON.`

@@ -60,6 +60,9 @@ export default function ShotDetail() {
         costInputUsd: response.costInputUsd,
         costOutputUsd: response.costOutputUsd,
         createdAt: response.createdAt,
+        analysisMode: response.analysisMode,
+        preprocessDurationMs: response.preprocessDurationMs,
+        aiDurationMs: response.aiDurationMs,
       })
     } catch (err) {
       setAnalysisError(err instanceof Error ? err.message : 'Unknown error')
