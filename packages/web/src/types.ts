@@ -99,6 +99,8 @@ export interface AppSettings {
   aiCustomContext?: string
   aiAnalysisMode?: string
   aiContextWindow?: string
+  aiContextTier1Min?: number
+  aiContextMinShots?: number
 }
 
 export interface ContextSummary {

@@ -26,6 +26,8 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
       aiCustomContext:    map.aiCustomContext ?? '',
       aiAnalysisMode:     map.aiAnalysisMode ?? 'standard',
       aiContextWindow:    map.aiContextWindow ?? '30d',
+      aiContextTier1Min:  map.aiContextTier1Min ? parseInt(map.aiContextTier1Min, 10) : 10,
+      aiContextMinShots:  map.aiContextMinShots  ? parseInt(map.aiContextMinShots,  10) : 2,
     })
   })
 
@@ -46,11 +48,13 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
       aiCustomContext?: string
       aiAnalysisMode?: string
       aiContextWindow?: string
+      aiContextTier1Min?: number
+      aiContextMinShots?: number
       currentPassword?: string
       newPassword?: string
     }
   }>('/', auth, async (request, reply) => {
-    const { language, theme, de1Url, tooltipOpacity, showAvgRatio, de1LastImportDate, statsTopN, statsShowPrevValue, de1DefaultBeverage, apiKeyClaudeKey, apiKeyOpenaiKey, aiModel, aiCustomContext, aiAnalysisMode, aiContextWindow, currentPassword, newPassword } = request.body
+    const { language, theme, de1Url, tooltipOpacity, showAvgRatio, de1LastImportDate, statsTopN, statsShowPrevValue, de1DefaultBeverage, apiKeyClaudeKey, apiKeyOpenaiKey, aiModel, aiCustomContext, aiAnalysisMode, aiContextWindow, aiContextTier1Min, aiContextMinShots, currentPassword, newPassword } = request.body
 
     if (language)
       await prisma.settings.upsert({
@@ -141,6 +145,18 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
         where: { key: 'aiContextWindow' },
         create: { key: 'aiContextWindow', value: aiContextWindow },
         update: { value: aiContextWindow },
+      })
+    if (aiContextTier1Min !== undefined)
+      await prisma.settings.upsert({
+        where: { key: 'aiContextTier1Min' },
+        create: { key: 'aiContextTier1Min', value: String(aiContextTier1Min) },
+        update: { value: String(aiContextTier1Min) },
+      })
+    if (aiContextMinShots !== undefined)
+      await prisma.settings.upsert({
+        where: { key: 'aiContextMinShots' },
+        create: { key: 'aiContextMinShots', value: String(aiContextMinShots) },
+        update: { value: String(aiContextMinShots) },
       })
     if (currentPassword && newPassword) {
       const row = await prisma.settings.findUnique({ where: { key: 'passwordHash' } })

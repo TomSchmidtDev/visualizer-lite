@@ -395,7 +395,9 @@ export function detectShotPhases(shotData: ShotData): ShotPhase[] {
  */
 export async function preprocessShots(
   shotId: string,
-  window: '7d' | '30d' | '90d' | 'all' = '30d'
+  window: '7d' | '30d' | '90d' | 'all' = '30d',
+  tier1MinShots = 10,
+  minContextShots = 2,
 ): Promise<PreprocessedData> {
   // Load target shot
   const targetShot = await prisma.shot.findUnique({
@@ -436,11 +438,6 @@ export async function preprocessShots(
   let contextShots: ShotWithTags[] = []
   let contextLabel = ''
 
-  // Minimum shots in Tier 1 to be considered a reliable sample.
-  // Below this count we fall back to the next tier even if ≥ 2 shots exist,
-  // because a handful of shots produces a noisy and potentially misleading baseline.
-  const TIER1_MIN = 10
-
   if (targetShot.profileTitle) {
     // Tier 1: same profile AND same bean (both brand and type must be present and match exactly)
     if (targetShot.beanBrand && targetShot.beanType) {
@@ -455,14 +452,14 @@ export async function preprocessShots(
         orderBy: { startTime: 'desc' },
         take: 100,
       })
-      if (contextShots.length >= TIER1_MIN) {
+      if (contextShots.length >= tier1MinShots) {
         contextLabel = 'same profile & bean'
       }
     }
 
     // Tier 2 fallback: same profile only.
-    // Triggered when Tier 1 is unavailable or has fewer than TIER1_MIN shots.
-    if (contextShots.length < TIER1_MIN) {
+    // Triggered when Tier 1 is unavailable or has fewer than tier1MinShots shots.
+    if (contextShots.length < tier1MinShots) {
       contextShots = await prisma.shot.findMany({
         where: {
           ...baseWhere,
@@ -472,11 +469,11 @@ export async function preprocessShots(
         orderBy: { startTime: 'desc' },
         take: 100,
       })
-      contextLabel = contextShots.length >= 2 ? 'same profile' : ''
+      contextLabel = contextShots.length >= minContextShots ? 'same profile' : ''
     }
 
     // Clear if still below minimum — no meaningful stats
-    if (contextShots.length < 2) contextShots = []
+    if (contextShots.length < minContextShots) contextShots = []
   }
   // No profileTitle → contextShots stays empty, no historical context
 
@@ -1225,10 +1222,12 @@ export async function analyzeShot(
   modelName?: string,
   language = 'en',
   customContext = '',
-  analysisMode: 'standard' | 'optimized' = 'standard'
+  analysisMode: 'standard' | 'optimized' = 'standard',
+  tier1MinShots = 10,
+  minContextShots = 2,
 ): Promise<AnalyzeResult> {
   const preprocessStart = Date.now()
-  const preprocessed = await preprocessShots(shotId, window)
+  const preprocessed = await preprocessShots(shotId, window, tier1MinShots, minContextShots)
   const preprocessDurationMs = Date.now() - preprocessStart
 
   const contextShotCount = (preprocessed.aggregatedStats.shotCount ?? 1) - 1
