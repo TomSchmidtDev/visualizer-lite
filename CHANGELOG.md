@@ -8,22 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.15.0] - 2026-06-05
 
 ### Added
-- **Konfigurierbares Kontext-Fenster**: Neue Einstellung in Settings → KI Analyse: 7 T / 30 T (Standard) / 90 T / Alle. Bestimmt den Zeitraum für die historische Basislinie.
-- **Historischer Kontext in Metadaten**: Neue dritte Metadaten-Zeile in der Analyseansicht zeigt, wie viele Shots der KI als Vergleichsbasis mitgegeben wurden — inklusive Ø-Druck, Ø-Flow, Ø-Temperatur und Matching-Tier (Profil + Bohne / nur Profil). Direkt sichtbar, Details (Timing + Tokens/Kosten) hinter einem ▸/▾-Toggle.
-- **Konfigurierbare Kontext-Schwellwerte**: Tier-1-Minimum (Standard: 10 Shots) und Mindest-Kontext-Shots (Standard: 2) sind in den Einstellungen konfigurierbar.
-- **Timing-Anzeige**: Vorverarbeitungs- und KI-Aufruf-Dauer werden serverseitig gemessen, in der DB gespeichert und im aufklappbaren Detail-Bereich angezeigt.
-- **Vollständige i18n für KI-Analyse-UI**: Alle zuvor hardcodierten Strings in AnalysisPanel und Settings KI-Tab sind jetzt mehrsprachig (DE + EN).
+- **Configurable context window**: New setting in Settings → AI Analysis: 7d / 30d (default) / 90d / All. Determines the time range for the historical baseline.
+- **Historical context in metadata**: New third metadata row in the analysis view shows how many shots were passed to the AI as a comparison baseline — including avg pressure, avg flow, avg temperature, and matching tier (profile + bean / profile only). Always visible; details (timing + tokens/cost) behind a ▸/▾ toggle.
+- **Configurable context thresholds**: Tier-1 minimum (default: 10 shots) and minimum context shots (default: 2) are configurable in Settings.
+- **Timing display**: Pre-processing and AI call duration are measured server-side, stored in the DB, and shown in the collapsible detail section.
+- **Full i18n for AI analysis UI**: All previously hardcoded strings in AnalysisPanel and the Settings AI tab are now multilingual (DE + EN).
 
 ### Changed
-- **AnalysisPanel Metadaten-Layout**: Drei Zeilen neu geordnet — Zeile 1 (immer sichtbar): Zeitstempel + historischer Kontext; Zeilen 2–3 (aufklappbar): Timing und Modell/Tokens/Kosten.
-- **Tiered Matching für historischen Kontext**: Historische Basislinie verwendet Shot-Kontext mit demselben Profil + Bohne (Tier 1, ≥ 10 Shots) oder nur demselben Profil (Tier 2, ≥ 2 Shots) — verhindert bedeutungslose Vergleiche über verschiedene Profile hinweg.
+- **AnalysisPanel metadata layout**: Three rows reordered — row 1 (always visible): timestamp + historical context; rows 2–3 (collapsible): timing and model/tokens/cost.
+- **Tiered matching for historical context**: Historical baseline uses shot context with the same profile + bean (Tier 1, ≥ 10 shots) or same profile only (Tier 2, ≥ 2 shots) — prevents meaningless comparisons across different profiles.
 
 ### Fixed
-- **KI antwortet jetzt in der eingestellten Sprache**: Alle vier System-Prompts (Standard/Optimiert, DE/EN) enthalten jetzt eine explizite Sprachanweisung. Zuvor antwortete die KI immer auf Englisch, da der englischsprachige User-Prompt die Sprache des System-Prompts überschrieb.
-- **Accept-Language-Erkennung**: Robusteres Parsen des Browser-Headers — erkennt jetzt auch Deutsch als Zweitsprache (z.B. `en-US,de;q=0.8`).
-- **Timing aus Cache zurückgegeben**: `preprocessDurationMs` und `aiDurationMs` wurden im Cache-Pfad nicht mitgesendet — behoben.
-- **Stale "Analyst"-Instruction entfernt**: Veralteter "Analyze from three perspectives: Barista, Röster, Analyst"-Satz aus dem Standard-Prompt entfernt (Analyst war bereits aus UI und JSON-Format entfernt).
-- **Tier-1-Schwelle angehoben**: Tier 1 (Profil + Bohne) wird erst bei ≥ 10 Shots verwendet; darunter Fallback auf Tier 2 (nur Profil). Verhindert, dass eine kleine Stichprobe als Basislinie gilt.
+- **AI now responds in the configured language**: All four system prompts (standard/optimized, DE/EN) now include an explicit language instruction. Previously the AI always responded in English because the English-language user prompt overrode the system prompt's language.
+- **Accept-Language detection**: More robust browser header parsing — now also recognizes German as a secondary language (e.g. `en-US,de;q=0.8`).
+- **Timing returned from cache**: `preprocessDurationMs` and `aiDurationMs` were not included in the cache path response — fixed.
+- **Stale "Analyst" instruction removed**: Outdated "Analyze from three perspectives: Barista, Röster, Analyst" sentence removed from the default prompt (Analyst had already been removed from UI and JSON format).
+- **Tier-1 threshold raised**: Tier 1 (profile + bean) is now used only with ≥ 10 shots; below that, falls back to Tier 2 (profile only). Prevents a small sample from being used as a baseline.
 
 ## [1.13.2] - 2026-06-05
 
@@ -38,12 +38,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.13.0] - 2026-06-04
 
 ### Changed
-- **Settings tabbed navigation** — Reorganized the Settings page into 4 icon+label tabs: 🎨 Ansicht (Language, Theme, Statistics), 💾 Daten (DE1 Import, Export, Database Info), 🔒 Sicherheit (Password), 🤖 KI Analyse (AI Analysis). Active tab is remembered across sessions via `localStorage`.
+- **Settings tabbed navigation** — Reorganized the Settings page into 4 icon+label tabs: 🎨 View (Language, Theme, Statistics), 💾 Data (DE1 Import, Export, Database Info), 🔒 Security (Password), 🤖 AI Analysis. Active tab is remembered across sessions via `localStorage`.
 
 ## [1.12.0] - 2026-06-04
 
 ### Added
-- **Optimized Analysis Mode**: New A/B toggle in Settings → AI Analysis. "Optimiert" uses a compressed system prompt (~50% fewer tokens), compact key=value prompt format, higher channeling threshold (σ > 0.20 ml/s), and Claude prompt caching — reducing API costs significantly while eliminating false-positive warnings.
+- **Optimized Analysis Mode**: New A/B toggle in Settings → AI Analysis. "Optimized" uses a compressed system prompt (~50% fewer tokens), compact key=value prompt format, higher channeling threshold (σ > 0.20 ml/s), and Claude prompt caching — reducing API costs significantly while eliminating false-positive warnings.
 
 ## [1.11.0] - 2026-06-04
 
@@ -67,14 +67,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.9.0] - 2026-06-02
 
 ### Added
-- **KI-Analyse (experimentell)** — On-demand AI analysis of individual espresso shots using Claude or OpenAI models
-  - Two perspectives: **Barista** (brewing technique) and **Röster** (bean & roast analysis)
+- **AI Analysis (experimental)** — On-demand AI analysis of individual espresso shots using Claude or OpenAI models
+  - Two perspectives: **Barista** (brewing technique) and **Roaster** (bean & roast analysis)
   - Supports Claude Haiku 4.5 / Sonnet 4.6 / Opus 4.8 and GPT-4o mini / GPT-4o
   - User-provided API keys stored in Settings (Claude and/or OpenAI)
   - Per-model selector dropdown in Settings
   - Optional machine context textarea (pre-filled with DE1-specific knowledge)
   - Results cached per shot; regenerate button to refresh
-  - Dark-theme aware UI with tab navigation (☕ Barista / 🔥 Röster)
+  - Dark-theme aware UI with tab navigation (☕ Barista / 🔥 Roaster)
 - **Phase-aware analysis**: shot curves automatically segmented into Preinfusion and Extraction phases based on profile goal signals; statistics computed per phase, not over the whole shot
 - **Stable sub-phase detection**: extraction stats (σ, avg, min, max) computed only after the flow minimum is reached, excluding the pressure ramp-down
 - **Flow vs. pressure control semantics**: flow-controlled phases treat pressure as puck resistance (output), not a stability metric; channeling signals only raised in pressure-controlled phases
@@ -150,7 +150,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.3.0] - 2026-05-30
 
 ### Added
-- Shot comparison feature: "Vergleichen" button in shot detail opens the list in compare mode; clicking a second shot navigates to `/compare?a=…&b=…`
+- Shot comparison feature: "Compare" button in shot detail opens the list in compare mode; clicking a second shot navigates to `/compare?a=…&b=…`
 - Comparison page with overlaid extraction curves (Shot A solid, Shot B dashed at 70% opacity) and a toggle to split-view mode
 - Key metrics table (dose/yield, ratio, duration, enjoyment) with differing values highlighted
 - Tasting scores, bean/equipment info, and notes shown side by side
@@ -174,7 +174,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - App description, feature list, and screenshots to both README files (EN + DE)
 
 ### Fixed
-- Double shot-count display ("13 13 Shots gefunden") — count is now shown once, with "X von Y" when a filter is active
+- Double shot-count display ("13 13 Shots found") — count is now shown once, with "X of Y" when a filter is active
 - ∅ Enjoyment now only shown when no filter is active
 
 ## [1.1.0] - 2026-05-26
