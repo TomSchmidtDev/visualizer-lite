@@ -23,7 +23,7 @@ export default function SearchBar({ params, suggestions, onChange }: Props) {
   }
 
   const activeFilters = [
-    params.beanBrand && { key: 'beanBrand' as keyof SearchParams, label: `${t('shots.beanBrand')}: ${params.beanBrand}` },
+    params.beanBrand && { key: 'beanBrand' as keyof SearchParams, label: `${t('edit.beanBrand')}: ${params.beanBrand}` },
     params.profileTitle && { key: 'profileTitle' as keyof SearchParams, label: `${t('shots.profileTitle')}: ${params.profileTitle}` },
     params.grinderModel && { key: 'grinderModel' as keyof SearchParams, label: `${t('shots.grinderModel')}: ${params.grinderModel}` },
     params.beverageType && { key: 'beverageType' as keyof SearchParams, label: beverageLabel(params.beverageType) },

@@ -60,7 +60,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   }
   const TABS: { type: TabType; label: string; emoji: string }[] = [
     { type: 'barista', label: 'Barista', emoji: '☕' },
-    { type: 'roaster', label: t('shots.beanBrand'), emoji: '🔥' },
+    { type: 'roaster', label: t('edit.beanBrand'), emoji: '🔥' },
   ];
   const [activeTab, setActiveTab] = useState<TabType>('barista');
   const [detailsOpen, setDetailsOpen] = useState(false);
