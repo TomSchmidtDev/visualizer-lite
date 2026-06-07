@@ -282,6 +282,8 @@ Die [Advanced REST API](https://github.com/randomcoffeesnob/decent-advanced-rest
 
 ## Architektur
 
+> **KI-Analyse im Detail:** [docs/ai-analysis.de.md](docs/ai-analysis.de.md) beschreibt Prompt-Design, das gestufte Kontext-System, Caching-Strategie und Kostenverfolgung.
+
 ### Systemübersicht
 
 Visualizer Lite läuft als einzelner Docker-Container. Die DE1-Maschine kommuniziert in beide Richtungen mit ihm; der Browser greift über Port 3000 auf denselben Container zu. Für die KI-Analyse ruft der Container bei Bedarf externe APIs auf (Claude oder OpenAI) — für alle anderen Funktionen ist kein API-Key erforderlich.

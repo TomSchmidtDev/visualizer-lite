@@ -282,6 +282,8 @@ The [Advanced REST API](https://github.com/randomcoffeesnob/decent-advanced-rest
 
 ## Architecture
 
+> **AI Analysis deep-dive:** [docs/ai-analysis.md](docs/ai-analysis.md) covers the prompt design, tiered context system, caching strategy, and cost tracking in detail.
+
 ### System Overview
 
 Visualizer Lite runs as a single Docker container. The DE1 machine communicates with it in both directions; the browser accesses the same container on port 3000. For AI analysis, the container calls external APIs (Claude or OpenAI) on demand — no API key is required for any other feature.
