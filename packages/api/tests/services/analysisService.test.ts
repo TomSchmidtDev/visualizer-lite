@@ -270,7 +270,9 @@ describe('preprocessShots', () => {
     expect(shotIds.length).toBeLessThanOrEqual(100)
   })
 
-  it('should include target shot in aggregatedStats', async () => {
+  it('should include pressure stats when context shots exist', async () => {
+    await createShot(baseShot, 'ctx1', 'ctx1_path')
+    await createShot(baseShot, 'ctx2', 'ctx2_path')
     const target = await createShot(baseShot, 'target', 'target_path')
 
     const result = await preprocessShots(target.id, '30d')
@@ -347,7 +349,9 @@ describe('buildStatsPrompt', () => {
     expect(prompt).toContain('7')
   })
 
-  it('should include aggregated stats', async () => {
+  it('should include aggregated stats when context shots exist', async () => {
+    await createShot(baseShot, 'ctx1', 'ctx1_path')
+    await createShot(baseShot, 'ctx2', 'ctx2_path')
     const target = await createShot(baseShot, 'target', 'target_path')
     const preprocessed = await preprocessShots(target.id, '30d')
 

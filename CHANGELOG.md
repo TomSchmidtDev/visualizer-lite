@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.16.0] - 2026-06-07
+
+### Added
+- **Synology NAS installation guides**: Step-by-step guides in English and German (`docs/synology-installation.md`, `docs/synology-installation.de.md`) covering both Task Scheduler (no SSH) and SSH methods, with screenshots.
+
+### Changed
+- **Password change form**: New password must now be entered twice for confirmation; mismatch is caught client-side before the API request.
+- **Screenshot gallery**: README gallery updated with new high-quality screenshots (shot list, extraction curves, statistics, comparison, AI analysis, all settings tabs).
+- **Architecture section**: Added link to AI analysis documentation (`docs/ai-analysis.md` / `docs/ai-analysis.de.md`).
+
+### Fixed
+- **i18n — complete DE/EN separation**: All remaining hardcoded German and English strings in UI components replaced with `t()` calls:
+  - `AnalysisPanel`: context window labels (`7 T`, `30 T`, `Alle` → translated via `settings.aiWindow*`), Roaster tab label
+  - `Layout`: theme toggle (`Dark`/`Light` → `t('settings.dark/light')`)
+  - `SearchBar`: filter chips (`Röster:`, `Profil:`, `Mühle:` → `t()`)
+  - `ShotCard` / `ShotDetail` / `ShotCompare`: fallback labels (`Unknown Shot`, `Shot`, `No chart data`)
+  - `ShotDetail` / `Stats`: error fallback (`Unknown error` → `t('common.error')`)
+- **Test suite**: Two `analysisService` tests updated to reflect that aggregated stats are computed from context shots only (not the target shot).
+
 ## [1.15.0] - 2026-06-05
 
 ### Added
