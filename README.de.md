@@ -34,30 +34,30 @@ Visualizer Lite entstand aus diesem Bedarf:
 <table>
   <tr>
     <td align="center" width="33%">
-      <img src="docs/screenshots/shot-list.png" alt="Shot-Liste" />
+      <img src="docs/screenshots/espresso-shot-log-visualizer-lite.jpeg" alt="Shot-Liste" />
       <br/><sub><b>Shot-Liste</b></sub>
     </td>
     <td align="center" width="33%">
-      <img src="docs/screenshots/shot-detail.png" alt="Extraktionskurven" />
+      <img src="docs/screenshots/espresso-extraction-brasilien-corrego-slayer4-41s.jpeg" alt="Extraktionskurven" />
       <br/><sub><b>Extraktionskurven</b></sub>
     </td>
     <td align="center" width="33%">
-      <img src="docs/screenshots/settings.png" alt="Einstellungen &amp; Import" />
-      <br/><sub><b>Einstellungen &amp; Import</b></sub>
+      <img src="docs/screenshots/espresso-statistics-dashboard-1year-summary.jpeg" alt="Statistik-Dashboard" />
+      <br/><sub><b>Statistik-Dashboard — 1 Jahr</b></sub>
     </td>
   </tr>
   <tr>
     <td align="center" width="33%">
-      <img src="docs/screenshots/shot-comparison-overlaid.png" alt="Shot-Vergleich — Überlagert" />
+      <img src="docs/screenshots/espresso-extraction-comparison-curves-brasilien-corrego-macedo.jpeg" alt="Shot-Vergleich — Überlagert" />
       <br/><sub><b>Shot-Vergleich — Überlagerte Kurven</b></sub>
     </td>
     <td align="center" width="33%">
-      <img src="docs/screenshots/shot-comparison-split.png" alt="Shot-Vergleich — Getrennt" />
+      <img src="docs/screenshots/espresso-extraction-comparison-curves-visualizer-lite.jpeg" alt="Shot-Vergleich — Getrennt" />
       <br/><sub><b>Shot-Vergleich — Getrennte Ansicht</b></sub>
     </td>
     <td align="center" width="33%">
-      <img src="docs/screenshots/shot-statistics-6-months-dashboard.png" alt="Statistik-Dashboard" />
-      <br/><sub><b>Statistik-Dashboard — 6-Monats-Ansicht</b></sub>
+      <img src="docs/screenshots/espresso-flow-analysis-ai-recommendation.jpeg" alt="KI-Analyse" />
+      <br/><sub><b>KI-Analyse — Barista-Perspektive</b></sub>
     </td>
   </tr>
 </table>
@@ -67,6 +67,8 @@ Visualizer Lite entstand aus diesem Bedarf:
 ## Schnellstart
 
 Kein Build nötig — einfach das veröffentlichte Image aus der GitHub Container Registry verwenden.
+
+> **Synology NAS?** Separate Anleitung: [Synology-Installation →](docs/synology-installation.de.md)
 
 **HTTP (lokales Netzwerk):**
 ```bash

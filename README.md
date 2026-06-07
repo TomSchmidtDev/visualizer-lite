@@ -34,30 +34,30 @@ Visualizer Lite grew out of that need:
 <table>
   <tr>
     <td align="center" width="33%">
-      <img src="docs/screenshots/shot-list.png" alt="Shot List" />
+      <img src="docs/screenshots/espresso-shot-log-visualizer-lite.jpeg" alt="Shot List" />
       <br/><sub><b>Shot List</b></sub>
     </td>
     <td align="center" width="33%">
-      <img src="docs/screenshots/shot-detail.png" alt="Extraction Curves" />
+      <img src="docs/screenshots/espresso-extraction-brasilien-corrego-slayer4-41s.jpeg" alt="Extraction Curves" />
       <br/><sub><b>Extraction Curves</b></sub>
     </td>
     <td align="center" width="33%">
-      <img src="docs/screenshots/settings.png" alt="Settings &amp; Import" />
-      <br/><sub><b>Settings &amp; Import</b></sub>
+      <img src="docs/screenshots/espresso-statistics-dashboard-1year-summary.jpeg" alt="Statistics Dashboard" />
+      <br/><sub><b>Statistics Dashboard — 1 Year</b></sub>
     </td>
   </tr>
   <tr>
     <td align="center" width="33%">
-      <img src="docs/screenshots/shot-comparison-overlaid.png" alt="Shot Comparison — Overlaid" />
+      <img src="docs/screenshots/espresso-extraction-comparison-curves-brasilien-corrego-macedo.jpeg" alt="Shot Comparison — Overlaid" />
       <br/><sub><b>Shot Comparison — Overlaid Curves</b></sub>
     </td>
     <td align="center" width="33%">
-      <img src="docs/screenshots/shot-comparison-split.png" alt="Shot Comparison — Split View" />
+      <img src="docs/screenshots/espresso-extraction-comparison-curves-visualizer-lite.jpeg" alt="Shot Comparison — Split View" />
       <br/><sub><b>Shot Comparison — Split View</b></sub>
     </td>
     <td align="center" width="33%">
-      <img src="docs/screenshots/shot-statistics-6-months-dashboard.png" alt="Statistics Dashboard" />
-      <br/><sub><b>Statistics Dashboard — 6 Months View</b></sub>
+      <img src="docs/screenshots/espresso-flow-analysis-ai-recommendation.jpeg" alt="AI Analysis" />
+      <br/><sub><b>AI Analysis — Barista Perspective</b></sub>
     </td>
   </tr>
 </table>
@@ -67,6 +67,8 @@ Visualizer Lite grew out of that need:
 ## Quick Start
 
 No build required — use the published image from GitHub Container Registry.
+
+> **Synology NAS?** See the dedicated guide: [Synology Installation →](docs/synology-installation.md)
 
 **HTTP (local network):**
 ```bash
