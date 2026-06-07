@@ -15,8 +15,8 @@ function diffColor(a: string | null, b: string | null, side: 'a' | 'b'): string 
   return side === 'a' ? 'var(--accent)' : '#c87d32'
 }
 
-function shotLabel(shot: Shot): string {
-  return [shot.beanType, shot.beanBrand].filter(Boolean).join(' — ') || 'Shot'
+function shotLabel(shot: Shot, fallback: string): string {
+  return [shot.beanType, shot.beanBrand].filter(Boolean).join(' — ') || fallback
 }
 
 interface MetaRowProps {
@@ -70,8 +70,8 @@ export default function ShotCompare() {
   if (loadingA || loadingB) return <div style={{ padding: 24, color: 'var(--text-muted)' }}>{t('common.loading')}</div>
   if (!shotA || !shotB) return <div style={{ padding: 24, color: 'var(--text-muted)' }}>{t('common.notFound')}</div>
 
-  const labelA = shotLabel(shotA)
-  const labelB = shotLabel(shotB)
+  const labelA = shotLabel(shotA, t('common.shot'))
+  const labelB = shotLabel(shotB, t('common.shot'))
 
   const ratioA = shotA.beanWeight && shotA.drinkWeight ? `1 : ${(shotA.drinkWeight / shotA.beanWeight).toFixed(2)}` : null
   const ratioB = shotB.beanWeight && shotB.drinkWeight ? `1 : ${(shotB.drinkWeight / shotB.beanWeight).toFixed(2)}` : null

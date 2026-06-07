@@ -75,6 +75,7 @@
     "aiAnalyzing": "Analyzing…",
     "aiError": "Error: ",
     "aiRetry": "Retry",
+    "noChartData": "No chart data",
     "aiRegenerate": "Regenerate",
     "aiNoContext": "No historical context",
     "aiContextTierProfileBean": ", Profile + Bean",
@@ -135,6 +136,8 @@
     "changePassword": "Change Password",
     "currentPassword": "Current Password",
     "newPassword": "New Password",
+    "confirmPassword": "Confirm New Password",
+    "passwordMismatch": "Passwords do not match.",
     "savePassword": "Update Password",
     "passwordChanged": "Password updated!",
     "export": "Export Data",
@@ -256,6 +259,8 @@
     "seconds": "s",
     "grams": "g",
     "yes": "Yes",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "shot": "Shot",
+    "unknownShot": "Unknown Shot"
   }
 }

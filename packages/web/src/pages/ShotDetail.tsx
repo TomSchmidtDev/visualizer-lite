@@ -66,7 +66,7 @@ export default function ShotDetail() {
         contextSummary: response.contextSummary,
       })
     } catch (err) {
-      setAnalysisError(err instanceof Error ? err.message : 'Unknown error')
+      setAnalysisError(err instanceof Error ? err.message : t('common.error'))
     } finally {
       setAnalysisLoading(false)
     }
@@ -90,7 +90,7 @@ export default function ShotDetail() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>
-              {[shot.beanType, shot.beanBrand].filter(Boolean).join(' — ') || 'Shot'}
+              {[shot.beanType, shot.beanBrand].filter(Boolean).join(' — ') || t('common.shot')}
             </h1>
             <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>{date}</p>
             <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
@@ -128,7 +128,7 @@ export default function ShotDetail() {
             <div className="card-title">{t('detail.extractionCurves')}</div>
             {shot.shotData
               ? <ShotChart shotData={shot.shotData} tooltipOpacity={settings?.tooltipOpacity} />
-              : <p style={{ color: 'var(--text-dim)' }}>No chart data</p>}
+              : <p style={{ color: 'var(--text-dim)' }}>{t('detail.noChartData')}</p>}
           </div>
 
           {/* Extraction values */}

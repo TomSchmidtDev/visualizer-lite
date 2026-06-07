@@ -77,7 +77,7 @@ export default function Layout({ theme, onToggleTheme }: Props) {
               fontSize: 12,
             }}
           >
-            {theme === 'dark' ? '🌙 Dark' : '☀️ Light'}
+            {theme === 'dark' ? `🌙 ${t('settings.dark')}` : `☀️ ${t('settings.light')}`}
           </button>
           <NavLink to="/settings" style={{ fontSize: 13, color: 'var(--text-muted)' }}>
             {t('nav.settings')}

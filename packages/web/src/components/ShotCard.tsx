@@ -92,7 +92,7 @@ export default function ShotCard({ shot, onSelect }: Props) {
       {/* Info */}
       <div>
         <div style={{ fontWeight: 600, marginBottom: 3 }}>
-          {[shot.beanType, shot.beanBrand].filter(Boolean).join(' — ') || 'Unknown Shot'}
+          {[shot.beanType, shot.beanBrand].filter(Boolean).join(' — ') || t('common.unknownShot')}
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>
           {[shot.profileTitle, shot.grinderModel, shot.grinderSetting].filter(Boolean).join(' · ')}

@@ -23,9 +23,9 @@ export default function SearchBar({ params, suggestions, onChange }: Props) {
   }
 
   const activeFilters = [
-    params.beanBrand && { key: 'beanBrand' as keyof SearchParams, label: `Röster: ${params.beanBrand}` },
-    params.profileTitle && { key: 'profileTitle' as keyof SearchParams, label: `Profil: ${params.profileTitle}` },
-    params.grinderModel && { key: 'grinderModel' as keyof SearchParams, label: `Mühle: ${params.grinderModel}` },
+    params.beanBrand && { key: 'beanBrand' as keyof SearchParams, label: `${t('shots.beanBrand')}: ${params.beanBrand}` },
+    params.profileTitle && { key: 'profileTitle' as keyof SearchParams, label: `${t('shots.profileTitle')}: ${params.profileTitle}` },
+    params.grinderModel && { key: 'grinderModel' as keyof SearchParams, label: `${t('shots.grinderModel')}: ${params.grinderModel}` },
     params.beverageType && { key: 'beverageType' as keyof SearchParams, label: beverageLabel(params.beverageType) },
   ].filter(Boolean) as { key: keyof SearchParams; label: string }[]
 

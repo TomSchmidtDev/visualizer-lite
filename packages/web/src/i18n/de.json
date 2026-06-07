@@ -75,6 +75,7 @@
     "aiAnalyzing": "Analysiere…",
     "aiError": "Fehler: ",
     "aiRetry": "Erneut versuchen",
+    "noChartData": "Keine Chartdaten",
     "aiRegenerate": "Neu generieren",
     "aiNoContext": "Kein historischer Kontext",
     "aiContextTierProfileBean": ", Profil + Bohne",
@@ -135,6 +136,8 @@
     "changePassword": "Passwort ändern",
     "currentPassword": "Aktuelles Passwort",
     "newPassword": "Neues Passwort",
+    "confirmPassword": "Neues Passwort bestätigen",
+    "passwordMismatch": "Die Passwörter stimmen nicht überein.",
     "savePassword": "Passwort aktualisieren",
     "passwordChanged": "Passwort aktualisiert!",
     "export": "Daten exportieren",
@@ -256,6 +259,8 @@
     "seconds": "s",
     "grams": "g",
     "yes": "Ja",
-    "cancel": "Abbrechen"
+    "cancel": "Abbrechen",
+    "shot": "Shot",
+    "unknownShot": "Unbekannter Shot"
   }
 }

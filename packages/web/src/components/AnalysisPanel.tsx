@@ -26,10 +26,6 @@ function formatDuration(ms: number): string {
   return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} s`
 }
 
-function formatWindow(window: string): string {
-  const map: Record<string, string> = { '7d': '7 T', '30d': '30 T', '90d': '90 T', 'all': 'Alle' }
-  return map[window] ?? window
-}
 
 function formatCostUsd(amount: number): string {
   const decimals = amount < 0.001 ? 6 : 4
@@ -39,10 +35,6 @@ function formatCostUsd(amount: number): string {
   return `$${parts[0]}.${finalDec}`
 }
 
-const TABS: { type: TabType; label: string; emoji: string }[] = [
-  { type: 'barista', label: 'Barista', emoji: '☕' },
-  { type: 'roaster', label: 'Röster', emoji: '🔥' },
-];
 
 const card: React.CSSProperties = {
   marginTop: 16,
@@ -60,6 +52,16 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   onRegenerate,
 }) => {
   const { t } = useTranslation();
+  const windowLabels: Record<string, string> = {
+    '7d': t('settings.aiWindow7d'),
+    '30d': t('settings.aiWindow30d').replace(/\s*\(.*\)$/, ''),
+    '90d': t('settings.aiWindow90d'),
+    'all': t('settings.aiWindowAll'),
+  }
+  const TABS: { type: TabType; label: string; emoji: string }[] = [
+    { type: 'barista', label: 'Barista', emoji: '☕' },
+    { type: 'roaster', label: t('shots.beanBrand'), emoji: '🔥' },
+  ];
   const [activeTab, setActiveTab] = useState<TabType>('barista');
   const [detailsOpen, setDetailsOpen] = useState(false);
 
@@ -141,7 +143,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
                 : <>
                     <span style={{ margin: '0 5px', opacity: 0.5 }}>•</span>
                     {'📊 '}
-                    {analysis.contextSummary.shotCount} Shots ({formatWindow(analysis.contextSummary.window)}
+                    {analysis.contextSummary.shotCount} Shots ({windowLabels[analysis.contextSummary.window] ?? analysis.contextSummary.window}
                     {analysis.contextSummary.tier === 'profile+bean' && t('detail.aiContextTierProfileBean')}
                     {analysis.contextSummary.tier === 'profile' && t('detail.aiContextTierProfile')}
                     {')'}

@@ -40,7 +40,7 @@ function todayStr(): string {
 export default function Settings() {
   const { t } = useTranslation()
   const qc = useQueryClient()
-  const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '' })
+  const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' })
   const [pwMsg, setPwMsg] = useState('')
   const [pwError, setPwError] = useState('')
 
@@ -126,10 +126,14 @@ export default function Settings() {
     e.preventDefault()
     setPwMsg('')
     setPwError('')
+    if (pwForm.newPassword !== pwForm.confirmPassword) {
+      setPwError(t('settings.passwordMismatch'))
+      return
+    }
     try {
-      await api.updateSettings(pwForm)
+      await api.updateSettings({ currentPassword: pwForm.currentPassword, newPassword: pwForm.newPassword })
       setPwMsg(t('settings.passwordChanged'))
-      setPwForm({ currentPassword: '', newPassword: '' })
+      setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
     } catch (e: unknown) {
       setPwError(e instanceof Error ? e.message : t('common.error'))
     }
@@ -373,12 +377,19 @@ export default function Settings() {
             <input type="password" value={pwForm.currentPassword}
               onChange={(e) => setPwForm((f) => ({ ...f, currentPassword: e.target.value }))} required />
           </div>
-          <div style={{ marginBottom: 16 }}>
+          <div style={{ marginBottom: 12 }}>
             <label style={{ display: 'block', fontSize: 11, color: 'var(--text-dim)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.8 }}>
               {t('settings.newPassword')}
             </label>
             <input type="password" value={pwForm.newPassword}
               onChange={(e) => setPwForm((f) => ({ ...f, newPassword: e.target.value }))} required minLength={6} />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', fontSize: 11, color: 'var(--text-dim)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+              {t('settings.confirmPassword')}
+            </label>
+            <input type="password" value={pwForm.confirmPassword}
+              onChange={(e) => setPwForm((f) => ({ ...f, confirmPassword: e.target.value }))} required minLength={6} />
           </div>
           {pwMsg   && <p style={{ color: 'var(--green)', fontSize: 13, marginBottom: 10 }}>{pwMsg}</p>}
           {pwError && <p style={{ color: 'var(--red)',   fontSize: 13, marginBottom: 10 }}>{pwError}</p>}

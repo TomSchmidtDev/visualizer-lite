@@ -350,7 +350,7 @@ export default function StatsPage() {
       const response = await api.analyzeShot('', { type: 'stats', window: analysisWindow, regenerate })
       setAnalysisData({ barista: response.barista, roaster: response.roaster, analyst: response.analyst })
     } catch (err) {
-      setAnalysisError(err instanceof Error ? err.message : 'Unknown error')
+      setAnalysisError(err instanceof Error ? err.message : t('common.error'))
     } finally {
       setAnalysisLoading(false)
     }
