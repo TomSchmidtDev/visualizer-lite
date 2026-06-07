@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.17.0] - 2026-06-07
 
 ### Added
 - **Pre-commit i18n validation**: `scripts/check-i18n.mjs` + husky v9 pre-commit hook validates all static `t('...')` calls against both `de.json` and `en.json`, and checks that both files have identical key sets. Dynamic keys (template literals) emit a warning but do not block the commit. Calls with extra arguments (`t('key', { count })`) are also validated.
