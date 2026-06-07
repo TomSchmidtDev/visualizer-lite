@@ -7,25 +7,25 @@ on:
 
 permissions:
   packages: write
+  contents: write   # required to delete release assets
 
 jobs:
-  cleanup:
+  cleanup-ghcr:
+    name: Remove old GHCR images (keep last 3 releases)
     runs-on: ubuntu-latest
     steps:
-      # Step 1: Keep only the 3 most recent tagged versions (v*.*.*)
-      # 'latest' points to the same digest as the newest semver tag and is
-      # protected implicitly; it is also listed in ignore-versions as a safety net.
-      - name: Delete old tagged versions (keep last 3)
+      # Each multi-arch release produces 3 GHCR versions:
+      #   1 index manifest (tagged)  +  1 amd64 child  +  1 arm64 child (both untagged)
+      # → min-versions-to-keep = 3 releases × 3 = 9
+      - name: Delete old tagged versions (keep last 3 releases)
         uses: actions/delete-package-versions@v5
         with:
           package-name: visualizer-lite
           package-type: container
-          min-versions-to-keep: 3
+          min-versions-to-keep: 9
           ignore-versions: '^latest$'
           delete-only-untagged-versions: false
 
-      # Step 2: Remove orphaned untagged layer manifests that remain after
-      # their parent multi-arch index was deleted in Step 1.
       - name: Delete orphaned untagged layers
         uses: actions/delete-package-versions@v5
         with:
@@ -33,3 +33,24 @@ jobs:
           package-type: container
           min-versions-to-keep: 0
           delete-only-untagged-versions: true
+
+  cleanup-release-assets:
+    name: Remove tar.gz assets from releases older than top 3
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+    steps:
+      - name: Delete tar.gz assets from old releases
+        run: |
+          tags=$(gh release list --repo "$REPO" --json tagName,publishedAt \
+            --jq 'sort_by(.publishedAt) | reverse | .[3:] | .[].tagName')
+
+          for tag in $tags; do
+            asset_ids=$(gh release view "$tag" --repo "$REPO" \
+              --json assets --jq '.assets[].id')
+            for asset_id in $asset_ids; do
+              echo "Deleting asset $asset_id from release $tag"
+              gh api --method DELETE "repos/$REPO/releases/assets/$asset_id"
+            done
+          done
