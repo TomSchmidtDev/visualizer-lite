@@ -46,7 +46,7 @@ jobs:
 
           for tag in $tags; do
             asset_ids=$(gh release view "$tag" --repo "$REPO" \
-              --json assets --jq '.assets[].id')
+              --json assets --jq '.assets[] | .apiUrl | split("/") | last')
             for asset_id in $asset_ids; do
               echo "Deleting asset $asset_id from release $tag"
               gh api --method DELETE "repos/$REPO/releases/assets/$asset_id"
