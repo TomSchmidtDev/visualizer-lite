@@ -26,13 +26,11 @@ jobs:
           ignore-versions: '^latest$'
           delete-only-untagged-versions: false
 
-      - name: Delete orphaned untagged layers
-        uses: actions/delete-package-versions@v5
-        with:
-          package-name: visualizer-lite
-          package-type: container
-          min-versions-to-keep: 0
-          delete-only-untagged-versions: true
+      # No separate untagged-cleanup step: Step 1 already removes untagged platform
+      # children of deleted releases (they are older than the 9 kept versions).
+      # A dedicated delete-only-untagged step with min-versions-to-keep: 0 would
+      # also wipe the amd64/arm64 children of the 3 releases we keep, breaking
+      # multi-arch pulls even though the tag remains visible.
 
   cleanup-release-assets:
     name: Remove tar.gz assets from releases older than top 3
