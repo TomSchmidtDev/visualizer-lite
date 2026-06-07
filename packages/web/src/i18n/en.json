@@ -36,7 +36,9 @@
     "ratio": "Ratio",
     "duration": "Duration",
     "dose": "Dose",
-    "yield": "Yield"
+    "yield": "Yield",
+    "profileTitle": "Profile",
+    "grinderModel": "Grinder"
   },
   "detail": {
     "extractionCurves": "Extraction Curves",
