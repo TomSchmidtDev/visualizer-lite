@@ -60,6 +60,31 @@ Visualizer Lite entstand aus diesem Bedarf:
       <br/><sub><b>KI-Analyse — Barista-Perspektive</b></sub>
     </td>
   </tr>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/espresso-roast-analysis-brazilian-correco-macedo.jpeg" alt="KI-Analyse — Röster-Perspektive" />
+      <br/><sub><b>KI-Analyse — Röster-Perspektive</b></sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/settings-ai-analysis.jpeg" alt="Einstellungen — KI-Analyse" />
+      <br/><sub><b>Einstellungen — KI-Analyse</b></sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/settings-dark-mode-interface.jpeg" alt="Einstellungen — Dark Mode" />
+      <br/><sub><b>Einstellungen — Dark Mode</b></sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/settings-data-export-espresso.png" alt="Einstellungen — Datenexport" />
+      <br/><sub><b>Einstellungen — Datenexport</b></sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/settings-security-change-password.jpeg" alt="Einstellungen — Sicherheit" />
+      <br/><sub><b>Einstellungen — Passwort ändern</b></sub>
+    </td>
+    <td align="center" width="33%"></td>
+  </tr>
 </table>
 
 ---

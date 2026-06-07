@@ -60,6 +60,31 @@ Visualizer Lite grew out of that need:
       <br/><sub><b>AI Analysis — Barista Perspective</b></sub>
     </td>
   </tr>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/espresso-roast-analysis-brazilian-correco-macedo.jpeg" alt="AI Analysis — Roaster Perspective" />
+      <br/><sub><b>AI Analysis — Roaster Perspective</b></sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/settings-ai-analysis.jpeg" alt="Settings — AI Analysis" />
+      <br/><sub><b>Settings — AI Analysis</b></sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/settings-dark-mode-interface.jpeg" alt="Settings — Dark Mode" />
+      <br/><sub><b>Settings — Dark Mode</b></sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/settings-data-export-espresso.png" alt="Settings — Data Export" />
+      <br/><sub><b>Settings — Data Export</b></sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/settings-security-change-password.jpeg" alt="Settings — Security" />
+      <br/><sub><b>Settings — Change Password</b></sub>
+    </td>
+    <td align="center" width="33%"></td>
+  </tr>
 </table>
 
 ---
