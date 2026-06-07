@@ -1,0 +1,35 @@
+name: Cleanup GHCR
+
+on:
+  schedule:
+    - cron: '0 3 1 * *'   # 1st of every month, 03:00 UTC
+  workflow_dispatch:
+
+permissions:
+  packages: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Keep only the 3 most recent tagged versions (v*.*.*)
+      # 'latest' points to the same digest as the newest semver tag and is
+      # protected implicitly; it is also listed in ignore-versions as a safety net.
+      - name: Delete old tagged versions (keep last 3)
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: visualizer-lite
+          package-type: container
+          min-versions-to-keep: 3
+          ignore-versions: '^latest$'
+          delete-only-untagged-versions: false
+
+      # Step 2: Remove orphaned untagged layer manifests that remain after
+      # their parent multi-arch index was deleted in Step 1.
+      - name: Delete orphaned untagged layers
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: visualizer-lite
+          package-type: container
+          min-versions-to-keep: 0
+          delete-only-untagged-versions: true
