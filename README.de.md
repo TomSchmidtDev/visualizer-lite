@@ -280,6 +280,18 @@ Die [Advanced REST API](https://github.com/randomcoffeesnob/decent-advanced-rest
 
 ---
 
+## Tech Stack
+
+| Ebene | Technologie |
+|---|---|
+| **Runtime** | Node.js 22 |
+| **Backend** | TypeScript · Fastify 5 · Prisma 6 (SQLite + FTS5) |
+| **Frontend** | TypeScript · React 19 · Vite 6 · TanStack Query 5 · react-router-dom 7 · i18next |
+| **KI** | Anthropic SDK (`claude-*`) · OpenAI SDK |
+| **DE1-Plugin** | Tcl (Decent App Scripting) |
+| **Infra** | Docker (Multi-Stage, linux/amd64 + linux/arm64) · GitHub Actions |
+| **Tests** | Vitest 4 · Testing Library |
+
 ## Architektur
 
 > **KI-Analyse im Detail:** [docs/ai-analysis.de.md](docs/ai-analysis.de.md) beschreibt Prompt-Design, das gestufte Kontext-System, Caching-Strategie und Kostenverfolgung.
