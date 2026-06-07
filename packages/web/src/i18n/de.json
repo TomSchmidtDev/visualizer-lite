@@ -36,7 +36,9 @@
     "ratio": "Ratio",
     "duration": "Dauer",
     "dose": "Einwaage",
-    "yield": "Ausbeute"
+    "yield": "Ausbeute",
+    "profileTitle": "Profil",
+    "grinderModel": "Mühle"
   },
   "detail": {
     "extractionCurves": "Extraktionskurven",

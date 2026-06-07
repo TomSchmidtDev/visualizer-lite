@@ -9,6 +9,11 @@
   "scripts": {
     "dev:api": "npm run dev -w packages/api",
     "build": "npm run build -w packages/api && npm run build -w packages/web",
-    "test": "npm run test -w packages/api"
+    "test": "npm run test -w packages/api",
+    "check:i18n": "node scripts/check-i18n.mjs",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
   }
 }
