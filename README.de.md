@@ -144,6 +144,23 @@ docker run -d `
 
 Danach im Browser öffnen: http://localhost:3000
 
+**Lokal gebautes Image ausführen (macOS):**
+
+Wenn das Image selbst gebaut wurde statt das veröffentlichte zu nutzen (z.B. `docker build -t visualizer-lite:local .`), wird es genauso gestartet, nur mit dem lokalen Tag statt dem GHCR-Image:
+
+```bash
+docker run -d \
+  --name visualizer-lite \
+  --restart unless-stopped \
+  -p 3000:3000 \
+  -v "$HOME/visualizer-lite-data:/data" \
+  -e VL_SESSION_SECRET="$(openssl rand -base64 48)" \
+  -e VL_PASSWORD="dein-passwort" \
+  visualizer-lite:local
+```
+
+Danach im Browser öffnen: http://localhost:3000. Falls bereits ein Container namens `visualizer-lite` existiert, diesen vorher mit `docker rm -f visualizer-lite` entfernen.
+
 ---
 
 > **Wann wird HTTPS benötigt?**
