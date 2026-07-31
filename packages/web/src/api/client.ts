@@ -120,7 +120,7 @@ export const api = {
     request<{ ok: boolean; total: number; machineType: 'de1app' | 'decenza' }>('/api/de1/test'),
 
   previewDe1Import: (dateFrom: string, dateTo: string) =>
-    request<{ count: number; shots: { filename: string; date: string }[] }>(
+    request<{ count: number; shots: { filename: string; date: string }[]; machineType: 'de1app' | 'decenza' }>(
       '/api/de1/preview',
       { method: 'POST', body: JSON.stringify({ dateFrom, dateTo }) }
     ),

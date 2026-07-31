@@ -4,22 +4,9 @@ import { prisma } from '../db.js'
 import { parseDecentShot } from '../parsers/decent.js'
 import { saveFile } from './fileStorage.js'
 
-export interface De1ShotInfo {
-  filename: string
-  date: string  // ISO 8601
-}
-
 export interface MachineShotInfo {
   filename: string
   date: string  // ISO 8601
-}
-
-export interface ImportResult {
-  imported: number
-  updated: number
-  skipped: number
-  errors: number
-  errorDetails: { filename: string; message: string }[]
 }
 
 /** Read the DE1 machine URL from the Settings table. Returns null if not set. */
@@ -36,25 +23,32 @@ async function getDefaultBeverage(): Promise<string | null> {
 
 export type MachineType = 'de1app' | 'decenza'
 
-async function probeDe1App(base: string): Promise<boolean> {
+interface ProbeResult {
+  ok: boolean
+  reason?: string
+}
+
+async function probeDe1App(base: string): Promise<ProbeResult> {
   try {
     const res = await fetch(`${base}/api/shot/`, { signal: AbortSignal.timeout(5000) })
-    if (!res.ok) return false
+    if (!res.ok) return { ok: false, reason: `HTTP ${res.status}` }
     const body = await res.json()
-    return Array.isArray(body) && (body.length === 0 || typeof body[0] === 'string')
-  } catch {
-    return false
+    const ok = Array.isArray(body) && (body.length === 0 || typeof body[0] === 'string')
+    return ok ? { ok: true } : { ok: false, reason: 'unexpected response shape' }
+  } catch (err) {
+    return { ok: false, reason: err instanceof Error ? err.message : String(err) }
   }
 }
 
-async function probeDecenza(base: string): Promise<boolean> {
+async function probeDecenza(base: string): Promise<ProbeResult> {
   try {
     const res = await fetch(`${base}/api/shots`, { signal: AbortSignal.timeout(5000) })
-    if (!res.ok) return false
+    if (!res.ok) return { ok: false, reason: `HTTP ${res.status}` }
     const body = await res.json()
-    return Array.isArray(body) && (body.length === 0 || (typeof body[0] === 'object' && body[0] !== null && 'id' in body[0]))
-  } catch {
-    return false
+    const ok = Array.isArray(body) && (body.length === 0 || (typeof body[0] === 'object' && body[0] !== null && 'id' in body[0]))
+    return ok ? { ok: true } : { ok: false, reason: 'unexpected response shape' }
+  } catch (err) {
+    return { ok: false, reason: err instanceof Error ? err.message : String(err) }
   }
 }
 
@@ -71,12 +65,19 @@ export async function detectMachineType(de1Url: string): Promise<MachineType> {
     probeDe1App(base),
     probeDecenza(base),
   ])
-  const de1Ok     = de1Result.status === 'fulfilled' && de1Result.value
-  const decenzaOk = decenzaResult.status === 'fulfilled' && decenzaResult.value
+  const de1: ProbeResult     = de1Result.status === 'fulfilled'
+    ? de1Result.value
+    : { ok: false, reason: de1Result.reason instanceof Error ? de1Result.reason.message : String(de1Result.reason) }
+  const decenza: ProbeResult = decenzaResult.status === 'fulfilled'
+    ? decenzaResult.value
+    : { ok: false, reason: decenzaResult.reason instanceof Error ? decenzaResult.reason.message : String(decenzaResult.reason) }
 
-  if (de1Ok) return 'de1app'
-  if (decenzaOk) return 'decenza'
-  throw new Error('No machine detected (neither de1app nor Decenza responded)')
+  if (de1.ok && decenza.ok) {
+    console.warn(`DE1 import: both de1app and Decenza responded successfully at ${base}; preferring de1app`)
+  }
+  if (de1.ok) return 'de1app'
+  if (decenza.ok) return 'decenza'
+  throw new Error(`No machine detected (de1app: ${de1.reason}; Decenza: ${decenza.reason})`)
 }
 
 /**
@@ -183,7 +184,7 @@ export async function fetchDecenzaShotList(de1Url: string): Promise<DecenzaShotS
 
 /** Fetch a shot's Visualizer-format JSON from a Decenza machine. */
 async function fetchDecenzaShotContent(base: string, id: string): Promise<string> {
-  const res = await fetch(`${base}/shot/${id}/shot.json`, {
+  const res = await fetch(`${base}/shot/${encodeURIComponent(id)}/shot.json`, {
     signal: AbortSignal.timeout(10000),
   })
   if (!res.ok) throw new Error(`Decenza returned HTTP ${res.status} for shot ${id}`)
@@ -191,9 +192,30 @@ async function fetchDecenzaShotContent(base: string, id: string): Promise<string
 }
 
 /**
+ * Build the same "local wall-clock digits labeled Z" ISO shape that
+ * parseFilenameDate() produces from a de1app filename, but from a Decenza
+ * unix-seconds timestamp. This does NOT convert to UTC — it uses the
+ * server's local time-zone getters — so that filterByDateRange's date-string
+ * slicing treats a given calendar day the same way for both dialects.
+ */
+function decenzaTimestampToLocalDateString(timestampSeconds: number): string {
+  const d = new Date(timestampSeconds * 1000)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const year  = d.getFullYear()
+  const month = pad(d.getMonth() + 1)
+  const day   = pad(d.getDate())
+  const hour  = pad(d.getHours())
+  const min   = pad(d.getMinutes())
+  const sec   = pad(d.getSeconds())
+  return `${year}-${month}-${day}T${hour}:${min}:${sec}.000Z`
+}
+
+/**
  * List all shots from a machine, normalized to MachineShotInfo regardless of
  * dialect. de1app shots without a filename date the parser can understand are
- * silently dropped (matches the previous de1app-only behavior).
+ * silently dropped (matches the previous de1app-only behavior); Decenza shots
+ * with a missing/non-numeric timestamp are silently dropped the same way,
+ * rather than throwing and aborting the whole listing.
  */
 export async function listMachineShots(
   de1Url: string,
@@ -201,10 +223,12 @@ export async function listMachineShots(
 ): Promise<MachineShotInfo[]> {
   if (machineType === 'decenza') {
     const shots = await fetchDecenzaShotList(de1Url)
-    return shots.map((s) => ({
-      filename: String(s.id),
-      date: new Date(s.timestamp * 1000).toISOString(),
-    }))
+    const result: MachineShotInfo[] = []
+    for (const s of shots) {
+      if (!Number.isFinite(s.timestamp)) continue
+      result.push({ filename: String(s.id), date: decenzaTimestampToLocalDateString(s.timestamp) })
+    }
+    return result
   }
 
   const filenames = await fetchShotList(de1Url)

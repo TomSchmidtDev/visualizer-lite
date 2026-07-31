@@ -243,7 +243,7 @@ Sobald das *Upload to Visualizer*-Plugin installiert und konfiguriert ist, werde
 
 Funktioniert mit beiden Apps auf dem Tablet — Visualizer Lite erkennt automatisch, welche gerade läuft, ein Wechsel erfordert also keine Konfigurationsänderung:
 
-- **[Decenza](https://github.com/Kulitorum/Decenza)** — funktioniert ohne weiteres Plugin.
+- **[Decenza](https://github.com/Kulitorum/Decenza)** — funktioniert ohne weiteres Plugin; die API liefert nur die 1000 neuesten Shots, ältere Shots werden bei mehr Historie also erst sichtbar, nachdem die Shot-Liste auf dem Tablet gekürzt wurde.
 - **de1app** — erfordert das [Advanced REST API](https://github.com/randomcoffeesnob/decent-advanced-rest-api)-Plugin auf dem Tablet.
 
 **Einstellungen → Direktimport** in Visualizer Lite öffnen, einen Datumsbereich festlegen und den Import starten. Die App streamt die Ergebnisse live und speichert das Datum des letzten erfolgreichen Imports — beim nächsten Öffnen der Einstellungen ist das Startdatum bereits vorausgefüllt, sodass ein Aufholimport mit einem Klick gestartet werden kann.

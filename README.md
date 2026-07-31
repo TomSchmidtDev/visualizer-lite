@@ -243,7 +243,7 @@ Once the *Upload to Visualizer* plugin is installed and configured, shots are up
 
 Works with either app running on the tablet — Visualizer Lite detects which one automatically, so switching between them requires no configuration change on your end:
 
-- **[Decenza](https://github.com/Kulitorum/Decenza)** — works out of the box, no extra plugin needed.
+- **[Decenza](https://github.com/Kulitorum/Decenza)** — works out of the box, no extra plugin needed; its API only exposes the 1000 most recent shots, so if your tablet has more history than that, the oldest shots won't show up until you trim the shot list on the tablet.
 - **de1app** — requires the [Advanced REST API](https://github.com/randomcoffeesnob/decent-advanced-rest-api) plugin to be installed on the tablet.
 
 Open **Settings → Direct Machine Import** in Visualizer Lite, set a date range, and start the import. The app streams results live and saves the date of the last successful import — next time you open the settings, the start date is pre-filled, so triggering a catch-up import is just one click.

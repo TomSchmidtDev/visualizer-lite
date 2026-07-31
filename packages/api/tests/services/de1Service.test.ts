@@ -48,22 +48,30 @@ describe('detectMachineType', () => {
     await expect(detectMachineType(BASE)).resolves.toBe('decenza')
   })
 
-  it('prefers de1app if both endpoints unexpectedly succeed', async () => {
+  it('prefers de1app if both endpoints unexpectedly succeed, and logs a warning', async () => {
     vi.stubGlobal('fetch', makeFetch({
       [`${BASE}/api/shot/`]:  { ok: true, status: 200, body: JSON.stringify(['20260526T121947.shot']) },
       [`${BASE}/api/shots`]:  { ok: true, status: 200, body: JSON.stringify([{ id: 1, timestamp: 1785492901 }]) },
     }))
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     await expect(detectMachineType(BASE)).resolves.toBe('de1app')
+    expect(warnSpy).toHaveBeenCalledTimes(1)
+    expect(warnSpy.mock.calls[0][0]).toMatch(/de1app.*Decenza|both/i)
+    warnSpy.mockRestore()
   })
 
-  it('throws when neither endpoint responds successfully', async () => {
+  it('throws with both probe reasons (HTTP status) when neither endpoint responds successfully', async () => {
     vi.stubGlobal('fetch', makeFetch({}))
     await expect(detectMachineType(BASE)).rejects.toThrow('No machine detected')
+    await expect(detectMachineType(BASE)).rejects.toThrow(/de1app: HTTP 404/)
+    await expect(detectMachineType(BASE)).rejects.toThrow(/Decenza: HTTP 404/)
   })
 
-  it('throws when fetch itself rejects for both probes', async () => {
+  it('throws with both probe reasons (exception message) when fetch itself rejects for both probes', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('ECONNREFUSED')))
     await expect(detectMachineType(BASE)).rejects.toThrow('No machine detected')
+    await expect(detectMachineType(BASE)).rejects.toThrow(/de1app: ECONNREFUSED/)
+    await expect(detectMachineType(BASE)).rejects.toThrow(/Decenza: ECONNREFUSED/)
   })
 })
 
@@ -83,15 +91,28 @@ describe('filterByDateRange', () => {
 describe('listMachineShots - decenza', () => {
   afterEach(() => vi.unstubAllGlobals())
 
-  it('maps Decenza /api/shots entries to MachineShotInfo', async () => {
+  it('maps Decenza /api/shots entries to MachineShotInfo using local wall-clock digits, not UTC', async () => {
+    const timestamp = 1779790787
     vi.stubGlobal('fetch', makeFetch({
       [`${BASE}/api/shots`]: {
         ok: true, status: 200,
-        body: JSON.stringify([{ id: 2628, timestamp: 1779790787 }]),
+        body: JSON.stringify([{ id: 2628, timestamp }]),
       },
     }))
     const result = await listMachineShots(BASE, 'decenza')
-    expect(result).toEqual([{ filename: '2628', date: '2026-05-26T10:19:47.000Z' }])
+    expect(result).toHaveLength(1)
+    expect(result[0].filename).toBe('2628')
+
+    // Expected value is derived from the *local* Date getters (not UTC) so this
+    // test is correct regardless of which time zone it runs in — it pins down
+    // the behavior (local wall clock, labeled Z) rather than one fixed offset.
+    const d = new Date(timestamp * 1000)
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const expected = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.000Z`
+    expect(result[0].date).toBe(expected)
+
+    // Explicitly confirm the hour/minute/second are local-getter values, not UTC ones.
+    expect(result[0].date.slice(11, 19)).toBe(`${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`)
   })
 
   it('throws when Decenza returns a non-200 response', async () => {
@@ -99,6 +120,21 @@ describe('listMachineShots - decenza', () => {
       [`${BASE}/api/shots`]: { ok: false, status: 500, body: 'Internal Server Error' },
     }))
     await expect(listMachineShots(BASE, 'decenza')).rejects.toThrow('Decenza returned HTTP 500')
+  })
+
+  it('skips entries with a missing/non-numeric timestamp instead of throwing', async () => {
+    vi.stubGlobal('fetch', makeFetch({
+      [`${BASE}/api/shots`]: {
+        ok: true, status: 200,
+        body: JSON.stringify([
+          { id: 1, timestamp: undefined },
+          { id: 2, timestamp: 1779790787 },
+        ]),
+      },
+    }))
+    const result = await listMachineShots(BASE, 'decenza')
+    expect(result).toHaveLength(1)
+    expect(result[0].filename).toBe('2')
   })
 })
 
