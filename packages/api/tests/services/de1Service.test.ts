@@ -1,6 +1,12 @@
 // packages/api/tests/services/de1Service.test.ts
-import { describe, it, expect, afterEach, vi } from 'vitest'
-import { detectMachineType } from '../../src/services/de1Service.js'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { prisma } from '../../src/db.js'
+import {
+  detectMachineType,
+  filterByDateRange,
+  listMachineShots,
+  fetchAndImportShot,
+} from '../../src/services/de1Service.js'
 
 const BASE = 'http://192.168.1.1:8888'
 
@@ -58,5 +64,69 @@ describe('detectMachineType', () => {
   it('throws when fetch itself rejects for both probes', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('ECONNREFUSED')))
     await expect(detectMachineType(BASE)).rejects.toThrow('No machine detected')
+  })
+})
+
+describe('filterByDateRange', () => {
+  it('keeps shots whose ISO date falls within the range (inclusive)', () => {
+    const shots = [
+      { filename: '2628', date: '2026-05-26T10:19:47.000Z' },
+      { filename: '1000', date: '2020-01-01T00:00:00.000Z' },
+      { filename: '1001', date: '2026-01-01T00:00:00.000Z' },
+      { filename: '1002', date: '2026-12-31T23:59:59.000Z' },
+    ]
+    const result = filterByDateRange(shots, '2026-01-01', '2026-12-31')
+    expect(result.map(s => s.filename)).toEqual(['2628', '1001', '1002'])
+  })
+})
+
+describe('listMachineShots - decenza', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('maps Decenza /api/shots entries to MachineShotInfo', async () => {
+    vi.stubGlobal('fetch', makeFetch({
+      [`${BASE}/api/shots`]: {
+        ok: true, status: 200,
+        body: JSON.stringify([{ id: 2628, timestamp: 1779790787 }]),
+      },
+    }))
+    const result = await listMachineShots(BASE, 'decenza')
+    expect(result).toEqual([{ filename: '2628', date: '2026-05-26T10:19:47.000Z' }])
+  })
+
+  it('throws when Decenza returns a non-200 response', async () => {
+    vi.stubGlobal('fetch', makeFetch({
+      [`${BASE}/api/shots`]: { ok: false, status: 500, body: 'Internal Server Error' },
+    }))
+    await expect(listMachineShots(BASE, 'decenza')).rejects.toThrow('Decenza returned HTTP 500')
+  })
+})
+
+describe('fetchAndImportShot - decenza', () => {
+  const DECENZA_SHOT_JSON = JSON.stringify({
+    clock: 1779790787,
+    elapsed: [0.0, 1.0, 30.0],
+    pressure: { pressure: [0.0, 7.0, 7.5] },
+  })
+
+  beforeEach(async () => {
+    await prisma.$executeRaw`DELETE FROM "_ShotToTag"`
+    await prisma.$executeRaw`DELETE FROM "Shot"`
+  })
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('fetches /shot/<id>/shot.json and imports the shot', async () => {
+    vi.stubGlobal('fetch', makeFetch({
+      [`${BASE}/shot/2628/shot.json`]: { ok: true, status: 200, body: DECENZA_SHOT_JSON },
+    }))
+    const outcome = await fetchAndImportShot(BASE, '2628', 'decenza')
+    expect(outcome).toBe('created')
+  })
+
+  it('throws with the shot id in the message when Decenza returns non-200', async () => {
+    vi.stubGlobal('fetch', makeFetch({
+      [`${BASE}/shot/2628/shot.json`]: { ok: false, status: 404, body: 'Not found' },
+    }))
+    await expect(fetchAndImportShot(BASE, '2628', 'decenza')).rejects.toThrow('for shot 2628')
   })
 })

@@ -9,6 +9,11 @@ export interface De1ShotInfo {
   date: string  // ISO 8601
 }
 
+export interface MachineShotInfo {
+  filename: string
+  date: string  // ISO 8601
+}
+
 export interface ImportResult {
   imported: number
   updated: number
@@ -99,27 +104,22 @@ export function parseFilenameDate(filename: string): string | null {
 }
 
 /**
- * Filter filenames to those whose date prefix (YYYYMMDD) falls within
- * [dateFrom, dateTo] inclusive, compared as plain date strings.
+ * Filter shots to those whose date falls within [dateFrom, dateTo] inclusive,
+ * compared as plain YYYYMMDD strings against the shot's ISO date prefix.
  * dateFrom and dateTo are ISO date strings like "2026-05-26".
  */
 export function filterByDateRange(
-  filenames: string[],
+  shots: MachineShotInfo[],
   dateFrom: string,
   dateTo: string
-): De1ShotInfo[] {
-  // Convert ISO dates to compact form for direct string comparison with filename prefix
+): MachineShotInfo[] {
   const from = dateFrom.replace(/-/g, '')  // "2026-05-26" → "20260526"
   const to   = dateTo.replace(/-/g, '')    // "2026-12-31" → "20261231"
 
-  const result: De1ShotInfo[] = []
-  for (const filename of filenames) {
-    const isoDate = parseFilenameDate(filename)
-    if (!isoDate) continue
-    const prefix = filename.slice(0, 8)  // "20260526"
-    if (prefix >= from && prefix <= to) result.push({ filename, date: isoDate })
-  }
-  return result
+  return shots.filter(({ date }) => {
+    const prefix = date.slice(0, 10).replace(/-/g, '')  // "2026-05-26T..." → "20260526"
+    return prefix >= from && prefix <= to
+  })
 }
 
 /**
@@ -166,6 +166,56 @@ async function fetchShotContent(base: string, filename: string): Promise<string>
   return v1Res.text()
 }
 
+interface DecenzaShotSummary {
+  id: number
+  timestamp: number  // unix seconds
+}
+
+/** Fetch the raw shot list from a Decenza machine's GET /api/shots. */
+export async function fetchDecenzaShotList(de1Url: string): Promise<DecenzaShotSummary[]> {
+  const base = de1Url.replace(/\/+$/, '')
+  const res = await fetch(`${base}/api/shots`, {
+    signal: AbortSignal.timeout(5000),
+  })
+  if (!res.ok) throw new Error(`Decenza returned HTTP ${res.status}`)
+  return res.json() as Promise<DecenzaShotSummary[]>
+}
+
+/** Fetch a shot's Visualizer-format JSON from a Decenza machine. */
+async function fetchDecenzaShotContent(base: string, id: string): Promise<string> {
+  const res = await fetch(`${base}/shot/${id}/shot.json`, {
+    signal: AbortSignal.timeout(10000),
+  })
+  if (!res.ok) throw new Error(`Decenza returned HTTP ${res.status} for shot ${id}`)
+  return res.text()
+}
+
+/**
+ * List all shots from a machine, normalized to MachineShotInfo regardless of
+ * dialect. de1app shots without a filename date the parser can understand are
+ * silently dropped (matches the previous de1app-only behavior).
+ */
+export async function listMachineShots(
+  de1Url: string,
+  machineType: MachineType,
+): Promise<MachineShotInfo[]> {
+  if (machineType === 'decenza') {
+    const shots = await fetchDecenzaShotList(de1Url)
+    return shots.map((s) => ({
+      filename: String(s.id),
+      date: new Date(s.timestamp * 1000).toISOString(),
+    }))
+  }
+
+  const filenames = await fetchShotList(de1Url)
+  const result: MachineShotInfo[] = []
+  for (const filename of filenames) {
+    const date = parseFilenameDate(filename)
+    if (date) result.push({ filename, date })
+  }
+  return result
+}
+
 /**
  * Fetch a single shot from the DE1 machine, parse it, and upsert into DB.
  * Returns 'created' if new, 'updated' if updated, 'skipped' if already existed
@@ -174,10 +224,13 @@ async function fetchShotContent(base: string, filename: string): Promise<string>
 export async function fetchAndImportShot(
   de1Url: string,
   filename: string,
+  machineType: MachineType,
   updateExisting = true,
 ): Promise<'created' | 'updated' | 'skipped'> {
   const base = de1Url.replace(/\/+$/, '')
-  const content = await fetchShotContent(base, filename)
+  const content = machineType === 'decenza'
+    ? await fetchDecenzaShotContent(base, filename)
+    : await fetchShotContent(base, filename)
 
   const buffer = Buffer.from(content, 'utf8')
   const hash = createHash('sha256').update(buffer).digest('hex')
@@ -223,41 +276,4 @@ export async function fetchAndImportShot(
   }
   await prisma.shot.create({ data: shotFields })
   return 'created'
-}
-
-/**
- * Import all shots in the given date range. Per-shot errors are collected and
- * returned; the import continues past individual failures.
- */
-export async function importShotsInRange(
-  de1Url: string,
-  dateFrom: string,
-  dateTo: string,
-  updateExisting = true,
-): Promise<ImportResult> {
-  const allFilenames = await fetchShotList(de1Url)
-  const filtered = filterByDateRange(allFilenames, dateFrom, dateTo)
-
-  let imported = 0
-  let updated  = 0
-  let skipped  = 0
-  let errors   = 0
-  const errorDetails: { filename: string; message: string }[] = []
-
-  for (const { filename } of filtered) {
-    try {
-      const outcome = await fetchAndImportShot(de1Url, filename, updateExisting)
-      if      (outcome === 'created') imported++
-      else if (outcome === 'updated') updated++
-      else                            skipped++
-    } catch (err) {
-      errors++
-      errorDetails.push({
-        filename,
-        message: err instanceof Error ? err.message : 'Unknown error',
-      })
-    }
-  }
-
-  return { imported, updated, skipped, errors, errorDetails }
 }
