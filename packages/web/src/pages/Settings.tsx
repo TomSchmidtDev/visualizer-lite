@@ -24,7 +24,7 @@ Data channels:
 type De1Phase =
   | { name: 'idle' }
   | { name: 'testing' }
-  | { name: 'connected'; total: number }
+  | { name: 'connected'; total: number; machineType: 'de1app' | 'decenza' }
   | { name: 'connectionError'; message: string }
   | { name: 'previewing' }
   | { name: 'previewed'; count: number }
@@ -63,6 +63,7 @@ export default function Settings() {
   const [de1DefaultBeverage, setDe1DefaultBeverage] = useState('')
   const [de1Phase, setDe1Phase] = useState<De1Phase>({ name: 'idle' })
   const [de1Total, setDe1Total] = useState(0)
+  const [de1MachineType, setDe1MachineType] = useState<'de1app' | 'decenza'>('de1app')
   const [dateFrom, setDateFrom] = useState('2020-01-01')
   const [dateTo, setDateTo] = useState(todayStr)
   const [updateExisting, setUpdateExisting] = useState(false)
@@ -151,7 +152,8 @@ export default function Settings() {
     try {
       const res = await api.testDe1Connection()
       setDe1Total(res.total)
-      setDe1Phase({ name: 'connected', total: res.total })
+      setDe1MachineType(res.machineType)
+      setDe1Phase({ name: 'connected', total: res.total, machineType: res.machineType })
     } catch (err) {
       setDe1Phase({
         name: 'connectionError',
@@ -461,7 +463,10 @@ export default function Settings() {
         {/* Connection status */}
         {de1Phase.name === 'connected' && (
           <p style={{ fontSize: 13, color: 'var(--green)', marginBottom: 12 }}>
-            {'✓'} {t('settings.de1Connected', { count: de1Phase.total })}
+            {'✓'} {t('settings.de1Connected', {
+              count: de1Phase.total,
+              machineName: t(de1Phase.machineType === 'decenza' ? 'settings.de1MachineDecenza' : 'settings.de1MachineDe1app'),
+            })}
           </p>
         )}
         {de1Phase.name === 'connectionError' && (
@@ -483,7 +488,7 @@ export default function Settings() {
                   value={dateFrom}
                   onChange={(e) => {
                     setDateFrom(e.target.value)
-                    setDe1Phase({ name: 'connected', total: de1Total })
+                    setDe1Phase({ name: 'connected', total: de1Total, machineType: de1MachineType })
                   }}
                 />
               </div>
@@ -496,7 +501,7 @@ export default function Settings() {
                   value={dateTo}
                   onChange={(e) => {
                     setDateTo(e.target.value)
-                    setDe1Phase({ name: 'connected', total: de1Total })
+                    setDe1Phase({ name: 'connected', total: de1Total, machineType: de1MachineType })
                   }}
                 />
               </div>
