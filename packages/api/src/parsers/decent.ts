@@ -39,6 +39,7 @@ function parseJsonShot(content: string): ParsedShot {
   const meta    = data.meta    ?? {}
   const bean    = meta.bean    ?? {}
   const grinder = meta.grinder ?? {}
+  const shot    = meta.shot    ?? {}
 
   const timeframe = numArr(data.elapsed) ?? []
 
@@ -79,6 +80,11 @@ function parseJsonShot(content: string): ParsedShot {
 
   const rawRoastDate = str(bean.roast_date) ?? str(data.roast_date)
 
+  const enjoymentRaw = num(shot.enjoyment)
+  const espressoEnjoyment = enjoymentRaw != null && enjoymentRaw !== 0
+    ? Math.round(enjoymentRaw)
+    : null
+
   return {
     clock,
     beanBrand:         str(bean.brand)        ?? str(data.bean_brand),
@@ -92,8 +98,8 @@ function parseJsonShot(content: string): ParsedShot {
     profileTitle:      str(profile.title)     ?? str(data.profile_title),
     roastLevel:        str(bean.roast_level)  ?? str(data.roast_level),
     roastDate:         rawRoastDate ? normalizeDateStr(rawRoastDate) : null,
-    espressoEnjoyment: null,
-    espressoNotes:     null,
+    espressoEnjoyment,
+    espressoNotes:     str(shot.notes),
     beverageType:      (str(profile.beverage_type) ?? str(data.beverage_type))?.toLowerCase() ?? null,
     shotData,
   }

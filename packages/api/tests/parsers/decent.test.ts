@@ -143,6 +143,66 @@ describe('parseDecentShot - DE1 API Tcl format', () => {
   })
 })
 
+describe('parseDecentShot - JSON format v2 meta.shot fields', () => {
+  const withRating = JSON.stringify({
+    clock: 1785492901,
+    elapsed: [0.0, 1.0],
+    pressure: { pressure: [0.0, 7.0] },
+    meta: { shot: { enjoyment: 85, notes: 'Great crema, slightly sour' } },
+  })
+
+  const emptyShot = JSON.stringify({
+    clock: 1785492901,
+    elapsed: [0.0, 1.0],
+    pressure: { pressure: [0.0, 7.0] },
+    meta: { shot: {} },
+  })
+
+  const noMeta = JSON.stringify({
+    clock: 1785492901,
+    elapsed: [0.0, 1.0],
+    pressure: { pressure: [0.0, 7.0] },
+  })
+
+  it('parses enjoyment and notes from meta.shot', () => {
+    const result = parseDecentShot(withRating)
+    expect(result.espressoEnjoyment).toBe(85)
+    expect(result.espressoNotes).toBe('Great crema, slightly sour')
+  })
+
+  it('treats an empty meta.shot as unrated with no notes', () => {
+    const result = parseDecentShot(emptyShot)
+    expect(result.espressoEnjoyment).toBeNull()
+    expect(result.espressoNotes).toBeNull()
+  })
+
+  it('treats a missing meta object as unrated with no notes', () => {
+    const result = parseDecentShot(noMeta)
+    expect(result.espressoEnjoyment).toBeNull()
+    expect(result.espressoNotes).toBeNull()
+  })
+
+  it('treats meta.shot.enjoyment of 0 as unrated (matches Tcl-parser convention)', () => {
+    const json = JSON.stringify({
+      clock: 1785492901,
+      elapsed: [0.0],
+      pressure: { pressure: [0.0] },
+      meta: { shot: { enjoyment: 0 } },
+    })
+    expect(parseDecentShot(json).espressoEnjoyment).toBeNull()
+  })
+
+  it('rounds fractional enjoyment values', () => {
+    const json = JSON.stringify({
+      clock: 1785492901,
+      elapsed: [0.0],
+      pressure: { pressure: [0.0] },
+      meta: { shot: { enjoyment: 84.6 } },
+    })
+    expect(parseDecentShot(json).espressoEnjoyment).toBe(85)
+  })
+})
+
 describe('parseDecentShot - new ParsedShot fields backward compat', () => {
   it('regular Tcl format returns null for new fields', () => {
     const result = parseDecentShot('clock 1716624120\nespresso_elapsed {1.0 2.0}')
