@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.1] - 2026-07-31
+
+### Fixed
+- **Dependency security patches**: `@fastify/static` 9.1.3 → 10.1.2 (fixes route-guard bypass and authorization bypass via non-canonical URL paths, GHSA advisories), `react-router-dom` 7.6.2 → 7.18.2 (fixes denial-of-service via inefficient route matching, open redirect, and other advisories affecting <7.18.0). Transitive dependencies `find-my-way`, `fast-uri`, `postcss`, and `brace-expansion` refreshed to their patched versions within existing `package.json` ranges.
+
 ## [1.18.0] - 2026-07-31
 
 ### Added
