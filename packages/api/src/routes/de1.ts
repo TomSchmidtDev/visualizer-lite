@@ -3,7 +3,8 @@ import { Readable } from 'stream'
 import type { FastifyPluginAsync } from 'fastify'
 import {
   getDe1Url,
-  fetchShotList,
+  detectMachineType,
+  listMachineShots,
   filterByDateRange,
   fetchAndImportShot,
 } from '../services/de1Service.js'
@@ -15,8 +16,9 @@ const de1Routes: FastifyPluginAsync = async (fastify) => {
     const url = await getDe1Url()
     if (!url) return reply.status(400).send({ error: 'DE1 URL not configured' })
     try {
-      const list = await fetchShotList(url)
-      return reply.send({ ok: true, total: list.length })
+      const machineType = await detectMachineType(url)
+      const list = await listMachineShots(url, machineType)
+      return reply.send({ ok: true, total: list.length, machineType })
     } catch (err) {
       return reply.status(502).send({
         error: `Cannot reach DE1 at ${url}: ${err instanceof Error ? err.message : String(err)}`,
@@ -32,9 +34,10 @@ const de1Routes: FastifyPluginAsync = async (fastify) => {
       const url = await getDe1Url()
       if (!url) return reply.status(400).send({ error: 'DE1 URL not configured' })
       try {
-        const list = await fetchShotList(url)
+        const machineType = await detectMachineType(url)
+        const list = await listMachineShots(url, machineType)
         const filtered = filterByDateRange(list, dateFrom, dateTo)
-        return reply.send({ count: filtered.length, shots: filtered })
+        return reply.send({ count: filtered.length, shots: filtered, machineType })
       } catch (err) {
         return reply.status(502).send({
           error: `Cannot reach DE1 at ${url}: ${err instanceof Error ? err.message : String(err)}`,
@@ -61,17 +64,19 @@ const de1Routes: FastifyPluginAsync = async (fastify) => {
       const url = await getDe1Url()
       if (!url) return reply.status(400).send({ error: 'DE1 URL not configured' })
 
-      // Fetch shot list before streaming — keeps error responses as plain JSON
-      let allFilenames: string[]
+      // Detect machine type and fetch the shot list before streaming — keeps error responses as plain JSON
+      let allShots: Awaited<ReturnType<typeof listMachineShots>>
+      let machineType: Awaited<ReturnType<typeof detectMachineType>>
       try {
-        allFilenames = await fetchShotList(url)
+        machineType = await detectMachineType(url)
+        allShots = await listMachineShots(url, machineType)
       } catch (err) {
         return reply.status(502).send({
           error: `Cannot reach DE1 at ${url}: ${err instanceof Error ? err.message : String(err)}`,
         })
       }
 
-      const filtered = filterByDateRange(allFilenames, dateFrom, dateTo)
+      const filtered = filterByDateRange(allShots, dateFrom, dateTo)
       const total = filtered.length
 
       const stream = new Readable({ read() {} })
@@ -86,7 +91,7 @@ const de1Routes: FastifyPluginAsync = async (fastify) => {
         for (let i = 0; i < filtered.length; i++) {
           const { filename } = filtered[i]
           try {
-            const outcome = await fetchAndImportShot(url, filename, updateExisting)
+            const outcome = await fetchAndImportShot(url, filename, machineType, updateExisting)
             if      (outcome === 'created') imported++
             else if (outcome === 'updated') updated++
             else                            skipped++

@@ -105,6 +105,7 @@ describe('GET /api/de1/test', () => {
     const body = JSON.parse(res.body)
     expect(body.ok).toBe(true)
     expect(body.total).toBe(2)
+    expect(body.machineType).toBe('de1app')
   })
 
   it('returns 502 when DE1 fetch throws', async () => {
@@ -356,5 +357,94 @@ describe('POST /api/de1/import', () => {
     expect(done.imported).toBe(0)
     expect(done.updated).toBe(1)
     expect(done.errors).toBe(0)
+  })
+})
+
+describe('Decenza dialect', () => {
+  const DECENZA_SHOT_JSON = JSON.stringify({
+    clock: 1779790787,
+    elapsed: [0.0, 1.0, 30.0],
+    pressure: { pressure: [0.0, 7.0, 7.5] },
+  })
+
+  it('GET /api/de1/test detects decenza and returns machineType', async () => {
+    vi.stubGlobal('fetch', makeFetch({
+      [`${DE1_URL}/api/shots`]: {
+        ok: true, status: 200,
+        body: JSON.stringify([{ id: 2628, timestamp: 1779790787 }]),
+      },
+    }))
+    const res = await app.inject({
+      method: 'GET', url: '/api/de1/test', headers: { cookie },
+    })
+    expect(res.statusCode).toBe(200)
+    const body = JSON.parse(res.body)
+    expect(body.machineType).toBe('decenza')
+    expect(body.total).toBe(1)
+  })
+
+  it('POST /api/de1/preview filters decenza shots by date range', async () => {
+    vi.stubGlobal('fetch', makeFetch({
+      [`${DE1_URL}/api/shots`]: {
+        ok: true, status: 200,
+        body: JSON.stringify([
+          { id: 2628, timestamp: 1779790787 }, // 2026-05-26
+          { id: 1000, timestamp: 1577836800 }, // 2020-01-01 — outside range
+        ]),
+      },
+    }))
+    const res = await app.inject({
+      method: 'POST', url: '/api/de1/preview', headers: { cookie },
+      payload: { dateFrom: '2026-01-01', dateTo: '2026-12-31' },
+    })
+    expect(res.statusCode).toBe(200)
+    const body = JSON.parse(res.body)
+    expect(body.count).toBe(1)
+    expect(body.shots[0].filename).toBe('2628')
+    expect(body.machineType).toBe('decenza')
+  })
+
+  it('POST /api/de1/import streams progress and imports a decenza shot', async () => {
+    vi.stubGlobal('fetch', makeFetch({
+      [`${DE1_URL}/api/shots`]: {
+        ok: true, status: 200,
+        body: JSON.stringify([{ id: 2628, timestamp: 1779790787 }]),
+      },
+      [`${DE1_URL}/shot/2628/shot.json`]: {
+        ok: true, status: 200, body: DECENZA_SHOT_JSON,
+      },
+    }))
+    const res = await app.inject({
+      method: 'POST', url: '/api/de1/import', headers: { cookie },
+      payload: { dateFrom: '2026-01-01', dateTo: '2026-12-31' },
+    })
+    expect(res.statusCode).toBe(200)
+
+    const events = parseNdjson(res.body)
+    const progress = events.filter(e => e.type === 'progress')
+    expect(progress).toHaveLength(1)
+    expect(progress[0].filename).toBe('2628')
+    expect(progress[0].status).toBe('imported')
+
+    const done = doneEvent(res.body)
+    expect(done.imported).toBe(1)
+    expect(done.errors).toBe(0)
+  })
+
+  it('records an error when a decenza shot.json fetch fails', async () => {
+    vi.stubGlobal('fetch', makeFetch({
+      [`${DE1_URL}/api/shots`]: {
+        ok: true, status: 200,
+        body: JSON.stringify([{ id: 2628, timestamp: 1779790787 }]),
+      },
+      // /shot/2628/shot.json not mocked → defaults to 404 via makeFetch's fallback
+    }))
+    const res = await app.inject({
+      method: 'POST', url: '/api/de1/import', headers: { cookie },
+      payload: { dateFrom: '2026-01-01', dateTo: '2026-12-31' },
+    })
+    const done = doneEvent(res.body)
+    expect(done.errors).toBe(1)
+    expect(done.errorDetails[0].filename).toBe('2628')
   })
 })
