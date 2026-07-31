@@ -29,6 +29,51 @@ async function getDefaultBeverage(): Promise<string | null> {
   return row?.value?.trim() || null
 }
 
+export type MachineType = 'de1app' | 'decenza'
+
+async function probeDe1App(base: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${base}/api/shot/`, { signal: AbortSignal.timeout(5000) })
+    if (!res.ok) return false
+    const body = await res.json()
+    return Array.isArray(body) && (body.length === 0 || typeof body[0] === 'string')
+  } catch {
+    return false
+  }
+}
+
+async function probeDecenza(base: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${base}/api/shots`, { signal: AbortSignal.timeout(5000) })
+    if (!res.ok) return false
+    const body = await res.json()
+    return Array.isArray(body) && (body.length === 0 || (typeof body[0] === 'object' && body[0] !== null && 'id' in body[0]))
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Probe a machine URL to determine which app is running.
+ * de1app:  GET /api/shot/  -> JSON array of filename strings.
+ * Decenza: GET /api/shots  -> JSON array of shot objects ({id, timestamp, ...}).
+ * Both probes run concurrently; if both unexpectedly succeed, de1app wins
+ * (should not happen given the distinct, unambiguous endpoint shapes).
+ */
+export async function detectMachineType(de1Url: string): Promise<MachineType> {
+  const base = de1Url.replace(/\/+$/, '')
+  const [de1Result, decenzaResult] = await Promise.allSettled([
+    probeDe1App(base),
+    probeDecenza(base),
+  ])
+  const de1Ok     = de1Result.status === 'fulfilled' && de1Result.value
+  const decenzaOk = decenzaResult.status === 'fulfilled' && decenzaResult.value
+
+  if (de1Ok) return 'de1app'
+  if (decenzaOk) return 'decenza'
+  throw new Error('No machine detected (neither de1app nor Decenza responded)')
+}
+
 /**
  * Fetch the list of shot filenames from the DE1 machine.
  * Times out after 5 seconds. Throws on network error or non-200 response.
