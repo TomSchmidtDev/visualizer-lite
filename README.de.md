@@ -18,7 +18,7 @@ Visualizer Lite entstand aus diesem Bedarf:
 
 ## Key Features
 
-- **Direktimport (Pull)** — Shots direkt von der DE1-Maschine holen mit der [Advanced REST API](https://github.com/randomcoffeesnob/decent-advanced-rest-api)-Extension; kein Kabel, keine manuelle Dateiübertragung nötig
+- **Direktimport (Pull)** — Shots direkt von der DE1-Maschine holen; funktioniert ohne weitere Einrichtung mit [Decenza](https://github.com/Kulitorum/Decenza) (automatisch erkannt) oder mit de1app über die [Advanced REST API](https://github.com/randomcoffeesnob/decent-advanced-rest-api)-Extension. Kein Kabel, keine manuelle Dateiübertragung nötig
 - **Automatischer Upload (Push)** — Shots werden nach jeder Extraktion automatisch hochgeladen über das modifizierte [*Upload to visualizer*](de1app/de1plus/plugins/visualizer_upload/)-DE1-Plugin aus diesem Repository
 - **Manueller Upload** — Einzelne oder mehrere `.shot`-Dateien per Drag-and-drop oder Dateiauswahl über das Web-Interface hochladen
 - **Export** — Die gesamte Shot-Sammlung als ZIP-Archiv herunterladen, zur Sicherung oder für externe Analysen
@@ -239,11 +239,14 @@ Es gibt drei Wege, Shots in Visualizer Lite zu importieren:
 
 Sobald das *Upload to Visualizer*-Plugin installiert und konfiguriert ist, werden Shots nach jeder Extraktion automatisch hochgeladen — kein weiterer Aufwand erforderlich.
 
-### Direktimport von der DE1-Maschine
+### Direktimport von der DE1-Maschine (de1app oder Decenza)
 
-Erfordert das [Advanced REST API](https://github.com/randomcoffeesnob/decent-advanced-rest-api)-Plugin auf dem Tablet.
+Funktioniert mit beiden Apps auf dem Tablet — Visualizer Lite erkennt automatisch, welche gerade läuft, ein Wechsel erfordert also keine Konfigurationsänderung:
 
-**Einstellungen → DE1-Import** in Visualizer Lite öffnen, einen Datumsbereich festlegen und den Import starten. Die App streamt die Ergebnisse live und speichert das Datum des letzten erfolgreichen Imports — beim nächsten Öffnen der Einstellungen ist das Startdatum bereits vorausgefüllt, sodass ein Aufholimport mit einem Klick gestartet werden kann.
+- **[Decenza](https://github.com/Kulitorum/Decenza)** — funktioniert ohne weiteres Plugin.
+- **de1app** — erfordert das [Advanced REST API](https://github.com/randomcoffeesnob/decent-advanced-rest-api)-Plugin auf dem Tablet.
+
+**Einstellungen → Direktimport** in Visualizer Lite öffnen, einen Datumsbereich festlegen und den Import starten. Die App streamt die Ergebnisse live und speichert das Datum des letzten erfolgreichen Imports — beim nächsten Öffnen der Einstellungen ist das Startdatum bereits vorausgefüllt, sodass ein Aufholimport mit einem Klick gestartet werden kann.
 
 > **Visualizer Lite parallel zum offiziellen Visualizer nutzen:** Wer den Direktimport statt des automatischen Uploads verwendet, kann das *Upload to Visualizer*-Plugin auf dem Tablet weiterhin so konfigurieren, dass Shots wie gewohnt an [visualizer.coffee](https://visualizer.coffee) gesendet werden — beide sind vollständig unabhängig voneinander. So lassen sich beide Dienste parallel betreiben: die Community-Funktionen von visualizer.coffee und die lokale Historie in Visualizer Lite.
 

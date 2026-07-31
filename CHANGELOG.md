@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.0] - 2026-07-31
+
+### Added
+- **Decenza import support**: The Direct Machine Import feature (Settings → Data) now auto-detects whether the configured machine URL is running de1app or [Decenza](https://github.com/Kulitorum/Decenza), and imports shots accordingly — no manual switch needed when changing tablet software. Decenza's shot JSON is consumed directly (Visualizer-compatible format, no conversion needed).
+- **Parser: enjoyment/notes from JSON-format shots**: `parseDecentShot` now reads `meta.shot.enjoyment` and `meta.shot.notes` for JSON-format (v2) shots, benefiting both Decenza imports and any future de1app v2 JSON shots.
+
+### Changed
+- The Direct Machine Import connection status now shows which app was detected (e.g. "Connected — Decenza — 42 shots available").
+
 ## [1.17.0] - 2026-06-07
 
 ### Added

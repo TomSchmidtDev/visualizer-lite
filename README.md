@@ -18,7 +18,7 @@ Visualizer Lite grew out of that need:
 
 ## Key Features
 
-- **Direct import (pull)** — fetch shots directly from the DE1 machine using the [Advanced REST API](https://github.com/randomcoffeesnob/decent-advanced-rest-api) extension; no cable or manual file transfer needed
+- **Direct import (pull)** — fetch shots directly from the DE1 machine; works out of the box with [Decenza](https://github.com/Kulitorum/Decenza) (auto-detected) or with de1app via the [Advanced REST API](https://github.com/randomcoffeesnob/decent-advanced-rest-api) extension. No cable or manual file transfer needed
 - **Auto-upload (push)** — shots are pushed automatically after each extraction via the modified [*Upload to visualizer*](de1app/de1plus/plugins/visualizer_upload/) DE1 plugin included in this repo
 - **Manual upload** — drag-and-drop or file-picker upload of `.shot` files via the web interface
 - **Export** — download your entire shot archive as a ZIP file for backup or external analysis
@@ -239,11 +239,14 @@ There are three ways to get shots into Visualizer Lite:
 
 Once the *Upload to Visualizer* plugin is installed and configured, shots are uploaded automatically after every extraction — nothing else to do.
 
-### Direct import from the DE1 machine
+### Direct import from the DE1 machine (de1app or Decenza)
 
-Requires the [Advanced REST API](https://github.com/randomcoffeesnob/decent-advanced-rest-api) plugin to be installed on the tablet.
+Works with either app running on the tablet — Visualizer Lite detects which one automatically, so switching between them requires no configuration change on your end:
 
-Open **Settings → DE1 Import** in Visualizer Lite, set a date range, and start the import. The app streams results live and saves the date of the last successful import — next time you open the settings, the start date is pre-filled, so triggering a catch-up import is just one click.
+- **[Decenza](https://github.com/Kulitorum/Decenza)** — works out of the box, no extra plugin needed.
+- **de1app** — requires the [Advanced REST API](https://github.com/randomcoffeesnob/decent-advanced-rest-api) plugin to be installed on the tablet.
+
+Open **Settings → Direct Machine Import** in Visualizer Lite, set a date range, and start the import. The app streams results live and saves the date of the last successful import — next time you open the settings, the start date is pre-filled, so triggering a catch-up import is just one click.
 
 > **Using Visualizer Lite alongside the official Visualizer:** If you use direct import instead of auto-push, the *Upload to Visualizer* plugin on the tablet can continue uploading to [visualizer.coffee](https://visualizer.coffee) as usual — the two are completely independent. This means you can run both services in parallel: the community features of visualizer.coffee and your local history in Visualizer Lite.
 
