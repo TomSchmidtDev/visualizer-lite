@@ -24,12 +24,18 @@ Data channels:
 type De1Phase =
   | { name: 'idle' }
   | { name: 'testing' }
-  | { name: 'connected'; total: number; machineType: 'de1app' | 'decenza' }
+  | { name: 'connected'; total: number; machineType: 'de1app' | 'decenza' | 'decaid' }
   | { name: 'connectionError'; message: string }
   | { name: 'previewing' }
   | { name: 'previewed'; count: number }
   | { name: 'importing'; current: number; total: number; filename: string }
   | { name: 'done'; imported: number; updated: number; skipped: number; errors: number; errorDetails: { filename: string; message: string }[] }
+
+const MACHINE_TYPE_I18N_KEY: Record<'de1app' | 'decenza' | 'decaid', string> = {
+  de1app: 'settings.de1MachineDe1app',
+  decenza: 'settings.de1MachineDecenza',
+  decaid: 'settings.de1MachineDecaid',
+}
 
 type Tab = 'ansicht' | 'daten' | 'sicherheit' | 'ki'
 
@@ -63,7 +69,7 @@ export default function Settings() {
   const [de1DefaultBeverage, setDe1DefaultBeverage] = useState('')
   const [de1Phase, setDe1Phase] = useState<De1Phase>({ name: 'idle' })
   const [de1Total, setDe1Total] = useState(0)
-  const [de1MachineType, setDe1MachineType] = useState<'de1app' | 'decenza'>('de1app')
+  const [de1MachineType, setDe1MachineType] = useState<'de1app' | 'decenza' | 'decaid'>('de1app')
   const [dateFrom, setDateFrom] = useState('2020-01-01')
   const [dateTo, setDateTo] = useState(todayStr)
   const [updateExisting, setUpdateExisting] = useState(false)
@@ -465,7 +471,7 @@ export default function Settings() {
           <p style={{ fontSize: 13, color: 'var(--green)', marginBottom: 12 }}>
             {'✓'} {t('settings.de1Connected', {
               count: de1Phase.total,
-              machineName: t(de1Phase.machineType === 'decenza' ? 'settings.de1MachineDecenza' : 'settings.de1MachineDe1app'),
+              machineName: t(MACHINE_TYPE_I18N_KEY[de1Phase.machineType]),
             })}
           </p>
         )}

@@ -18,7 +18,7 @@ Visualizer Lite entstand aus diesem Bedarf:
 
 ## Key Features
 
-- **Direktimport (Pull)** — Shots direkt von der DE1-Maschine holen; funktioniert ohne weitere Einrichtung mit [Decenza](https://github.com/Kulitorum/Decenza) (automatisch erkannt) oder mit de1app über die [Advanced REST API](https://github.com/randomcoffeesnob/decent-advanced-rest-api)-Extension. Kein Kabel, keine manuelle Dateiübertragung nötig
+- **Direktimport (Pull)** — Shots direkt von der DE1-Maschine holen; funktioniert ohne weitere Einrichtung mit [Decenza](https://github.com/Kulitorum/Decenza) oder [Decaid](https://github.com/decentespresso/decaid) (beide automatisch erkannt) oder mit de1app über die [Advanced REST API](https://github.com/randomcoffeesnob/decent-advanced-rest-api)-Extension. Kein Kabel, keine manuelle Dateiübertragung nötig
 - **Automatischer Upload (Push)** — Shots werden nach jeder Extraktion automatisch hochgeladen über das modifizierte [*Upload to visualizer*](de1app/de1plus/plugins/visualizer_upload/)-DE1-Plugin aus diesem Repository
 - **Manueller Upload** — Einzelne oder mehrere `.shot`-Dateien per Drag-and-drop oder Dateiauswahl über das Web-Interface hochladen
 - **Export** — Die gesamte Shot-Sammlung als ZIP-Archiv herunterladen, zur Sicherung oder für externe Analysen
@@ -239,12 +239,15 @@ Es gibt drei Wege, Shots in Visualizer Lite zu importieren:
 
 Sobald das *Upload to Visualizer*-Plugin installiert und konfiguriert ist, werden Shots nach jeder Extraktion automatisch hochgeladen — kein weiterer Aufwand erforderlich.
 
-### Direktimport von der DE1-Maschine (de1app oder Decenza)
+### Direktimport von der DE1-Maschine (de1app, Decenza oder Decaid)
 
-Funktioniert mit beiden Apps auf dem Tablet — Visualizer Lite erkennt automatisch, welche gerade läuft, ein Wechsel erfordert also keine Konfigurationsänderung:
+Funktioniert mit allen drei Apps auf dem Tablet — Visualizer Lite erkennt automatisch, welche gerade läuft, ein Wechsel erfordert also keine Konfigurationsänderung:
 
+- **[Decaid](https://github.com/decentespresso/decaid)** — funktioniert ohne weiteres Plugin; die Shot-History-API ist vollständig paginiert, sodass die gesamte Historie unabhängig von ihrer Größe importiert wird. Jede Seite hat auf echter Hardware mehrere Sekunden benötigt, ein erster Import einer großen Historie kann daher ein bis zwei Minuten dauern; engere Zeiträume (der übliche Fall für Aufholimporte) sind schnell, da das Auflisten stoppt, sobald Shots vor dem gewählten Startdatum erreicht werden. Kaffeename, Rösterei und Barista sind nur verfügbar, wenn diese Metadaten auf dem Tablet gepflegt wurden.
 - **[Decenza](https://github.com/Kulitorum/Decenza)** — funktioniert ohne weiteres Plugin; die API liefert nur die 1000 neuesten Shots, ältere Shots werden bei mehr Historie also erst sichtbar, nachdem die Shot-Liste auf dem Tablet gekürzt wurde.
 - **de1app** — erfordert das [Advanced REST API](https://github.com/randomcoffeesnob/decent-advanced-rest-api)-Plugin auf dem Tablet.
+
+de1app/Decenza und Decaid laufen üblicherweise auf unterschiedlichen Standard-Ports (`8888` bzw. `8080`). Antwortet der konfigurierte Port nicht, versucht Visualizer Lite automatisch den jeweils anderen — und speichert die korrigierte URL, sobald sie funktioniert, sodass die Einstellung nach einem Wechsel der Tablet-Software nicht manuell angepasst werden muss.
 
 **Einstellungen → Direktimport** in Visualizer Lite öffnen, einen Datumsbereich festlegen und den Import starten. Die App streamt die Ergebnisse live und speichert das Datum des letzten erfolgreichen Imports — beim nächsten Öffnen der Einstellungen ist das Startdatum bereits vorausgefüllt, sodass ein Aufholimport mit einem Klick gestartet werden kann.
 

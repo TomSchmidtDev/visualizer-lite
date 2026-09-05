@@ -131,6 +131,32 @@ describe('GET /api/de1/test', () => {
     const res = await app.inject({ method: 'GET', url: '/api/de1/test' })
     expect(res.statusCode).toBe(401)
   })
+
+  it('falls back to port 8080 when the configured 8888 is unreachable, and persists the corrected URL', async () => {
+    const altUrl = 'http://192.168.1.1:8080'
+    vi.stubGlobal('fetch', makeFetch({
+      [`${altUrl}/api/v1/shots?limit=1`]: {
+        ok: true, status: 200,
+        body: JSON.stringify({ items: [], total: 5, limit: 1, offset: 0 }),
+      },
+      [`${altUrl}/api/v1/shots?limit=1&offset=0&orderBy=timestamp&order=desc`]: {
+        ok: true, status: 200,
+        body: JSON.stringify({ items: [], total: 5, limit: 1, offset: 0 }),
+      },
+      // DE1_URL (8888) is intentionally left unmocked — defaults to 404 for all three probes
+    }))
+
+    const res = await app.inject({
+      method: 'GET', url: '/api/de1/test', headers: { cookie },
+    })
+    expect(res.statusCode).toBe(200)
+    const body = JSON.parse(res.body)
+    expect(body.machineType).toBe('decaid')
+    expect(body.total).toBe(5)
+
+    const saved = await prisma.settings.findUnique({ where: { key: 'de1Url' } })
+    expect(saved?.value).toBe(altUrl)
+  })
 })
 
 describe('POST /api/de1/preview', () => {
@@ -446,5 +472,96 @@ describe('Decenza dialect', () => {
     const done = doneEvent(res.body)
     expect(done.errors).toBe(1)
     expect(done.errorDetails[0].filename).toBe('2628')
+  })
+})
+
+describe('Decaid dialect', () => {
+  const DECAID_SHOT_JSON = JSON.stringify({
+    id: 'shot-1',
+    timestamp: '2026-05-26T12:19:47.000000',
+    measurements: [
+      { machine: { timestamp: '2026-05-26T12:19:47.000000', flow: 0, pressure: 0 }, scale: null, volume: 0 },
+      { machine: { timestamp: '2026-05-26T12:20:17.000000', flow: 2, pressure: 7 }, scale: null, volume: 30 },
+    ],
+  })
+
+  it('GET /api/de1/test detects decaid and reports the total from a single request (no full pagination)', async () => {
+    vi.stubGlobal('fetch', makeFetch({
+      [`${DE1_URL}/api/v1/shots?limit=1`]: {
+        ok: true, status: 200,
+        body: JSON.stringify({ items: [{ id: 'shot-1', timestamp: '2026-05-26T12:19:47.000000' }], total: 2655, limit: 1, offset: 0 }),
+      },
+      [`${DE1_URL}/api/v1/shots?limit=1&offset=0&orderBy=timestamp&order=desc`]: {
+        ok: true, status: 200,
+        body: JSON.stringify({ items: [{ id: 'shot-1', timestamp: '2026-05-26T12:19:47.000000' }], total: 2655, limit: 1, offset: 0 }),
+      },
+      // No other page is mocked — if the route paged through the full history this would 404 and fail.
+    }))
+    const res = await app.inject({
+      method: 'GET', url: '/api/de1/test', headers: { cookie },
+    })
+    expect(res.statusCode).toBe(200)
+    const body = JSON.parse(res.body)
+    expect(body.machineType).toBe('decaid')
+    expect(body.total).toBe(2655)
+  })
+
+  it('POST /api/de1/preview filters decaid shots by date range', async () => {
+    vi.stubGlobal('fetch', makeFetch({
+      [`${DE1_URL}/api/v1/shots?limit=1`]: {
+        ok: true, status: 200,
+        body: JSON.stringify({ items: [], total: 2, limit: 1, offset: 0 }),
+      },
+      [`${DE1_URL}/api/v1/shots?limit=100&offset=0&orderBy=timestamp&order=desc`]: {
+        ok: true, status: 200,
+        body: JSON.stringify({
+          items: [
+            { id: 'shot-1', timestamp: '2026-05-26T12:19:47.000000' },
+            { id: 'shot-2', timestamp: '2020-01-01T10:00:00.000000' }, // outside range
+          ],
+          total: 2, limit: 100, offset: 0,
+        }),
+      },
+    }))
+    const res = await app.inject({
+      method: 'POST', url: '/api/de1/preview', headers: { cookie },
+      payload: { dateFrom: '2026-01-01', dateTo: '2026-12-31' },
+    })
+    expect(res.statusCode).toBe(200)
+    const body = JSON.parse(res.body)
+    expect(body.count).toBe(1)
+    expect(body.shots[0].filename).toBe('shot-1')
+    expect(body.machineType).toBe('decaid')
+  })
+
+  it('POST /api/de1/import streams progress and imports a decaid shot', async () => {
+    vi.stubGlobal('fetch', makeFetch({
+      [`${DE1_URL}/api/v1/shots?limit=1`]: {
+        ok: true, status: 200,
+        body: JSON.stringify({ items: [], total: 1, limit: 1, offset: 0 }),
+      },
+      [`${DE1_URL}/api/v1/shots?limit=100&offset=0&orderBy=timestamp&order=desc`]: {
+        ok: true, status: 200,
+        body: JSON.stringify({ items: [{ id: 'shot-1', timestamp: '2026-05-26T12:19:47.000000' }], total: 1, limit: 100, offset: 0 }),
+      },
+      [`${DE1_URL}/api/v1/shots/shot-1`]: {
+        ok: true, status: 200, body: DECAID_SHOT_JSON,
+      },
+    }))
+    const res = await app.inject({
+      method: 'POST', url: '/api/de1/import', headers: { cookie },
+      payload: { dateFrom: '2026-01-01', dateTo: '2026-12-31' },
+    })
+    expect(res.statusCode).toBe(200)
+
+    const events = parseNdjson(res.body)
+    const progress = events.filter(e => e.type === 'progress')
+    expect(progress).toHaveLength(1)
+    expect(progress[0].filename).toBe('shot-1')
+    expect(progress[0].status).toBe('imported')
+
+    const done = doneEvent(res.body)
+    expect(done.imported).toBe(1)
+    expect(done.errors).toBe(0)
   })
 })

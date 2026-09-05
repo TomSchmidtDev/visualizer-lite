@@ -117,10 +117,10 @@ export const api = {
 
   // DE1 direct import
   testDe1Connection: () =>
-    request<{ ok: boolean; total: number; machineType: 'de1app' | 'decenza' }>('/api/de1/test'),
+    request<{ ok: boolean; total: number; machineType: 'de1app' | 'decenza' | 'decaid' }>('/api/de1/test'),
 
   previewDe1Import: (dateFrom: string, dateTo: string) =>
-    request<{ count: number; shots: { filename: string; date: string }[]; machineType: 'de1app' | 'decenza' }>(
+    request<{ count: number; shots: { filename: string; date: string }[]; machineType: 'de1app' | 'decenza' | 'decaid' }>(
       '/api/de1/preview',
       { method: 'POST', body: JSON.stringify({ dateFrom, dateTo }) }
     ),

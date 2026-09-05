@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.19.0] - 2026-09-05
+
+### Added
+- **Decaid import support**: The Direct Machine Import feature (Settings → Data) now also auto-detects [Decaid](https://github.com/decentespresso/decaid) alongside de1app and Decenza, and imports shots accordingly — no manual switch needed when changing tablet software. Decaid's shot history REST API (`/api/v1/shots`) is fully paginated, so the entire history is imported regardless of size, and a new parser converts Decaid's row-oriented measurement snapshots into the same shot format used internally for de1app/Decenza imports. Coffee name, roaster, and barista are read from the shot's workflow context when present, and Decaid's device-reported gravimetric flow rate (`scale.weightFlow`) is mapped to the same channel de1app/Decenza expose. The connection test reads the shot count from a single request rather than paging through the full history, and listing/preview stop paging early once results (sorted newest-first) fall before the requested start date, instead of always walking the entire history.
+- **Automatic port fallback for Direct Machine Import**: de1app/Decenza and Decaid conventionally listen on different default ports (8888 vs. 8080). If the configured machine URL doesn't respond, Visualizer Lite now automatically retries the other port, and — once that succeeds — saves the corrected URL so later connections go straight to the working port.
+
 ## [1.18.1] - 2026-07-31
 
 ### Fixed

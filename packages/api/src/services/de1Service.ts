@@ -2,6 +2,7 @@
 import { createHash } from 'crypto'
 import { prisma } from '../db.js'
 import { parseDecentShot } from '../parsers/decent.js'
+import { parseDecaidShot } from '../parsers/decaid.js'
 import { saveFile } from './fileStorage.js'
 
 export interface MachineShotInfo {
@@ -21,7 +22,7 @@ async function getDefaultBeverage(): Promise<string | null> {
   return row?.value?.trim() || null
 }
 
-export type MachineType = 'de1app' | 'decenza'
+export type MachineType = 'de1app' | 'decenza' | 'decaid'
 
 interface ProbeResult {
   ok: boolean
@@ -52,32 +53,116 @@ async function probeDecenza(base: string): Promise<ProbeResult> {
   }
 }
 
+async function probeDecaid(base: string): Promise<ProbeResult> {
+  try {
+    const res = await fetch(`${base}/api/v1/shots?limit=1`, { signal: AbortSignal.timeout(5000) })
+    if (!res.ok) return { ok: false, reason: `HTTP ${res.status}` }
+    const body = await res.json()
+    const ok = body !== null && typeof body === 'object'
+      && Array.isArray((body as { items?: unknown }).items)
+      && typeof (body as { total?: unknown }).total === 'number'
+    return ok ? { ok: true } : { ok: false, reason: 'unexpected response shape' }
+  } catch (err) {
+    return { ok: false, reason: err instanceof Error ? err.message : String(err) }
+  }
+}
+
 /**
  * Probe a machine URL to determine which app is running.
- * de1app:  GET /api/shot/  -> JSON array of filename strings.
- * Decenza: GET /api/shots  -> JSON array of shot objects ({id, timestamp, ...}).
- * Both probes run concurrently; if both unexpectedly succeed, de1app wins
- * (should not happen given the distinct, unambiguous endpoint shapes).
+ * de1app:  GET /api/shot/       -> JSON array of filename strings.
+ * Decenza: GET /api/shots       -> JSON array of shot objects ({id, timestamp, ...}).
+ * Decaid:  GET /api/v1/shots    -> JSON object ({items: [...], total, limit, offset}).
+ * All probes run concurrently; if more than one unexpectedly succeeds, the
+ * first in de1app > Decenza > Decaid order wins (should not happen given the
+ * distinct, unambiguous endpoint shapes).
  */
 export async function detectMachineType(de1Url: string): Promise<MachineType> {
   const base = de1Url.replace(/\/+$/, '')
-  const [de1Result, decenzaResult] = await Promise.allSettled([
+  const [de1Result, decenzaResult, decaidResult] = await Promise.allSettled([
     probeDe1App(base),
     probeDecenza(base),
+    probeDecaid(base),
   ])
-  const de1: ProbeResult     = de1Result.status === 'fulfilled'
-    ? de1Result.value
-    : { ok: false, reason: de1Result.reason instanceof Error ? de1Result.reason.message : String(de1Result.reason) }
-  const decenza: ProbeResult = decenzaResult.status === 'fulfilled'
-    ? decenzaResult.value
-    : { ok: false, reason: decenzaResult.reason instanceof Error ? decenzaResult.reason.message : String(decenzaResult.reason) }
+  const toResult = (r: PromiseSettledResult<ProbeResult>): ProbeResult =>
+    r.status === 'fulfilled'
+      ? r.value
+      : { ok: false, reason: r.reason instanceof Error ? r.reason.message : String(r.reason) }
+  const de1     = toResult(de1Result)
+  const decenza = toResult(decenzaResult)
+  const decaid  = toResult(decaidResult)
 
-  if (de1.ok && decenza.ok) {
-    console.warn(`DE1 import: both de1app and Decenza responded successfully at ${base}; preferring de1app`)
+  if ([de1.ok, decenza.ok, decaid.ok].filter(Boolean).length > 1) {
+    console.warn(`DE1 import: multiple machine types responded successfully at ${base}; preferring de1app > decenza > decaid`)
   }
   if (de1.ok) return 'de1app'
   if (decenza.ok) return 'decenza'
-  throw new Error(`No machine detected (de1app: ${de1.reason}; Decenza: ${decenza.reason})`)
+  if (decaid.ok) return 'decaid'
+  throw new Error(`No machine detected (de1app: ${de1.reason}; Decenza: ${decenza.reason}; Decaid: ${decaid.reason})`)
+}
+
+/** de1app/Decenza's Advanced REST API plugin defaults to 8888; Decaid defaults to 8080. */
+const DEFAULT_PORT_FALLBACKS: Record<string, string> = { '8888': '8080', '8080': '8888' }
+
+/**
+ * Swap a configured URL's port for the other app's well-known default port
+ * (8888 <-> 8080), for use as a fallback when the configured port doesn't
+ * respond. Returns null when the URL is unparseable or its port isn't one of
+ * the two known defaults — there's nothing sensible to guess otherwise.
+ */
+function swapDefaultPort(urlStr: string): string | null {
+  let parsed: URL
+  try {
+    parsed = new URL(urlStr)
+  } catch {
+    return null
+  }
+  const altPort = DEFAULT_PORT_FALLBACKS[parsed.port]
+  if (!altPort) return null
+  parsed.port = altPort
+  return parsed.toString().replace(/\/+$/, '')
+}
+
+/** Persist the working DE1 machine URL back to Settings. */
+async function saveDe1Url(url: string): Promise<void> {
+  await prisma.settings.upsert({
+    where: { key: 'de1Url' },
+    create: { key: 'de1Url', value: url },
+    update: { value: url },
+  })
+}
+
+/**
+ * Resolve which machine type is running and at which URL, trying the
+ * configured URL first and falling back to the other app's well-known
+ * default port (8888 <-> 8080) if that fails entirely. de1app/Decenza and
+ * Decaid conventionally run on different default ports, so a URL saved for
+ * one dialect commonly doesn't work after switching to the other.
+ *
+ * On a successful fallback, the corrected URL is saved back to Settings so
+ * later calls go straight to the working port instead of probing the dead
+ * one again every time. On failure, the error reflects the originally
+ * configured URL (not the fallback attempt), since that's the one the user
+ * actually configured.
+ */
+export async function resolveMachineConnection(
+  de1Url: string,
+): Promise<{ url: string; machineType: MachineType }> {
+  try {
+    return { url: de1Url, machineType: await detectMachineType(de1Url) }
+  } catch (primaryErr) {
+    const altUrl = swapDefaultPort(de1Url)
+    if (!altUrl) throw primaryErr
+
+    let machineType: MachineType
+    try {
+      machineType = await detectMachineType(altUrl)
+    } catch {
+      throw primaryErr
+    }
+
+    await saveDe1Url(altUrl)
+    return { url: altUrl, machineType }
+  }
 }
 
 /**
@@ -210,16 +295,109 @@ function decenzaTimestampToLocalDateString(timestampSeconds: number): string {
   return `${year}-${month}-${day}T${hour}:${min}:${sec}.000Z`
 }
 
+interface DecaidShotSummary {
+  id: string
+  timestamp: string  // local wall-clock digits, no `Z` suffix, e.g. "2026-09-05T10:28:22.214776"
+}
+
+interface DecaidShotPage {
+  items: DecaidShotSummary[]
+  total: number
+}
+
+/**
+ * Fetch one page of Decaid's paginated GET /api/v1/shots (summaries only, no
+ * measurements). Each page has been observed taking 2.5-7s against real
+ * hardware with a large shot history (Decaid does real per-shot work
+ * server-side even for summaries) — 30s leaves comfortable margin.
+ */
+async function fetchDecaidShotPage(base: string, limit: number, offset: number): Promise<DecaidShotPage> {
+  const res = await fetch(`${base}/api/v1/shots?limit=${limit}&offset=${offset}&orderBy=timestamp&order=desc`, {
+    signal: AbortSignal.timeout(30000),
+  })
+  if (!res.ok) throw new Error(`Decaid returned HTTP ${res.status}`)
+  return res.json() as Promise<DecaidShotPage>
+}
+
+/**
+ * Cheaply fetch the total shot count from a Decaid machine without paging
+ * through the full history — a single request reading the `total` field.
+ */
+async function fetchDecaidShotCount(base: string): Promise<number> {
+  const { total } = await fetchDecaidShotPage(base, 1, 0)
+  return total
+}
+
+/**
+ * Fetch the shot list from a Decaid machine, paging through /api/v1/shots
+ * (sorted newest-first).
+ *
+ * Each page has been observed taking multiple seconds against real hardware
+ * regardless of offset — Decaid's list endpoint appears to do real work per
+ * summary even though measurements are excluded. Paging through a large
+ * history (thousands of shots) to serve a narrow recent date range would
+ * otherwise take minutes for no reason, since the results are already sorted
+ * newest-first: once a page's oldest entry falls before `dateFromHint`, every
+ * subsequent page is strictly older too, so pagination can stop there.
+ */
+export async function fetchDecaidShotList(de1Url: string, dateFromHint?: string): Promise<DecaidShotSummary[]> {
+  const base = de1Url.replace(/\/+$/, '')
+  const limit = 100
+  const fromPrefix = dateFromHint ? dateFromHint.replace(/-/g, '') : null
+  const all: DecaidShotSummary[] = []
+  let offset = 0
+  while (true) {
+    const { items, total } = await fetchDecaidShotPage(base, limit, offset)
+    all.push(...items)
+    offset += items.length
+    if (items.length === 0 || offset >= total) break
+
+    if (fromPrefix) {
+      const oldestOnPage = decaidTimestampToDateString(items[items.length - 1].timestamp)
+      const oldestPrefix = oldestOnPage?.slice(0, 10).replace(/-/g, '')
+      if (oldestPrefix && oldestPrefix < fromPrefix) break
+    }
+  }
+  return all
+}
+
+/** Fetch a shot's full record (including measurements) from a Decaid machine. */
+async function fetchDecaidShotContent(base: string, id: string): Promise<string> {
+  const res = await fetch(`${base}/api/v1/shots/${encodeURIComponent(id)}`, {
+    signal: AbortSignal.timeout(10000),
+  })
+  if (!res.ok) throw new Error(`Decaid returned HTTP ${res.status} for shot ${id}`)
+  return res.text()
+}
+
+/**
+ * Truncate a Decaid wall-clock timestamp to whole seconds and label it `Z`,
+ * without any timezone conversion — same convention as
+ * decenzaTimestampToLocalDateString(), just starting from digits instead of
+ * a unix timestamp. Returns null for anything that doesn't look like an
+ * ISO-shaped timestamp.
+ */
+function decaidTimestampToDateString(raw: string): string | null {
+  const m = raw.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})/)
+  return m ? `${m[1]}.000Z` : null
+}
+
 /**
  * List all shots from a machine, normalized to MachineShotInfo regardless of
  * dialect. de1app shots without a filename date the parser can understand are
- * silently dropped (matches the previous de1app-only behavior); Decenza shots
- * with a missing/non-numeric timestamp are silently dropped the same way,
+ * silently dropped (matches the previous de1app-only behavior); Decenza/Decaid
+ * shots with an unparseable timestamp are silently dropped the same way,
  * rather than throwing and aborting the whole listing.
+ *
+ * `dateFromHint` (YYYY-MM-DD) is optional and only affects Decaid: it lets
+ * pagination stop early once results (sorted newest-first) fall before that
+ * date, instead of always paging through the entire history. It is a hint,
+ * not a hard filter — callers still run filterByDateRange() on the result.
  */
 export async function listMachineShots(
   de1Url: string,
   machineType: MachineType,
+  dateFromHint?: string,
 ): Promise<MachineShotInfo[]> {
   if (machineType === 'decenza') {
     const shots = await fetchDecenzaShotList(de1Url)
@@ -231,6 +409,16 @@ export async function listMachineShots(
     return result
   }
 
+  if (machineType === 'decaid') {
+    const shots = await fetchDecaidShotList(de1Url, dateFromHint)
+    const result: MachineShotInfo[] = []
+    for (const s of shots) {
+      const date = decaidTimestampToDateString(s.timestamp)
+      if (date) result.push({ filename: s.id, date })
+    }
+    return result
+  }
+
   const filenames = await fetchShotList(de1Url)
   const result: MachineShotInfo[] = []
   for (const filename of filenames) {
@@ -238,6 +426,26 @@ export async function listMachineShots(
     if (date) result.push({ filename, date })
   }
   return result
+}
+
+/**
+ * Count the shots available on a machine. For de1app/Decenza this is
+ * equivalent to `(await listMachineShots(...)).length` — both dialects
+ * return their full list in a single request, so there's no cheaper path.
+ * For Decaid, listing is expensive (each page takes several seconds against
+ * real hardware with a large history), so this reads the `total` field from
+ * a single lightweight request instead of paging through everything just to
+ * count it — used by the connection-test UI, which only needs a number.
+ */
+export async function countMachineShots(
+  de1Url: string,
+  machineType: MachineType,
+): Promise<number> {
+  if (machineType === 'decaid') {
+    const base = de1Url.replace(/\/+$/, '')
+    return fetchDecaidShotCount(base)
+  }
+  return (await listMachineShots(de1Url, machineType)).length
 }
 
 /**
@@ -254,11 +462,13 @@ export async function fetchAndImportShot(
   const base = de1Url.replace(/\/+$/, '')
   const content = machineType === 'decenza'
     ? await fetchDecenzaShotContent(base, filename)
-    : await fetchShotContent(base, filename)
+    : machineType === 'decaid'
+      ? await fetchDecaidShotContent(base, filename)
+      : await fetchShotContent(base, filename)
 
   const buffer = Buffer.from(content, 'utf8')
   const hash = createHash('sha256').update(buffer).digest('hex')
-  const parsed = parseDecentShot(content)
+  const parsed = machineType === 'decaid' ? parseDecaidShot(content) : parseDecentShot(content)
   const date = new Date(parsed.clock * 1000)
   const filePath = saveFile(buffer, hash, date)
 

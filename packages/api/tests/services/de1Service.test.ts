@@ -3,8 +3,10 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { prisma } from '../../src/db.js'
 import {
   detectMachineType,
+  resolveMachineConnection,
   filterByDateRange,
   listMachineShots,
+  countMachineShots,
   fetchAndImportShot,
 } from '../../src/services/de1Service.js'
 
@@ -75,6 +77,55 @@ describe('detectMachineType', () => {
   })
 })
 
+describe('resolveMachineConnection', () => {
+  beforeEach(async () => {
+    await prisma.settings.deleteMany({ where: { key: 'de1Url' } })
+  })
+  afterEach(async () => {
+    vi.unstubAllGlobals()
+    await prisma.settings.deleteMany({ where: { key: 'de1Url' } })
+  })
+
+  it('returns the configured URL unchanged when its port responds', async () => {
+    vi.stubGlobal('fetch', makeFetch({
+      [`${BASE}/api/shot/`]: { ok: true, status: 200, body: JSON.stringify(['20260526T121947.shot']) },
+    }))
+    await expect(resolveMachineConnection(BASE)).resolves.toEqual({ url: BASE, machineType: 'de1app' })
+    expect(await prisma.settings.findUnique({ where: { key: 'de1Url' } })).toBeNull()
+  })
+
+  it('falls back from port 8888 to 8080 (Decaid default) when 8888 is unreachable, and persists the corrected URL', async () => {
+    const altUrl = 'http://192.168.1.1:8080'
+    vi.stubGlobal('fetch', makeFetch({
+      [`${altUrl}/api/v1/shots?limit=1`]: { ok: true, status: 200, body: JSON.stringify({ items: [], total: 0, limit: 1, offset: 0 }) },
+    }))
+    await expect(resolveMachineConnection(BASE)).resolves.toEqual({ url: altUrl, machineType: 'decaid' })
+    const saved = await prisma.settings.findUnique({ where: { key: 'de1Url' } })
+    expect(saved?.value).toBe(altUrl)
+  })
+
+  it('falls back from port 8080 to 8888 (de1app/Decenza default) when 8080 is unreachable', async () => {
+    const configured = 'http://192.168.1.1:8080'
+    const altUrl = BASE
+    vi.stubGlobal('fetch', makeFetch({
+      [`${altUrl}/api/shots`]: { ok: true, status: 200, body: JSON.stringify([{ id: 1, timestamp: 1785492901 }]) },
+    }))
+    await expect(resolveMachineConnection(configured)).resolves.toEqual({ url: altUrl, machineType: 'decenza' })
+  })
+
+  it('throws the error for the originally configured port (not the fallback) when both fail', async () => {
+    vi.stubGlobal('fetch', makeFetch({}))
+    await expect(resolveMachineConnection(BASE)).rejects.toThrow('No machine detected')
+    expect(await prisma.settings.findUnique({ where: { key: 'de1Url' } })).toBeNull()
+  })
+
+  it('does not attempt a fallback for a URL with no recognized default port', async () => {
+    vi.stubGlobal('fetch', makeFetch({}))
+    await expect(resolveMachineConnection('http://192.168.1.1')).rejects.toThrow('No machine detected')
+    expect(await prisma.settings.findUnique({ where: { key: 'de1Url' } })).toBeNull()
+  })
+})
+
 describe('filterByDateRange', () => {
   it('keeps shots whose ISO date falls within the range (inclusive)', () => {
     const shots = [
@@ -135,6 +186,180 @@ describe('listMachineShots - decenza', () => {
     const result = await listMachineShots(BASE, 'decenza')
     expect(result).toHaveLength(1)
     expect(result[0].filename).toBe('2')
+  })
+})
+
+describe('detectMachineType - decaid', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('detects decaid when GET /api/v1/shots returns a {items, total} object', async () => {
+    vi.stubGlobal('fetch', makeFetch({
+      [`${BASE}/api/v1/shots?limit=1`]: { ok: true, status: 200, body: JSON.stringify({ items: [], total: 0, limit: 1, offset: 0 }) },
+    }))
+    await expect(detectMachineType(BASE)).resolves.toBe('decaid')
+  })
+})
+
+describe('listMachineShots - decaid', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('pages through /api/v1/shots and maps entries to MachineShotInfo, truncated to whole seconds', async () => {
+    vi.stubGlobal('fetch', makeFetch({
+      [`${BASE}/api/v1/shots?limit=100&offset=0&orderBy=timestamp&order=desc`]: {
+        ok: true, status: 200,
+        body: JSON.stringify({
+          items: [{ id: 'shot-1', timestamp: '2026-09-05T10:28:22.214776' }],
+          total: 1, limit: 100, offset: 0,
+        }),
+      },
+    }))
+    const result = await listMachineShots(BASE, 'decaid')
+    expect(result).toEqual([{ filename: 'shot-1', date: '2026-09-05T10:28:22.000Z' }])
+  })
+
+  it('follows pagination across multiple pages', async () => {
+    vi.stubGlobal('fetch', makeFetch({
+      [`${BASE}/api/v1/shots?limit=100&offset=0&orderBy=timestamp&order=desc`]: {
+        ok: true, status: 200,
+        body: JSON.stringify({
+          items: Array.from({ length: 100 }, (_, i) => ({ id: `shot-${i}`, timestamp: '2026-09-05T10:00:00.000000' })),
+          total: 101, limit: 100, offset: 0,
+        }),
+      },
+      [`${BASE}/api/v1/shots?limit=100&offset=100&orderBy=timestamp&order=desc`]: {
+        ok: true, status: 200,
+        body: JSON.stringify({
+          items: [{ id: 'shot-100', timestamp: '2026-09-05T10:00:00.000000' }],
+          total: 101, limit: 100, offset: 100,
+        }),
+      },
+    }))
+    const result = await listMachineShots(BASE, 'decaid')
+    expect(result).toHaveLength(101)
+    expect(result[100].filename).toBe('shot-100')
+  })
+
+  it('stops paging once a page falls entirely before dateFromHint, given results are sorted newest-first', async () => {
+    vi.stubGlobal('fetch', makeFetch({
+      [`${BASE}/api/v1/shots?limit=100&offset=0&orderBy=timestamp&order=desc`]: {
+        ok: true, status: 200,
+        body: JSON.stringify({
+          items: [
+            { id: 'shot-new', timestamp: '2026-09-05T10:00:00.000000' },
+            { id: 'shot-old', timestamp: '2020-01-01T10:00:00.000000' },
+          ],
+          total: 500, limit: 100, offset: 0,
+        }),
+      },
+      // Page at offset=100 is intentionally unmocked (would 404) — proves it's never fetched.
+    }))
+    const result = await listMachineShots(BASE, 'decaid', '2026-01-01')
+    expect(result.map(s => s.filename)).toEqual(['shot-new', 'shot-old'])
+  })
+
+  it('keeps paging when no page has fallen before dateFromHint yet', async () => {
+    vi.stubGlobal('fetch', makeFetch({
+      [`${BASE}/api/v1/shots?limit=100&offset=0&orderBy=timestamp&order=desc`]: {
+        ok: true, status: 200,
+        body: JSON.stringify({
+          items: Array.from({ length: 100 }, (_, i) => ({ id: `shot-${i}`, timestamp: '2026-09-05T10:00:00.000000' })),
+          total: 150, limit: 100, offset: 0,
+        }),
+      },
+      [`${BASE}/api/v1/shots?limit=100&offset=100&orderBy=timestamp&order=desc`]: {
+        ok: true, status: 200,
+        body: JSON.stringify({
+          items: Array.from({ length: 50 }, (_, i) => ({ id: `shot-${100 + i}`, timestamp: '2026-09-03T10:00:00.000000' })),
+          total: 150, limit: 100, offset: 100,
+        }),
+      },
+    }))
+    const result = await listMachineShots(BASE, 'decaid', '2026-01-01')
+    expect(result).toHaveLength(150)
+  })
+
+  it('skips entries with an unparseable timestamp instead of throwing', async () => {
+    vi.stubGlobal('fetch', makeFetch({
+      [`${BASE}/api/v1/shots?limit=100&offset=0&orderBy=timestamp&order=desc`]: {
+        ok: true, status: 200,
+        body: JSON.stringify({
+          items: [
+            { id: 'shot-bad', timestamp: 'not-a-date' },
+            { id: 'shot-good', timestamp: '2026-09-05T10:28:22.214776' },
+          ],
+          total: 2, limit: 100, offset: 0,
+        }),
+      },
+    }))
+    const result = await listMachineShots(BASE, 'decaid')
+    expect(result).toHaveLength(1)
+    expect(result[0].filename).toBe('shot-good')
+  })
+
+  it('throws when Decaid returns a non-200 response', async () => {
+    vi.stubGlobal('fetch', makeFetch({
+      [`${BASE}/api/v1/shots?limit=100&offset=0&orderBy=timestamp&order=desc`]: { ok: false, status: 500, body: 'Internal Server Error' },
+    }))
+    await expect(listMachineShots(BASE, 'decaid')).rejects.toThrow('Decaid returned HTTP 500')
+  })
+})
+
+describe('countMachineShots - decaid', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('reads the total from a single limit=1 request instead of paging through the full history', async () => {
+    vi.stubGlobal('fetch', makeFetch({
+      [`${BASE}/api/v1/shots?limit=1&offset=0&orderBy=timestamp&order=desc`]: {
+        ok: true, status: 200,
+        body: JSON.stringify({ items: [{ id: 'shot-1', timestamp: '2026-09-05T10:00:00.000000' }], total: 2655, limit: 1, offset: 0 }),
+      },
+      // Any other page URL is intentionally left unmocked (defaults to 404 in makeFetch) —
+      // if countMachineShots paged through the full history this would throw.
+    }))
+    await expect(countMachineShots(BASE, 'decaid')).resolves.toBe(2655)
+  })
+})
+
+describe('countMachineShots - de1app/decenza', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('falls back to the full shot list length for de1app', async () => {
+    vi.stubGlobal('fetch', makeFetch({
+      [`${BASE}/api/shot/`]: { ok: true, status: 200, body: JSON.stringify(['20260526T121947.shot']) },
+    }))
+    await expect(countMachineShots(BASE, 'de1app')).resolves.toBe(1)
+  })
+})
+
+describe('fetchAndImportShot - decaid', () => {
+  const DECAID_SHOT_JSON = JSON.stringify({
+    id: 'shot-1',
+    timestamp: '2026-09-05T10:28:22.214776',
+    measurements: [
+      { machine: { timestamp: '2026-09-05T10:28:22.214776', flow: 0, pressure: 0 }, scale: null, volume: 0 },
+      { machine: { timestamp: '2026-09-05T10:28:52.214776', flow: 2, pressure: 7 }, scale: null, volume: 30 },
+    ],
+  })
+
+  beforeEach(async () => {
+    await prisma.$executeRaw`DELETE FROM "_ShotToTag"`
+    await prisma.$executeRaw`DELETE FROM "Shot"`
+  })
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('fetches /api/v1/shots/<id> and imports the shot', async () => {
+    vi.stubGlobal('fetch', makeFetch({
+      [`${BASE}/api/v1/shots/shot-1`]: { ok: true, status: 200, body: DECAID_SHOT_JSON },
+    }))
+    const outcome = await fetchAndImportShot(BASE, 'shot-1', 'decaid')
+    expect(outcome).toBe('created')
+  })
+
+  it('throws with the shot id in the message when Decaid returns non-200', async () => {
+    vi.stubGlobal('fetch', makeFetch({
+      [`${BASE}/api/v1/shots/shot-1`]: { ok: false, status: 404, body: 'Not found' },
+    }))
+    await expect(fetchAndImportShot(BASE, 'shot-1', 'decaid')).rejects.toThrow('for shot shot-1')
   })
 })
 

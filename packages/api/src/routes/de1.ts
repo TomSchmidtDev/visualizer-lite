@@ -3,8 +3,9 @@ import { Readable } from 'stream'
 import type { FastifyPluginAsync } from 'fastify'
 import {
   getDe1Url,
-  detectMachineType,
+  resolveMachineConnection,
   listMachineShots,
+  countMachineShots,
   filterByDateRange,
   fetchAndImportShot,
 } from '../services/de1Service.js'
@@ -13,15 +14,15 @@ const de1Routes: FastifyPluginAsync = async (fastify) => {
   const auth = { preHandler: [(fastify as any).requireAuth] }
 
   fastify.get('/test', auth, async (_req, reply) => {
-    const url = await getDe1Url()
-    if (!url) return reply.status(400).send({ error: 'DE1 URL not configured' })
+    const configuredUrl = await getDe1Url()
+    if (!configuredUrl) return reply.status(400).send({ error: 'DE1 URL not configured' })
     try {
-      const machineType = await detectMachineType(url)
-      const list = await listMachineShots(url, machineType)
-      return reply.send({ ok: true, total: list.length, machineType })
+      const { url, machineType } = await resolveMachineConnection(configuredUrl)
+      const total = await countMachineShots(url, machineType)
+      return reply.send({ ok: true, total, machineType })
     } catch (err) {
       return reply.status(502).send({
-        error: `Cannot reach DE1 at ${url}: ${err instanceof Error ? err.message : String(err)}`,
+        error: `Cannot reach DE1 at ${configuredUrl}: ${err instanceof Error ? err.message : String(err)}`,
       })
     }
   })
@@ -31,16 +32,16 @@ const de1Routes: FastifyPluginAsync = async (fastify) => {
       const { dateFrom, dateTo } = request.body
       if (!dateFrom || !dateTo || new Date(dateFrom) > new Date(dateTo))
         return reply.status(400).send({ error: 'Invalid date range' })
-      const url = await getDe1Url()
-      if (!url) return reply.status(400).send({ error: 'DE1 URL not configured' })
+      const configuredUrl = await getDe1Url()
+      if (!configuredUrl) return reply.status(400).send({ error: 'DE1 URL not configured' })
       try {
-        const machineType = await detectMachineType(url)
-        const list = await listMachineShots(url, machineType)
+        const { url, machineType } = await resolveMachineConnection(configuredUrl)
+        const list = await listMachineShots(url, machineType, dateFrom)
         const filtered = filterByDateRange(list, dateFrom, dateTo)
         return reply.send({ count: filtered.length, shots: filtered, machineType })
       } catch (err) {
         return reply.status(502).send({
-          error: `Cannot reach DE1 at ${url}: ${err instanceof Error ? err.message : String(err)}`,
+          error: `Cannot reach DE1 at ${configuredUrl}: ${err instanceof Error ? err.message : String(err)}`,
         })
       }
     }
@@ -61,18 +62,19 @@ const de1Routes: FastifyPluginAsync = async (fastify) => {
       if (!dateFrom || !dateTo || new Date(dateFrom) > new Date(dateTo))
         return reply.status(400).send({ error: 'Invalid date range' })
 
-      const url = await getDe1Url()
-      if (!url) return reply.status(400).send({ error: 'DE1 URL not configured' })
+      const configuredUrl = await getDe1Url()
+      if (!configuredUrl) return reply.status(400).send({ error: 'DE1 URL not configured' })
 
-      // Detect machine type and fetch the shot list before streaming — keeps error responses as plain JSON
+      // Resolve machine type/URL and fetch the shot list before streaming — keeps error responses as plain JSON
+      let url: string
       let allShots: Awaited<ReturnType<typeof listMachineShots>>
-      let machineType: Awaited<ReturnType<typeof detectMachineType>>
+      let machineType: Awaited<ReturnType<typeof resolveMachineConnection>>['machineType']
       try {
-        machineType = await detectMachineType(url)
-        allShots = await listMachineShots(url, machineType)
+        ;({ url, machineType } = await resolveMachineConnection(configuredUrl))
+        allShots = await listMachineShots(url, machineType, dateFrom)
       } catch (err) {
         return reply.status(502).send({
-          error: `Cannot reach DE1 at ${url}: ${err instanceof Error ? err.message : String(err)}`,
+          error: `Cannot reach DE1 at ${configuredUrl}: ${err instanceof Error ? err.message : String(err)}`,
         })
       }
 
