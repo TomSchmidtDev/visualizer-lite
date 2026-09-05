@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.19.1] - 2026-09-05
+
+### Fixed
+- **Dependency security patch**: `fast-uri` (transitive, via `ajv`/`fast-json-stringify`) bumped from 3.1.5 to 3.1.7 within existing `package.json` ranges — fixes four GHSA advisories (host confusion via skipped IDN canonicalization, SSRF via malformed IPv6 normalization, SSRF via repeated hostname percent-decoding, host confusion via percent-encoded scheme normalization).
+
+### Known issue (deferred)
+- **`deepmerge-ts` <8.0.0 (GHSA-ggr8-5vv4-36mx, stack exhaustion via recursive merge)**, pulled in by `prisma`'s (devDependency, CLI only) `@prisma/config`. No 6.x release fixes this — the only upstream fix ships in Prisma 7/8, a major version with its own breaking-change migration (schema/config/client API changes), and `latest` currently points at an 8.0.0 release candidate, not a stable release. Deferred: `prisma` is dev-only and pruned from the production image; the vulnerable merge only ever processes local, trusted config/schema files at deploy time, never user-supplied input, so real-world exploitability in this deployment is effectively nil. Revisit once Prisma 7/8 reaches a stable release Visualizer Lite is ready to migrate to.
+
 ## [1.19.0] - 2026-09-05
 
 ### Added
