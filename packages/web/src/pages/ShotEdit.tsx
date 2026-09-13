@@ -51,6 +51,7 @@ export default function ShotEdit() {
       await api.updateShot(id!, data)
       qc.invalidateQueries({ queryKey: ['shot', id] })
       qc.invalidateQueries({ queryKey: ['shots'] })
+      qc.invalidateQueries({ queryKey: ['suggestions'] })
       setSaved(true)
       setTimeout(() => navigate(`/shots/${id}`), 1000)
     } finally {
@@ -100,7 +101,7 @@ export default function ShotEdit() {
             </div>
             {fields.map(({ key, label, type }) => (
               <div key={key}>
-                <label style={{ display: 'block', fontSize: 11, color: 'var(--text-dim)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.8 }}>{label}</label>
+                <label htmlFor={key} style={{ display: 'block', fontSize: 11, color: 'var(--text-dim)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.8 }}>{label}</label>
                 {key === 'beanBrand' || key === 'beanType' ? (
                   <ComboboxInput
                     id={key}

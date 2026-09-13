@@ -92,4 +92,24 @@ describe('ComboboxInput', () => {
     await user.keyboard('{ArrowRight}')
     expect(input).toHaveValue('Starbucks')
   })
+
+  it('does not submit the surrounding form when Enter commits free text with the dropdown open', async () => {
+    const user = userEvent.setup()
+    const handleSubmit = vi.fn((e) => e.preventDefault())
+    render(
+      <form onSubmit={handleSubmit}>
+        <ComboboxInput id="beanBrand" value="" onChange={vi.fn()} suggestions={suggestions} clearLabel="Clear field" />
+      </form>
+    )
+    await user.click(screen.getByRole('combobox'))
+    await user.keyboard('{Enter}')
+    expect(handleSubmit).not.toHaveBeenCalled()
+  })
+
+  it('gives the input wrapper the themed background so the field is not transparent', () => {
+    render(<ComboboxInput id="beanBrand" value="" onChange={vi.fn()} suggestions={suggestions} clearLabel="Clear field" />)
+    const input = screen.getByRole('combobox')
+    const wrapper = input.parentElement!
+    expect(wrapper).toHaveStyle({ background: 'var(--bg-input)' })
+  })
 })

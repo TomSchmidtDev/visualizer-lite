@@ -88,6 +88,7 @@ export default function ComboboxInput({ id, value, onChange, suggestions, clearL
         e.preventDefault()
         selectValue(filtered[highlightedIndex])
       } else {
+        if (isOpen) e.preventDefault()
         setIsOpen(false)
         setHighlightedIndex(-1)
       }
@@ -102,7 +103,7 @@ export default function ComboboxInput({ id, value, onChange, suggestions, clearL
 
   return (
     <div style={{ position: 'relative' }}>
-      <div style={{ position: 'relative' }}>
+      <div style={{ position: 'relative', background: 'var(--bg-input)', borderRadius: 'var(--radius)' }}>
         {ghostTail && (
           <div
             aria-hidden="true"
@@ -110,6 +111,7 @@ export default function ComboboxInput({ id, value, onChange, suggestions, clearL
               position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
               padding: '8px 12px', fontSize: 13, fontFamily: 'var(--font)',
               pointerEvents: 'none', whiteSpace: 'pre', color: 'var(--text-dim)', zIndex: 0,
+              border: '1px solid transparent',
             }}
           >
             <span style={{ visibility: 'hidden' }}>{value}</span>
@@ -156,7 +158,7 @@ export default function ComboboxInput({ id, value, onChange, suggestions, clearL
             position: 'absolute', zIndex: 10, top: '100%', left: 0, right: 0,
             marginTop: 4, maxHeight: 256, overflowY: 'auto',
             background: 'var(--bg-input)', border: '1px solid var(--border-focus)',
-            borderRadius: 'var(--radius)', listStyle: 'none', padding: 4, margin: 0,
+            borderRadius: 'var(--radius)', listStyle: 'none', padding: 4,
           }}
         >
           {filtered.map((item, index) => (
