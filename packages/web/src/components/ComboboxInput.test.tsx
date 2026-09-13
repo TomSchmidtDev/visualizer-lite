@@ -72,4 +72,24 @@ describe('ComboboxInput', () => {
     await user.keyboard('{Escape}')
     expect(input).toHaveValue('Star')
   })
+
+  it('shows an inline ghost suggestion for a matching prefix', () => {
+    render(<ComboboxInput id="beanBrand" value="Star" onChange={vi.fn()} suggestions={suggestions} clearLabel="Clear field" />)
+    expect(screen.getByTestId('ghost-tail')).toHaveTextContent('bucks')
+  })
+
+  it('does not show a ghost suggestion once the value exactly matches a suggestion', () => {
+    render(<ComboboxInput id="beanBrand" value="Starbucks" onChange={vi.fn()} suggestions={suggestions} clearLabel="Clear field" />)
+    expect(screen.queryByTestId('ghost-tail')).not.toBeInTheDocument()
+  })
+
+  it('accepts the ghost suggestion with ArrowRight when the caret is at the end', async () => {
+    const user = userEvent.setup()
+    render(<ControlledHarness initialValue="" suggestions={suggestions} />)
+    const input = screen.getByRole('combobox') as HTMLInputElement
+    await user.click(input)
+    await user.type(input, 'Star')
+    await user.keyboard('{ArrowRight}')
+    expect(input).toHaveValue('Starbucks')
+  })
 })

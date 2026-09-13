@@ -1,3 +1,4 @@
+// packages/web/src/components/ComboboxInput.tsx
 import { useRef, useState, type KeyboardEvent } from 'react'
 
 interface ComboboxInputProps {
@@ -6,6 +7,10 @@ interface ComboboxInputProps {
   onChange: (value: string) => void
   suggestions: string[]
   clearLabel: string
+}
+
+function matchesPrefix(candidate: string, query: string): boolean {
+  return candidate.toLowerCase().startsWith(query.toLowerCase())
 }
 
 function matchesSubstring(candidate: string, query: string): boolean {
@@ -35,6 +40,10 @@ export default function ComboboxInput({ id, value, onChange, suggestions, clearL
   const filtered = value === ''
     ? sortedSuggestions
     : sortedSuggestions.filter((s) => matchesSubstring(s, value))
+  const ghostMatch = value !== ''
+    ? sortedSuggestions.find((s) => matchesPrefix(s, value) && s.toLowerCase() !== value.toLowerCase())
+    : undefined
+  const ghostTail = ghostMatch ? ghostMatch.slice(value.length) : ''
 
   const listboxId = `${id}-listbox`
   const optionId = (index: number) => `${id}-option-${index}`
@@ -47,6 +56,17 @@ export default function ComboboxInput({ id, value, onChange, suggestions, clearL
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'ArrowRight') {
+      const input = inputRef.current
+      const atEnd = !!input && input.selectionStart === value.length && input.selectionEnd === value.length
+      if (atEnd && ghostTail) {
+        e.preventDefault()
+        onChange(value + ghostTail)
+        setIsOpen(true)
+        setHighlightedIndex(-1)
+      }
+      return
+    }
     if (e.key === 'ArrowDown') {
       e.preventDefault()
       if (!isOpen) {
@@ -82,22 +102,37 @@ export default function ComboboxInput({ id, value, onChange, suggestions, clearL
 
   return (
     <div style={{ position: 'relative' }}>
-      <input
-        ref={inputRef}
-        id={id}
-        role="combobox"
-        aria-autocomplete="list"
-        aria-expanded={isOpen}
-        aria-controls={listboxId}
-        aria-activedescendant={highlightedIndex >= 0 ? optionId(highlightedIndex) : undefined}
-        value={value}
-        onChange={(e) => { onChange(e.target.value); setIsOpen(true); setHighlightedIndex(-1) }}
-        onFocus={() => { focusValueRef.current = value; setIsOpen(true); setHighlightedIndex(-1) }}
-        onBlur={() => { setIsOpen(false); setHighlightedIndex(-1) }}
-        onKeyDown={handleKeyDown}
-        autoComplete="off"
-        style={{ paddingRight: value ? 28 : undefined }}
-      />
+      <div style={{ position: 'relative' }}>
+        {ghostTail && (
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
+              padding: '8px 12px', fontSize: 13, fontFamily: 'var(--font)',
+              pointerEvents: 'none', whiteSpace: 'pre', color: 'var(--text-dim)', zIndex: 0,
+            }}
+          >
+            <span style={{ visibility: 'hidden' }}>{value}</span>
+            <span data-testid="ghost-tail">{ghostTail}</span>
+          </div>
+        )}
+        <input
+          ref={inputRef}
+          id={id}
+          role="combobox"
+          aria-autocomplete="both"
+          aria-expanded={isOpen}
+          aria-controls={listboxId}
+          aria-activedescendant={highlightedIndex >= 0 ? optionId(highlightedIndex) : undefined}
+          value={value}
+          onChange={(e) => { onChange(e.target.value); setIsOpen(true); setHighlightedIndex(-1) }}
+          onFocus={() => { focusValueRef.current = value; setIsOpen(true); setHighlightedIndex(-1) }}
+          onBlur={() => { setIsOpen(false); setHighlightedIndex(-1) }}
+          onKeyDown={handleKeyDown}
+          autoComplete="off"
+          style={{ position: 'relative', zIndex: 1, background: 'transparent', paddingRight: value ? 28 : undefined }}
+        />
+      </div>
       {value !== '' && (
         <button
           type="button"
