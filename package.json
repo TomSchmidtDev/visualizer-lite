@@ -1,6 +1,6 @@
 {
   "name": "visualizer-lite",
-  "version": "1.19.1",
+  "version": "1.20.0",
   "private": true,
   "workspaces": [
     "packages/api",
@@ -9,7 +9,7 @@
   "scripts": {
     "dev:api": "npm run dev -w packages/api",
     "build": "npm run build -w packages/api && npm run build -w packages/web",
-    "test": "npm run test -w packages/api",
+    "test": "npm run test -w packages/api && npm run test -w packages/web",
     "check:i18n": "node scripts/check-i18n.mjs",
     "prepare": "husky"
   },

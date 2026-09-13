@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api/client.js'
+import ComboboxInput from '../components/ComboboxInput.js'
 
 export default function ShotEdit() {
   const { id } = useParams<{ id: string }>()
@@ -15,6 +16,12 @@ export default function ShotEdit() {
     queryKey: ['shot', id],
     queryFn: () => api.getShot(id!),
     enabled: !!id,
+  })
+
+  const { data: suggestions } = useQuery({
+    queryKey: ['suggestions'],
+    queryFn: () => api.getSuggestions(),
+    staleTime: 60_000,
   })
 
   const [form, setForm] = useState<Record<string, string>>({})
@@ -44,6 +51,7 @@ export default function ShotEdit() {
       await api.updateShot(id!, data)
       qc.invalidateQueries({ queryKey: ['shot', id] })
       qc.invalidateQueries({ queryKey: ['shots'] })
+      qc.invalidateQueries({ queryKey: ['suggestions'] })
       setSaved(true)
       setTimeout(() => navigate(`/shots/${id}`), 1000)
     } finally {
@@ -93,8 +101,18 @@ export default function ShotEdit() {
             </div>
             {fields.map(({ key, label, type }) => (
               <div key={key}>
-                <label style={{ display: 'block', fontSize: 11, color: 'var(--text-dim)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.8 }}>{label}</label>
-                <input type={type} value={val(key)} onChange={(e) => set(key, e.target.value)} step={type === 'number' ? 'any' : undefined} />
+                <label htmlFor={key} style={{ display: 'block', fontSize: 11, color: 'var(--text-dim)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.8 }}>{label}</label>
+                {key === 'beanBrand' || key === 'beanType' ? (
+                  <ComboboxInput
+                    id={key}
+                    value={val(key)}
+                    onChange={(v) => set(key, v)}
+                    suggestions={key === 'beanBrand' ? (suggestions?.beanBrands ?? []) : (suggestions?.beanTypes ?? [])}
+                    clearLabel={t('edit.clearField')}
+                  />
+                ) : (
+                  <input type={type} value={val(key)} onChange={(e) => set(key, e.target.value)} step={type === 'number' ? 'any' : undefined} />
+                )}
               </div>
             ))}
           </div>

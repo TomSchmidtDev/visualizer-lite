@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.20.0] - 2026-09-13
+
+### Added
+- **Combobox input for the Roaster/Bean fields in Shot Edit**: The "Röster" (`beanBrand`) and "Bohne" (`beanType`) fields on the Edit Shot page now combine free-text entry with an inline suggest-append (browser-address-bar style, accepted with the right arrow key when the caret is at the end of the text) and a substring-filtered, keyboard- and mouse-navigable dropdown of previously used values, sourced from the existing `/api/search/suggestions` endpoint. No backend change was needed; typing an unknown value still saves it as free text exactly as before.
+
 ## [1.19.1] - 2026-09-05
 
 ### Fixed

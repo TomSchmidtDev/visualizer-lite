@@ -103,6 +103,7 @@
     "save": "Speichern",
     "cancel": "Abbrechen",
     "saved": "Gespeichert!",
+    "clearField": "Feld leeren",
     "drinkTds": "TDS (%)",
     "drinkEy": "EY (%)",
     "beverageType": "Getränketyp",
