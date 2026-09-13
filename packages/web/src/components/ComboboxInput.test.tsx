@@ -112,4 +112,30 @@ describe('ComboboxInput', () => {
     const wrapper = input.parentElement!
     expect(wrapper).toHaveStyle({ background: 'var(--bg-input)' })
   })
+
+  it('gives the input wrapper the same unfocused border color as other fields', () => {
+    render(<ComboboxInput id="beanBrand" value="" onChange={vi.fn()} suggestions={suggestions} clearLabel="Clear field" />)
+    const input = screen.getByRole('combobox')
+    const wrapper = input.parentElement!
+    expect(wrapper).toHaveStyle({ border: '1px solid var(--border-focus)' })
+  })
+
+  it('adopts the matched suggestion\'s casing when accepting the ghost suggestion, even if typed in a different case', async () => {
+    const user = userEvent.setup()
+    const caseSuggestions = ['Coffee Circle', 'Onetake Coffee']
+    render(<ControlledHarness initialValue="" suggestions={caseSuggestions} />)
+    const input = screen.getByRole('combobox') as HTMLInputElement
+    await user.click(input)
+    await user.type(input, 'coff')
+    await user.keyboard('{ArrowRight}')
+    expect(input).toHaveValue('Coffee Circle')
+  })
+
+  it('clears the field when the clear button is clicked, and the button stays clickable above the input', async () => {
+    const user = userEvent.setup()
+    render(<ControlledHarness initialValue="Starbucks" suggestions={suggestions} />)
+    const clearButton = screen.getByRole('button', { name: 'Clear field' })
+    await user.click(clearButton)
+    expect(screen.getByRole('combobox')).toHaveValue('')
+  })
 })

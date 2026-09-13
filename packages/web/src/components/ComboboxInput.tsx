@@ -33,6 +33,7 @@ function highlightMatch(text: string, query: string) {
 export default function ComboboxInput({ id, value, onChange, suggestions, clearLabel }: ComboboxInputProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
+  const [isFocused, setIsFocused] = useState(false)
   const focusValueRef = useRef(value)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -59,9 +60,9 @@ export default function ComboboxInput({ id, value, onChange, suggestions, clearL
     if (e.key === 'ArrowRight') {
       const input = inputRef.current
       const atEnd = !!input && input.selectionStart === value.length && input.selectionEnd === value.length
-      if (atEnd && ghostTail) {
+      if (atEnd && ghostMatch && ghostTail) {
         e.preventDefault()
-        onChange(value + ghostTail)
+        onChange(ghostMatch)
         setIsOpen(true)
         setHighlightedIndex(-1)
       }
@@ -103,15 +104,21 @@ export default function ComboboxInput({ id, value, onChange, suggestions, clearL
 
   return (
     <div style={{ position: 'relative' }}>
-      <div style={{ position: 'relative', background: 'var(--bg-input)', borderRadius: 'var(--radius)' }}>
+      <div
+        style={{
+          position: 'relative',
+          background: 'var(--bg-input)',
+          border: `1px solid ${isFocused ? 'var(--accent)' : 'var(--border-focus)'}`,
+          borderRadius: 'var(--radius)',
+        }}
+      >
         {ghostTail && (
           <div
             aria-hidden="true"
             style={{
               position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
               padding: '8px 12px', fontSize: 13, fontFamily: 'var(--font)',
-              pointerEvents: 'none', whiteSpace: 'pre', color: 'var(--text-dim)', zIndex: 0,
-              border: '1px solid transparent',
+              pointerEvents: 'none', whiteSpace: 'pre', color: 'var(--text-dim)',
             }}
           >
             <span style={{ visibility: 'hidden' }}>{value}</span>
@@ -128,11 +135,11 @@ export default function ComboboxInput({ id, value, onChange, suggestions, clearL
           aria-activedescendant={highlightedIndex >= 0 ? optionId(highlightedIndex) : undefined}
           value={value}
           onChange={(e) => { onChange(e.target.value); setIsOpen(true); setHighlightedIndex(-1) }}
-          onFocus={() => { focusValueRef.current = value; setIsOpen(true); setHighlightedIndex(-1) }}
-          onBlur={() => { setIsOpen(false); setHighlightedIndex(-1) }}
+          onFocus={() => { setIsFocused(true); focusValueRef.current = value; setIsOpen(true); setHighlightedIndex(-1) }}
+          onBlur={() => { setIsFocused(false); setIsOpen(false); setHighlightedIndex(-1) }}
           onKeyDown={handleKeyDown}
           autoComplete="off"
-          style={{ position: 'relative', zIndex: 1, background: 'transparent', paddingRight: value ? 28 : undefined }}
+          style={{ position: 'relative', background: 'transparent', border: 'none', outline: 'none', paddingRight: value ? 28 : undefined }}
         />
       </div>
       {value !== '' && (
@@ -142,7 +149,7 @@ export default function ComboboxInput({ id, value, onChange, suggestions, clearL
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => { onChange(''); setIsOpen(true); setHighlightedIndex(-1); inputRef.current?.focus() }}
           style={{
-            position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+            position: 'absolute', zIndex: 2, right: 6, top: '50%', transform: 'translateY(-50%)',
             background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer',
             fontSize: 14, padding: 4, lineHeight: 1,
           }}
