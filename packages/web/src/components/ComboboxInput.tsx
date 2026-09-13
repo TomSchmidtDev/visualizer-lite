@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, type KeyboardEvent } from 'react'
 
 interface ComboboxInputProps {
   id: string
@@ -28,6 +28,7 @@ function highlightMatch(text: string, query: string) {
 export default function ComboboxInput({ id, value, onChange, suggestions, clearLabel }: ComboboxInputProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
+  const focusValueRef = useRef(value)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const sortedSuggestions = [...suggestions].sort((a, b) => a.localeCompare(b))
@@ -45,6 +46,40 @@ export default function ComboboxInput({ id, value, onChange, suggestions, clearL
     inputRef.current?.focus()
   }
 
+  function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      if (!isOpen) {
+        setIsOpen(true)
+        setHighlightedIndex(0)
+        return
+      }
+      setHighlightedIndex((i) => (filtered.length === 0 ? -1 : Math.min(i + 1, filtered.length - 1)))
+      return
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      if (!isOpen) return
+      setHighlightedIndex((i) => Math.max(i - 1, -1))
+      return
+    }
+    if (e.key === 'Enter') {
+      if (isOpen && highlightedIndex >= 0 && filtered[highlightedIndex]) {
+        e.preventDefault()
+        selectValue(filtered[highlightedIndex])
+      } else {
+        setIsOpen(false)
+        setHighlightedIndex(-1)
+      }
+      return
+    }
+    if (e.key === 'Escape') {
+      onChange(focusValueRef.current)
+      setIsOpen(false)
+      setHighlightedIndex(-1)
+    }
+  }
+
   return (
     <div style={{ position: 'relative' }}>
       <input
@@ -57,8 +92,9 @@ export default function ComboboxInput({ id, value, onChange, suggestions, clearL
         aria-activedescendant={highlightedIndex >= 0 ? optionId(highlightedIndex) : undefined}
         value={value}
         onChange={(e) => { onChange(e.target.value); setIsOpen(true); setHighlightedIndex(-1) }}
-        onFocus={() => { setIsOpen(true); setHighlightedIndex(-1) }}
+        onFocus={() => { focusValueRef.current = value; setIsOpen(true); setHighlightedIndex(-1) }}
         onBlur={() => { setIsOpen(false); setHighlightedIndex(-1) }}
+        onKeyDown={handleKeyDown}
         autoComplete="off"
         style={{ paddingRight: value ? 28 : undefined }}
       />
