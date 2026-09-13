@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.20.1] - 2026-09-13
+
+### Fixed
+- **Dependency security patch**: `vitest` (and its transitive `@vitest/mocker`) bumped from 4.1.8 to 4.1.11, fixing GHSA-82fw-gwwq-j7x9 (path traversal / arbitrary file read via `@vitest/mocker` redirect mock). Both are devDependencies used only by the test runner; not present in the production image.
+
 ## [1.20.0] - 2026-09-13
 
 ### Added
