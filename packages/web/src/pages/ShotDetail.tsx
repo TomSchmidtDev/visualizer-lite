@@ -103,8 +103,8 @@ export default function ShotDetail() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <button className="btn btn-secondary" onClick={() => api.downloadShot(id!)}>{t('detail.download')}</button>
-            <button className="btn btn-secondary" onClick={() => navigate(`/?compareWith=${id}`)}>{t('detail.compare')}</button>
+            <button className="btn btn-secondary" data-tour="download" onClick={() => api.downloadShot(id!)}>{t('detail.download')}</button>
+            <button className="btn btn-secondary" data-tour="compare" onClick={() => navigate(`/?compareWith=${id}`)}>{t('detail.compare')}</button>
             <button className="btn btn-secondary" onClick={() => navigate(`/shots/${id}/edit`)}>{t('detail.edit')}</button>
             {confirmDelete ? (
               <>
@@ -124,7 +124,7 @@ export default function ShotDetail() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 20 }}>
         <div>
           {/* Chart */}
-          <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card" data-tour="shot-chart" style={{ marginBottom: 16 }}>
             <div className="card-title">{t('detail.extractionCurves')}</div>
             {shot.shotData
               ? <ShotChart shotData={shot.shotData} tooltipOpacity={settings?.tooltipOpacity} />
@@ -132,7 +132,7 @@ export default function ShotDetail() {
           </div>
 
           {/* Extraction values */}
-          <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card" data-tour="shot-values" style={{ marginBottom: 16 }}>
             <div className="card-title">{t('detail.extractionValues')}</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
               {[
@@ -168,7 +168,7 @@ export default function ShotDetail() {
           </div>
 
           {/* AI Analysis */}
-          <button onClick={() => handleAnalyze(false)} style={{ marginTop: 16, padding: '8px 16px', background: '#6366f1', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', width: '100%' }}>
+          <button data-tour="analyze" onClick={() => handleAnalyze(false)} style={{ marginTop: 16, padding: '8px 16px', background: '#6366f1', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', width: '100%' }}>
             {t('detail.analyzeAI')}
           </button>
 

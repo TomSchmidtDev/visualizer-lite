@@ -98,6 +98,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
         {TABS.map(({ type, label, emoji }) => (
           <button
             key={type}
+            data-tour={`analysis-tab-${type}`}
             onClick={() => setActiveTab(type)}
             style={{
               padding: '8px 14px',
@@ -160,6 +161,7 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
             )}
           </div>
           <button
+            data-tour="analysis-details"
             onClick={() => setDetailsOpen(o => !o)}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: 11, padding: '0 0 0 8px', lineHeight: 1 }}
             title={detailsOpen ? t('detail.aiDetailsHide') : t('detail.aiDetailsShow')}

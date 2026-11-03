@@ -36,6 +36,7 @@ export default function SearchBar({ params, suggestions, onChange }: Props) {
         <div style={{ flex: 1, minWidth: 200, position: 'relative' }}>
           <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', fontSize: 14 }}>🔍</span>
           <input
+            data-tour="search"
             value={params.q ?? ''}
             onChange={(e) => update('q', e.target.value)}
             placeholder={t('shots.search')}
@@ -44,26 +45,26 @@ export default function SearchBar({ params, suggestions, onChange }: Props) {
         </div>
 
         {/* Roaster filter */}
-        <select value={params.beanBrand ?? ''} onChange={(e) => update('beanBrand', e.target.value)} style={{ minWidth: 140 }}>
+        <select data-tour="filter-roaster" value={params.beanBrand ?? ''} onChange={(e) => update('beanBrand', e.target.value)} style={{ minWidth: 140 }}>
           <option value="">{t('shots.allRoasters')}</option>
           {suggestions?.beanBrands.map((b) => <option key={b} value={b}>{b}</option>)}
         </select>
 
         {/* Profile filter */}
-        <select value={params.profileTitle ?? ''} onChange={(e) => update('profileTitle', e.target.value)} style={{ minWidth: 150 }}>
+        <select data-tour="filter-profile" value={params.profileTitle ?? ''} onChange={(e) => update('profileTitle', e.target.value)} style={{ minWidth: 150 }}>
           <option value="">{t('shots.allProfiles')}</option>
           {suggestions?.profileTitles.map((p) => <option key={p} value={p}>{p}</option>)}
         </select>
 
         {/* Grinder filter */}
-        <select value={params.grinderModel ?? ''} onChange={(e) => update('grinderModel', e.target.value)} style={{ minWidth: 130 }}>
+        <select data-tour="filter-grinder" value={params.grinderModel ?? ''} onChange={(e) => update('grinderModel', e.target.value)} style={{ minWidth: 130 }}>
           <option value="">{t('shots.allGrinders')}</option>
           {suggestions?.grinderModels.map((g) => <option key={g} value={g}>{g}</option>)}
         </select>
 
         {/* Beverage filter */}
         {suggestions?.beverageTypes && suggestions.beverageTypes.length > 0 && (
-          <select value={params.beverageType ?? ''} onChange={(e) => update('beverageType', e.target.value)} style={{ minWidth: 120 }}>
+          <select data-tour="filter-beverage" value={params.beverageType ?? ''} onChange={(e) => update('beverageType', e.target.value)} style={{ minWidth: 120 }}>
             <option value="">{t('shots.allBeverages')}</option>
             {suggestions.beverageTypes.map((v) => (
               <option key={v} value={v}>{beverageLabel(v)}</option>

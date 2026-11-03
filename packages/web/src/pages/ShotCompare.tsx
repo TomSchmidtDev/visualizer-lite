@@ -120,13 +120,14 @@ export default function ShotCompare() {
       </div>
 
       {/* Extraction curves */}
-      <div className="card" style={{ marginBottom: 16 }}>
+      <div className="card" data-tour="compare-chart" style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <div className="card-title" style={{ margin: 0 }}>{t('detail.extractionCurves')}</div>
           <div style={{ display: 'flex', gap: 4 }}>
             {(['overlaid', 'split'] as const).map((mode) => (
               <button
                 key={mode}
+                data-tour={`compare-mode-${mode}`}
                 className={`btn ${chartMode === mode ? 'btn-primary' : 'btn-secondary'}`}
                 style={{ fontSize: 12, padding: '3px 10px' }}
                 onClick={() => setChartMode(mode)}

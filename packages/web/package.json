@@ -7,7 +7,12 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "dev:tour": "vite -c tour/vite.config.ts",
+    "build:tour": "tsc -p tour/tsconfig.json && vite build -c tour/vite.config.ts",
+    "preview:tour": "vite preview -c tour/vite.config.ts",
+    "record:tour": "tsx tour/scripts/record.ts",
+    "export:tour-data": "tsx tour/scripts/export-demo-data.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.100.14",
@@ -26,6 +31,7 @@
     "@types/react-dom": "^19.1.5",
     "@vitejs/plugin-react": "^4.7.0",
     "jsdom": "^26.1.0",
+    "playwright": "1.64.1",
     "typescript": "^5.9.3",
     "vite": "^7.3.6",
     "vitest": "^4.1.11"

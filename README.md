@@ -2,6 +2,12 @@
 
 Self-hosted espresso shot manager for the [Decent Espresso DE1](https://decentespresso.com/). Track every shot, analyse extraction curves, compare profiles, and discover patterns across your entire brewing history — stored locally, owned entirely by you.
 
+## See it in action
+
+**▶ [Take the live tour](https://tomschmidtdev.github.io/visualizer-lite/?lang=en)** — a 4½-minute self-running walkthrough of the real app, right in your browser. No install, no backend: it runs entirely client-side with anonymized demo shots.
+
+<!-- TOUR_VIDEO: drag visualizer-lite-tour-en.mp4 onto this line in the GitHub web editor (see packages/web/tour/README.md) -->
+
 ---
 
 ## Why Visualizer Lite?
