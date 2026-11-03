@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.21.2] - 2026-11-03
+
+### Security
+- Forced patched `glob` (14.0.3) and `minimatch` (11.0.4) via npm `overrides`, since `@fastify/static` and `archiver` still pin vulnerable major versions (AbortSignal cancellation bypass in glob, globparts amplification DoS in minimatch). Also drops the old `brace-expansion` 2.x line.
+
 ## [1.21.1] - 2026-11-03
 
 ### Security
@@ -12,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bumped transitive `fast-jwt` to 6.3.6 (algorithm confusion / HS256 forgery, unsigned-JWT acceptance, claim-validator and expiry bypasses).
 - Bumped transitive `@fastify/busboy` to 3.2.4 (multipart DoS, CRLF injection), `fast-uri` to 3.1.9 / 4.2.3 (host/scheme confusion), `brace-expansion` to 2.1.7 / 5.0.12 (ReDoS/stack exhaustion) and `nanoid` to 3.3.20.
 - Dev tooling: `vite` 7.3.7, `vitest` 4.1.12 (`@vitest/mocker`), `source-map-js` 1.2.2.
-- Not yet fixed (requires major upgrades of `@fastify/static`, `archiver`, `prisma`): `glob`, `minimatch`, `deepmerge-ts`.
+- Not yet fixed (requires a major upgrade of `prisma`): `deepmerge-ts`. `glob`/`minimatch` fixed in 1.21.2.
 
 ## [1.21.0] - 2026-11-03
 

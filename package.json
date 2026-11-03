@@ -1,6 +1,6 @@
 {
   "name": "visualizer-lite",
-  "version": "1.21.1",
+  "version": "1.21.2",
   "private": true,
   "workspaces": [
     "packages/api",
@@ -15,5 +15,9 @@
   },
   "devDependencies": {
     "husky": "^9.1.7"
+  },
+  "overrides": {
+    "glob": "^14.0.2",
+    "minimatch": "^11.0.1"
   }
 }
