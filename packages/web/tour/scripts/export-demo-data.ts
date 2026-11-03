@@ -2,7 +2,9 @@
 // anonymizes them and writes tour/data/demo.json for the demo tour.
 //
 //   npm run export:tour-data -w packages/web -- --db <visualizer.db> \
-//     [--include id1:en,id2:de] [--count 40] [--import-batch 8] [--out tour/data/demo.json]
+//     [--include id1:en,id2:de] [--count 40] [--since-days 365] [--import-batch 8] [--out tour/data/demo.json]
+//
+// --since-days spreads the selection evenly over that period (more roasters/beans than just the newest shots).
 //
 // Review the printed summary and the JSON before committing it.
 import { DatabaseSync } from 'node:sqlite'
@@ -29,6 +31,16 @@ export function guessLang(texts: string[]): 'en' | 'de' {
   return de > en ? 'de' : 'en'
 }
 
+const EXCLUDED_BEVERAGES = new Set(['cleaning'])
+
+/** Evenly samples `count` rows (sorted newest first), skipping non-drink shots such as cleaning cycles. */
+export function selectSpread<T extends { beverageType?: unknown }>(rowsNewestFirst: T[], count: number): T[] {
+  const eligible = rowsNewestFirst.filter((r) => !EXCLUDED_BEVERAGES.has(String(r.beverageType ?? '')))
+  if (eligible.length <= count) return eligible
+  const step = eligible.length / count
+  return Array.from({ length: count }, (_, i) => eligible[Math.floor(i * step)])
+}
+
 function parseArgs(argv: string[]) {
   const args: Record<string, string> = {}
   for (let i = 0; i < argv.length; i++) {
@@ -43,6 +55,7 @@ function parseArgs(argv: string[]) {
     db: resolve(args.db),
     include,
     count: parseInt(args.count ?? '40', 10),
+    sinceDays: args['since-days'] ? parseInt(args['since-days'], 10) : null,
     importBatch: parseInt(args['import-batch'] ?? '8', 10),
     out: resolve(args.out ?? 'tour/data/demo.json'),
   }
@@ -105,8 +118,10 @@ function main() {
   const missing = includeIds.filter((id) => !included.some((r) => r.id === id))
   if (missing.length) throw new Error(`--include ids not found: ${missing.join(', ')}`)
 
-  const recent = db.prepare('SELECT * FROM Shot ORDER BY startTime DESC LIMIT ?').all(opts.count) as Row[]
-  const rows = [...included, ...recent.filter((r) => !includeIds.includes(String(r.id)))].slice(0, Math.max(opts.count, included.length))
+  const recent = opts.sinceDays
+    ? selectSpread(db.prepare('SELECT * FROM Shot WHERE startTime >= ? ORDER BY startTime DESC').all(Date.now() - opts.sinceDays * DAY) as Row[], opts.count)
+    : selectSpread(db.prepare('SELECT * FROM Shot ORDER BY startTime DESC LIMIT ?').all(opts.count * 2) as Row[], opts.count)
+  const rows = [...included, ...recent.filter((r) => !includeIds.includes(String(r.id)))]
 
   const timeShiftMs = Math.round((7 + Math.random() * 14) * DAY + Math.random() * 3_600_000)
   const idMap = new Map<string, string>()

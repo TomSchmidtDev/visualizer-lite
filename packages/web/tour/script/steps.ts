@@ -26,7 +26,8 @@ export interface Featured {
 
 export function pickFeatured(ds: DemoDataset, lang: TourLang): Featured {
   const byTime = [...ds.shots].sort((a, b) => Date.parse(b.startTime) - Date.parse(a.startTime))
-  const candidates = Object.keys(ds.analyses).filter((id) => ds.shots.some((s) => s.id === id) && !ds.importBatchIds.includes(id))
+  // Newest analysed shots first, so the most recent (usually best) analysis is featured.
+  const candidates = byTime.map((s) => s.id).filter((id) => ds.analyses[id] && !ds.importBatchIds.includes(id))
   const analysisId = candidates.find((id) => ds.analysisLang?.[id] === lang) ?? candidates[0] ?? byTime[0].id
   const main = ds.shots.find((s) => s.id === analysisId) as DemoShot
   const others = byTime.filter((s) => s.id !== analysisId)

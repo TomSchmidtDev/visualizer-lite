@@ -73,6 +73,15 @@ describe('buildSteps', () => {
     expect(buildSteps(d, 'en').featured.analysisId).toBe(first)
   })
 
+  it('picks the newest analysed shot in the tour language', () => {
+    const d = makeDataset(24, 4)
+    const older = d.shots[12].id, newer = d.shots[8].id
+    const a = Object.values(d.analyses)[0]
+    d.analyses = { [older]: { ...a, shotId: older }, [newer]: { ...a, shotId: newer } }
+    d.analysisLang = { [older]: 'de', [newer]: 'de' }
+    expect(buildSteps(d, 'de').featured.analysisId).toBe(newer)
+  })
+
   for (const [lang, strings] of [['en', en], ['de', de]] as const) {
     it(`estimated total (${lang}) is between 4 and 5 minutes`, () => {
       const runner = new TourRunner(steps, {
