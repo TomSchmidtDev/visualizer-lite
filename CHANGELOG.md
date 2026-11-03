@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.21.0] - 2026-11-03
+
+### Added
+- **Interactive demo tour (EN/DE)**: A self-running, ~4½-minute guided tour of the real Visualizer Lite UI, published on GitHub Pages at https://tomschmidtdev.github.io/visualizer-lite/ and linked from both READMEs. It walks through the DE1 import, shot list, filters, shot detail, shot comparison (overlaid and split), AI analysis, statistics and settings, with an animated cursor, a pulsing highlight and auto-advancing captions; visitors can pause, step back/forward, or explore the demo freely afterwards. It runs entirely in the browser: a fetch shim answers all `/api/` requests from an in-memory store of anonymized demo shots (statistics are computed with the same rules as the backend), and buttons that would trigger real downloads show a "disabled in the demo" notice. The tour lives in `packages/web/tour/` as a separate Vite build and is not part of the Docker image.
+- **Demo data export**: `npm run export:tour-data -w packages/web` reads a Visualizer Lite database, selects shots and anonymizes them for the tour (barista replaced, private notes dropped, notes replaced by neutral samples, tags removed, timestamps shifted; curves, recipe, scores and roaster/bean names kept).
+- **Tour video recording**: `npm run record:tour -w packages/web` records the tour per language with Playwright and encodes upload-ready MP4s (H.264, 720p) via ffmpeg.
+- **GitHub Pages workflow** (`.github/workflows/tour-pages.yml`) that builds and deploys the tour on every push to `main` touching `packages/web/`.
+
+### Changed
+- `App.tsx` now exports its route tree as `AppRoutes` (used by the tour); `data-tour` attributes added to interactive elements so the tour can target them. No behaviour change in the app.
+
 ## [1.20.1] - 2026-09-13
 
 ### Fixed

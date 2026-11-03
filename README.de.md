@@ -2,6 +2,12 @@
 
 Selbst gehostete Espresso-Shot-Verwaltung für die [Decent Espresso DE1](https://decentespresso.com/). Jeden Shot erfassen, Extraktionskurven analysieren, Profile vergleichen und Muster über die gesamte Brühhistorie entdecken — lokal gespeichert, vollständig in deiner Hand.
 
+## So sieht's aus
+
+**▶ [Zur Live-Tour](https://tomschmidtdev.github.io/visualizer-lite/?lang=de)** — eine 4½-minütige, selbstlaufende Vorführung der echten App, direkt im Browser. Keine Installation, kein Backend: Sie läuft komplett im Browser mit anonymisierten Demo-Shots.
+
+<!-- TOUR_VIDEO: visualizer-lite-tour-de.mp4 im GitHub-Web-Editor auf diese Zeile ziehen (siehe packages/web/tour/README.md) -->
+
 ---
 
 ## Warum Visualizer Lite?
