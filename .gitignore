@@ -14,3 +14,5 @@ packages/api/prisma/migrations/*/migration_lock.toml
 /.idea/
 *.tar
 *.tar.gz
+packages/web/dist-tour/
+packages/web/tour/out/

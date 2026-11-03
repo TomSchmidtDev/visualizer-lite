@@ -7,7 +7,12 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "dev:tour": "vite -c tour/vite.config.ts",
+    "build:tour": "tsc -p tour/tsconfig.json && vite build -c tour/vite.config.ts",
+    "preview:tour": "vite preview -c tour/vite.config.ts",
+    "record:tour": "tsx tour/scripts/record.ts",
+    "export:tour-data": "tsx tour/scripts/export-demo-data.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.100.14",
