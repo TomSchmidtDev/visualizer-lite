@@ -21,6 +21,8 @@ export class TourRunner {
   private state: RunnerState
   private controller: AbortController | null = null
   private ticker: ReturnType<typeof setInterval> | undefined
+  /** Location when the tour was paused; used to detect that the visitor navigated away. */
+  private pausedAt: string | null = null
   private readonly introMs: number
 
   constructor(private readonly steps: Step[], private readonly deps: RunnerDeps) {
@@ -40,12 +42,19 @@ export class TourRunner {
   pause(): void {
     if (this.state.phase !== 'step' || this.state.paused) return
     this.cancel()
+    this.pausedAt = this.deps.getLocation()
     this.emit({ paused: true })
   }
 
   play(): void {
     if (this.state.phase !== 'step') return
-    void this.runStep(this.state.stepIndex)
+    const moved = this.pausedAt != null && this.deps.getLocation() !== this.pausedAt
+    this.pausedAt = null
+    // Steps without a route rely on page state from earlier steps (open panel, connected machine, filters).
+    // If the visitor navigated away, resume from the nearest step that sets up its own page.
+    let i = this.state.stepIndex
+    if (moved) while (i > 0 && !this.steps[i].route) i--
+    void this.runStep(i)
   }
 
   next(): void {
@@ -115,7 +124,7 @@ export class TourRunner {
       let found = true
       if (step.target) {
         found = (await ctx.waitFor(step.target)) != null
-        if (found) this.emit({ target: step.target })
+        if (found) { await ctx.reveal(step.target); this.emit({ target: step.target }) }
         else console.warn(`[tour] target not found, skipping action: ${step.id} → ${step.target}`)
       }
       if (found && step.action) await step.action(ctx)

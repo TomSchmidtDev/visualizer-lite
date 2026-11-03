@@ -19,6 +19,8 @@ export interface TourContext {
   type(selector: string, text: string): Promise<void>
   hover(selector: string, xFrac: number, yFrac?: number): Promise<void>
   scrollTo(selector: string): Promise<void>
+  /** Scrolls the element into view only if it is (partly) outside the viewport. */
+  reveal(selector: string): Promise<void>
   waitFor(selector: string, timeoutMs?: number): Promise<Element | null>
   wait(ms: number): Promise<void>
   signal: AbortSignal

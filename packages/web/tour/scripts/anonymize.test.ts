@@ -46,6 +46,10 @@ describe('anonymizeAnalysis', () => {
   const a = anonymizeAnalysis(original, 'new-shot', ctx.timeShiftMs)
 
   it('drops contextSummary', () => expect(a.contextSummary).toBeNull())
+  it('drops the unused analyst text (never reviewed, may quote private notes)', () => {
+    const b = anonymizeAnalysis({ ...original, analyst: ['quotes a private note'] }, 'new-shot', 0)
+    expect(b.analyst).toEqual([])
+  })
   it('points to new shot id', () => expect(a.shotId).toBe('new-shot'))
   it('regenerates id', () => expect(a.id).not.toBe(original.id))
   it('keeps barista and roaster text', () => {

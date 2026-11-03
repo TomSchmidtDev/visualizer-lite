@@ -11,11 +11,13 @@ function harness(steps: Step[], opts: { recordMode?: boolean; missing?: string[]
   let location = opts.location ?? '/'
   const navigate = vi.fn(async (p: string) => { location = p })
   const signals: AbortSignal[] = []
+  const revealed: string[] = []
   const createContext = (signal: AbortSignal): TourContext => {
     signals.push(signal)
     return {
       navigate,
       click: async () => {}, select: async () => {}, type: async () => {}, hover: async () => {}, scrollTo: async () => {},
+      reveal: async (sel: string) => { revealed.push(sel) },
       waitFor: async (sel) => (opts.missing?.includes(sel) ? null : document.body),
       wait: (ms) => delay(ms, signal),
       signal,
@@ -30,7 +32,7 @@ function harness(steps: Step[], opts: { recordMode?: boolean; missing?: string[]
     introMs: INTRO,
   })
   const last = () => states[states.length - 1]
-  return { runner, states, last, navigate, signals, setLocation: (l: string) => { location = l } }
+  return { runner, states, last, navigate, signals, revealed, setLocation: (l: string) => { location = l } }
 }
 
 describe('TourRunner', () => {
@@ -81,6 +83,35 @@ describe('TourRunner', () => {
     h.runner.play()
     await vi.advanceTimersByTimeAsync(50)
     expect(h.navigate).toHaveBeenCalledWith('/stats')
+  })
+
+  it('after the visitor navigated away, play restarts from the nearest step with a route', async () => {
+    const h = harness([{ id: 'a', route: '/settings' }, { id: 'b' }, { id: 'c' }], { location: '/settings' })
+    h.runner.start()
+    await vi.advanceTimersByTimeAsync(INTRO + 3600)
+    expect(h.last().stepId).toBe('b')
+    h.runner.pause()
+    h.setLocation('/stats')
+    h.runner.play()
+    await vi.advanceTimersByTimeAsync(50)
+    expect(h.last().stepId).toBe('a')
+    expect(h.navigate).toHaveBeenCalledWith('/settings')
+  })
+
+  it('play without navigation resumes the same step', async () => {
+    const h = harness([{ id: 'a', route: '/settings' }, { id: 'b' }], { location: '/settings' })
+    h.runner.start()
+    await vi.advanceTimersByTimeAsync(INTRO + 3600)
+    h.runner.pause()
+    h.runner.play()
+    expect(h.last().stepId).toBe('b')
+  })
+
+  it('reveals the target once it is found', async () => {
+    const h = harness([{ id: 'a', target: '#t' }])
+    h.runner.start()
+    await vi.advanceTimersByTimeAsync(INTRO + 50)
+    expect(h.revealed).toContain('#t')
   })
 
   it('skips the action when the target never appears, but still advances', async () => {

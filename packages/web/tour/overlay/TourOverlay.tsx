@@ -23,7 +23,9 @@ function bubblePlacement(r: Rect, pref: Placement = 'auto') {
   const fitsAbove = r.y - PAD - 14 - BUBBLE_H > 16
   const below = pref === 'above' ? !fitsAbove : pref === 'below' ? true : fitsBelow
   const left = Math.min(Math.max(16, r.x), Math.max(16, vw - BUBBLE_W - 16))
-  const top = below ? r.y + r.height + PAD + 14 : Math.max(16, r.y - PAD - 14 - BUBBLE_H)
+  const raw = below ? r.y + r.height + PAD + 14 : r.y - PAD - 14 - BUBBLE_H
+  // Never let the caption leave the viewport, even if the target is (still) off-screen.
+  const top = Math.min(Math.max(16, raw), Math.max(16, vh - BUBBLE_H - 16))
   const arrowX = Math.min(Math.max(20, r.x + r.width / 2 - left), BUBBLE_W - 28)
   return { left, top, below, arrowX }
 }

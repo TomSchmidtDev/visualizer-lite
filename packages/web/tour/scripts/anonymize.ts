@@ -47,6 +47,8 @@ export function anonymizeAnalysis(a: AnalysisResponse, newShotId: string, timeSh
     id: `demo-analysis-${newShotId}`,
     shotId: newShotId,
     contextSummary: null,
+    // Not shown by the app any more and never printed for review; old rows may quote private notes.
+    analyst: [],
     createdAt: shiftIso(a.createdAt, timeShiftMs),
     cachedAt: a.cachedAt ? shiftIso(a.cachedAt, timeShiftMs) : undefined,
   }

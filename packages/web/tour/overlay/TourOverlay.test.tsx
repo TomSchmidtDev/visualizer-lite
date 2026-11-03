@@ -39,6 +39,12 @@ describe('TourOverlay', () => {
     expect(container.querySelector('.tour-bubble')!.classList.contains('below')).toBe(true)
   })
 
+  it('keeps the bubble inside the viewport when the target is below the fold', () => {
+    const { container } = renderOverlay({ targetRect: { x: 100, y: window.innerHeight + 400, width: 150, height: 30 } })
+    const top = parseFloat((container.querySelector('.tour-bubble') as HTMLElement).style.top)
+    expect(top).toBeLessThanOrEqual(window.innerHeight - 150 - 16)
+  })
+
   it('centres the bubble when there is no target', () => {
     const { container } = renderOverlay({ targetRect: null })
     expect(container.querySelector('.tour-ring')).toBeNull()

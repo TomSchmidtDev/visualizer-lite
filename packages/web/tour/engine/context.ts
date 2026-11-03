@@ -79,6 +79,15 @@ export function createDomContext(signal: AbortSignal, deps: DomContextDeps): Tou
       setCursor({ x: p.x, y: p.y })
       await wait(MOVE_MS)
     },
+    async reveal(selector) {
+      const el = document.querySelector(selector) as HTMLElement | null
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      if (r.top < 60 || r.bottom > window.innerHeight - 60) {
+        el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+        await wait(SCROLL_MS)
+      }
+    },
     async scrollTo(selector) {
       const el = (await waitFor(selector, 5000, signal)) as HTMLElement | null
       el?.scrollIntoView({ block: 'center', behavior: 'smooth' })
