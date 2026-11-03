@@ -6,6 +6,8 @@ export interface Step {
   /** CSS selector for ring + bubble anchor. */
   target?: string
   action?: (ctx: TourContext) => Promise<void>
+  /** Preferred side of the speech bubble, default auto (below if it fits). */
+  placement?: 'auto' | 'above' | 'below'
   /** Extra time after the action, default 0. */
   holdMs?: number
 }
@@ -31,4 +33,5 @@ export interface RunnerState {
   target: string | null
   progress: number
   paused: boolean
+  placement?: 'auto' | 'above' | 'below'
 }

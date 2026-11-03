@@ -1,4 +1,5 @@
 import type { TourStrings } from './types.js'
+import { captionsEn } from './captions.en.js'
 
 export const en: TourStrings = {
   notices: {
@@ -19,5 +20,5 @@ export const en: TourStrings = {
     install: 'docker run -d -p 3000:3000 -v ./data:/data -e VL_SESSION_SECRET="$(openssl rand -base64 48)" -e VL_PASSWORD=change-me ghcr.io/tomschmidtdev/visualizer-lite:latest',
     repo: 'View on GitHub',
   },
-  captions: {},
+  captions: captionsEn,
 }

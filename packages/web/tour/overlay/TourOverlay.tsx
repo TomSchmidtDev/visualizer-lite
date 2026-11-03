@@ -1,7 +1,7 @@
 // Visual layer of the tour: gold ring, speech bubble with auto-advance progress,
 // fake cursor, intro/outro cards, control bar and toast. Purely presentational.
 import type { TourStrings } from '../i18n/types.js'
-import type { Control, OverlayState, Rect } from './types.js'
+import type { Control, OverlayState, Placement, Rect } from './types.js'
 import './overlay.css'
 
 const REPO_URL = 'https://github.com/TomSchmidtDev/visualizer-lite'
@@ -16,10 +16,12 @@ export interface TourOverlayProps {
   onControl: (c: Control) => void
 }
 
-function bubblePlacement(r: Rect) {
+function bubblePlacement(r: Rect, pref: Placement = 'auto') {
   const vw = typeof window !== 'undefined' ? window.innerWidth : 1280
   const vh = typeof window !== 'undefined' ? window.innerHeight : 720
-  const below = r.y + r.height + PAD + 14 + BUBBLE_H < vh
+  const fitsBelow = r.y + r.height + PAD + 14 + BUBBLE_H < vh
+  const fitsAbove = r.y - PAD - 14 - BUBBLE_H > 16
+  const below = pref === 'above' ? !fitsAbove : pref === 'below' ? true : fitsBelow
   const left = Math.min(Math.max(16, r.x), Math.max(16, vw - BUBBLE_W - 16))
   const top = below ? r.y + r.height + PAD + 14 : Math.max(16, r.y - PAD - 14 - BUBBLE_H)
   const arrowX = Math.min(Math.max(20, r.x + r.width / 2 - left), BUBBLE_W - 28)
@@ -84,7 +86,7 @@ export function TourOverlay({ state, strings, recordMode, onControl }: TourOverl
     )
   }
 
-  const place = targetRect ? bubblePlacement(targetRect) : null
+  const place = targetRect ? bubblePlacement(targetRect, state.placement) : null
   const stepLabel = strings.ui.step.replace('{n}', String(state.stepIndex + 1)).replace('{total}', String(state.stepCount))
 
   return (

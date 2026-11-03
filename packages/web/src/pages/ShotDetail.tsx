@@ -132,7 +132,7 @@ export default function ShotDetail() {
           </div>
 
           {/* Extraction values */}
-          <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card" data-tour="shot-values" style={{ marginBottom: 16 }}>
             <div className="card-title">{t('detail.extractionValues')}</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
               {[

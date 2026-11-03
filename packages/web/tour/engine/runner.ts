@@ -102,7 +102,7 @@ export class TourRunner {
     const step = this.steps[index]
     const signal = this.newSignal()
     const ctx = this.deps.createContext(signal)
-    this.emit({ phase: 'step', stepIndex: index, stepId: step.id, target: null, progress: 0, paused: false })
+    this.emit({ phase: 'step', stepIndex: index, stepId: step.id, target: null, progress: 0, paused: false, placement: step.placement ?? 'auto' })
 
     const minMs = this.stepDurationMs({ ...step, holdMs: 0 })
     const start = Date.now()

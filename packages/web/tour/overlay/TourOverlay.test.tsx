@@ -27,6 +27,18 @@ describe('TourOverlay', () => {
     expect(ring.style.width).toBe('162px')
   })
 
+  it('places the bubble above the target when placement is above and there is room', () => {
+    const { container } = renderOverlay({ targetRect: { x: 100, y: 400, width: 150, height: 30 }, placement: 'above' })
+    const bubble = container.querySelector('.tour-bubble') as HTMLElement
+    expect(bubble.classList.contains('above')).toBe(true)
+    expect(parseFloat(bubble.style.top)).toBeLessThan(400)
+  })
+
+  it('falls back to below when there is no room above', () => {
+    const { container } = renderOverlay({ targetRect: { x: 100, y: 60, width: 150, height: 30 }, placement: 'above' })
+    expect(container.querySelector('.tour-bubble')!.classList.contains('below')).toBe(true)
+  })
+
   it('centres the bubble when there is no target', () => {
     const { container } = renderOverlay({ targetRect: null })
     expect(container.querySelector('.tour-ring')).toBeNull()
