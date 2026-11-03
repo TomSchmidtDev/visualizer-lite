@@ -16,30 +16,31 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return loggedIn ? <>{children}</> : <Navigate to="/login" replace />
 }
 
-export default function App() {
+/** The app's route tree. Mounted under a router by `App` (and by the demo tour). */
+export function AppRoutes({ requireLogin = true }: { requireLogin?: boolean }) {
   const { theme, toggleTheme } = useTheme()
+  const layout = <Layout theme={theme} onToggleTheme={toggleTheme} />
 
   return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="/" element={requireLogin ? <ProtectedRoute>{layout}</ProtectedRoute> : layout}>
+        <Route index element={<ShotList />} />
+        <Route path="shots/:id" element={<ShotDetail />} />
+        <Route path="shots/:id/edit" element={<ShotEdit />} />
+        <Route path="compare" element={<ShotCompare />} />
+        <Route path="upload" element={<Upload />} />
+        <Route path="settings" element={<Settings />} />
+        <Route path="stats" element={<Stats />} />
+      </Route>
+    </Routes>
+  )
+}
+
+export default function App() {
+  return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Layout theme={theme} onToggleTheme={toggleTheme} />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<ShotList />} />
-          <Route path="shots/:id" element={<ShotDetail />} />
-          <Route path="shots/:id/edit" element={<ShotEdit />} />
-          <Route path="compare" element={<ShotCompare />} />
-          <Route path="upload" element={<Upload />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="stats" element={<Stats />} />
-        </Route>
-      </Routes>
+      <AppRoutes />
     </BrowserRouter>
   )
 }

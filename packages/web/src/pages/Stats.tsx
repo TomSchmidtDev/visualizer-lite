@@ -391,15 +391,15 @@ export default function StatsPage() {
 
       {/* Tab bar */}
       <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: 24 }}>
-        <button style={tabStyle(activeTab === 'dashboard')} onClick={() => setActiveTab('dashboard')}>{t('stats.tabDashboard')}</button>
-        <button style={tabStyle(activeTab === 'roasters')} onClick={() => setActiveTab('roasters')}>{t('stats.tabRoasters')}</button>
-        <button style={tabStyle(activeTab === 'profiles')} onClick={() => setActiveTab('profiles')}>{t('stats.tabProfiles')}</button>
+        <button data-tour="stats-tab-dashboard" style={tabStyle(activeTab === 'dashboard')} onClick={() => setActiveTab('dashboard')}>{t('stats.tabDashboard')}</button>
+        <button data-tour="stats-tab-roasters" style={tabStyle(activeTab === 'roasters')} onClick={() => setActiveTab('roasters')}>{t('stats.tabRoasters')}</button>
+        <button data-tour="stats-tab-profiles" style={tabStyle(activeTab === 'profiles')} onClick={() => setActiveTab('profiles')}>{t('stats.tabProfiles')}</button>
       </div>
 
       {/* Beverage toggle */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 10, alignItems: 'center' }}>
         {BEVERAGES.map(b => (
-          <button key={b} style={toggleStyle(beverage === b)} onClick={() => setBeverage(b)}>
+          <button key={b} data-tour={`stats-beverage-${b}`} style={toggleStyle(beverage === b)} onClick={() => setBeverage(b)}>
             {t(`stats.beverage${b.charAt(0).toUpperCase() + b.slice(1)}`)}
           </button>
         ))}
@@ -408,7 +408,7 @@ export default function StatsPage() {
       {/* Period toggle */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 24, alignItems: 'center', flexWrap: 'wrap' }}>
         {PERIODS.map(p => (
-          <button key={p} style={toggleStyle(period === p)} onClick={() => setPeriod(p)}>
+          <button key={p} data-tour={`stats-period-${p}`} style={toggleStyle(period === p)} onClick={() => setPeriod(p)}>
             {t(`stats.period${p}`)}
           </button>
         ))}

@@ -227,6 +227,7 @@ export default function Settings() {
         ] as { id: Tab; icon: string; label: string }[]).map(({ id, icon, label }) => (
           <button
             key={id}
+            data-tour={`settings-tab-${id}`}
             role="tab"
             aria-selected={tab === id}
             onClick={() => handleTabChange(id)}
@@ -261,6 +262,7 @@ export default function Settings() {
           {['dark', 'light'].map((th) => (
             <button
               key={th}
+              data-tour={`theme-${th}`}
               className={`btn ${settings?.theme === th ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => handleTheme(th)}
             >
@@ -412,7 +414,7 @@ export default function Settings() {
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="card-title">{t('settings.export')}</div>
         <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 14 }}>{t('settings.exportDesc')}</p>
-        <button className="btn btn-secondary" onClick={() => api.exportAll()}>
+        <button className="btn btn-secondary" data-tour="export" onClick={() => api.exportAll()}>
           {'⬇'} {t('settings.exportButton')}
         </button>
       </div>
@@ -428,6 +430,7 @@ export default function Settings() {
           </label>
           <div style={{ display: 'flex', gap: 8 }}>
             <input
+              data-tour="de1-url"
               type="url"
               value={de1Url}
               onChange={(e) => setDe1Url(e.target.value)}
@@ -436,6 +439,7 @@ export default function Settings() {
               style={{ flex: 1 }}
             />
             <button
+              data-tour="de1-connect"
               className="btn btn-secondary"
               onClick={handleDe1Connect}
               disabled={!de1Url.trim() || de1Phase.name === 'testing'}
@@ -490,6 +494,7 @@ export default function Settings() {
                   {t('settings.de1DateFrom')}
                 </label>
                 <input
+                  data-tour="de1-date-from"
                   type="date"
                   value={dateFrom}
                   onChange={(e) => {
@@ -503,6 +508,7 @@ export default function Settings() {
                   {t('settings.de1DateTo')}
                 </label>
                 <input
+                  data-tour="de1-date-to"
                   type="date"
                   value={dateTo}
                   onChange={(e) => {
@@ -526,6 +532,7 @@ export default function Settings() {
 
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <button
+                data-tour="de1-preview"
                 className="btn btn-secondary"
                 onClick={handleDe1Preview}
                 disabled={de1Phase.name === 'previewing' || de1Phase.name === 'importing'}
@@ -535,6 +542,7 @@ export default function Settings() {
 
               {(de1Phase.name === 'previewed' || de1Phase.name === 'importing') && (
                 <button
+                  data-tour="de1-import"
                   className="btn btn-primary"
                   onClick={handleDe1Import}
                   disabled={de1Phase.name === 'importing'}

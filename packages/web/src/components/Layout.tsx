@@ -45,13 +45,13 @@ export default function Layout({ theme, onToggleTheme }: Props) {
               Visualizer Lite
             </span>
           </div>
-          <NavLink to="/" style={({ isActive }: NavLinkRenderProps) => ({
+          <NavLink to="/" data-tour="nav-shots" style={({ isActive }: NavLinkRenderProps) => ({
             fontSize: 13, color: isActive ? 'var(--accent)' : 'var(--text-muted)',
             fontWeight: isActive ? 600 : 400,
           })}>
             {t('nav.shots')}
           </NavLink>
-          <NavLink to="/stats" style={({ isActive }: NavLinkRenderProps) => ({
+          <NavLink to="/stats" data-tour="nav-stats" style={({ isActive }: NavLinkRenderProps) => ({
             fontSize: 13, color: isActive ? 'var(--accent)' : 'var(--text-muted)',
             fontWeight: isActive ? 600 : 400,
             textDecoration: 'none',
@@ -67,6 +67,7 @@ export default function Layout({ theme, onToggleTheme }: Props) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button
+            data-tour="theme-toggle"
             onClick={onToggleTheme}
             style={{
               background: 'var(--bg-input)',
@@ -79,10 +80,10 @@ export default function Layout({ theme, onToggleTheme }: Props) {
           >
             {theme === 'dark' ? `🌙 ${t('settings.dark')}` : `☀️ ${t('settings.light')}`}
           </button>
-          <NavLink to="/settings" style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+          <NavLink to="/settings" data-tour="nav-settings" style={{ fontSize: 13, color: 'var(--text-muted)' }}>
             {t('nav.settings')}
           </NavLink>
-          <button onClick={handleLogout} className="btn btn-secondary" style={{ fontSize: 12 }}>
+          <button data-tour="logout" onClick={handleLogout} className="btn btn-secondary" style={{ fontSize: 12 }}>
             {t('auth.logout')}
           </button>
         </div>

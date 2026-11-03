@@ -68,6 +68,7 @@ export default function ShotCard({ shot, onSelect }: Props) {
   return (
     <div
       className="card"
+      data-tour="shot-card"
       onClick={() => onSelect ? onSelect(shot.id) : navigate(`/shots/${shot.id}`)}
       style={{
         display: 'grid',
