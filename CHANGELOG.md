@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.21.1] - 2026-11-03
+
+### Security
+- Bumped `fastify` to 5.12.8 (header/body validation bypasses, auth bypass via malformed URLs, HTTP/2 trailer DoS).
+- Bumped transitive `fast-jwt` to 6.3.6 (algorithm confusion / HS256 forgery, unsigned-JWT acceptance, claim-validator and expiry bypasses).
+- Bumped transitive `@fastify/busboy` to 3.2.4 (multipart DoS, CRLF injection), `fast-uri` to 3.1.9 / 4.2.3 (host/scheme confusion), `brace-expansion` to 2.1.7 / 5.0.12 (ReDoS/stack exhaustion) and `nanoid` to 3.3.20.
+- Dev tooling: `vite` 7.3.7, `vitest` 4.1.12 (`@vitest/mocker`), `source-map-js` 1.2.2.
+- Not yet fixed (requires major upgrades of `@fastify/static`, `archiver`, `prisma`): `glob`, `minimatch`, `deepmerge-ts`.
+
 ## [1.21.0] - 2026-11-03
 
 ### Added
